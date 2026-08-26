@@ -22,6 +22,7 @@ import {
   updateNeonEnvVars,
 } from "../utils/app_env_var_utils";
 import { detectFrameworkType } from "../utils/framework_utils";
+import { ensureNeonAuthTrustedOrigin } from "../utils/neon_utils";
 import { runningApps, stopAppByInfo } from "../utils/process_manager";
 import { cleanUpPort, executeApp } from "./app_runtime_service";
 import { appRunActorService } from "./app_run_actor_service";
@@ -74,6 +75,14 @@ export interface TeardownResult {
    * rather than quietly starting the user's app against isolated data.
    */
   envRestored: boolean;
+  /**
+   * False when a remote resource this run created is still out there — today,
+   * a temporary Neon branch whose delete failed and stays tracked for the
+   * startup sweep to retry. The E2E sandbox path never modifies the real env,
+   * so `envRestored` says nothing there; this is the flag that means "the user
+   * has something left over".
+   */
+  remoteCleanupCompleted: boolean;
 }
 
 export interface PreparedIsolation {
@@ -92,14 +101,20 @@ export interface PreparedIsolation {
    * failed. Never contains privileged keys.
    */
   authSetup?: IsolationAuthSetup;
+  /**
+   * Authorize the run-scoped server origin with the isolated auth provider.
+   * Only Neon Auth isolation supplies this; the E2E runner calls it after the
+   * server chooses its port and before Playwright sends any requests.
+   */
+  authorizeRuntimeOrigin?: (origin: string) => Promise<void>;
   teardown: (options?: TeardownOptions) => Promise<TeardownResult>;
 }
 
 type EmitOutput = (chunk: string, phase: "setup" | "running") => void;
 
 const NOOP_TEARDOWN = async () => {
-  // No isolation was set up, so there is nothing to restore.
-  return { envRestored: true };
+  // No isolation was set up, so there is nothing to restore or delete.
+  return { envRestored: true, remoteCleanupCompleted: true };
 };
 
 /**
@@ -123,11 +138,17 @@ export async function prepareIsolatedTestDatabase({
   emit,
   runtimeMode,
   signal,
+  appPathOverride,
+  restartApp = true,
 }: {
   app: AppRow;
   emit: EmitOutput;
   runtimeMode: string;
   signal?: AbortSignal;
+  /** E2E-only sandbox path. The recorder deliberately omits this. */
+  appPathOverride?: string;
+  /** E2E sandboxes start their own runtime after isolation is prepared. */
+  restartApp?: boolean;
 }): Promise<PreparedIsolation> {
   // Supabase: isolate via a throwaway, RLS-scoped test user.
   if (app.supabaseProjectId) {
@@ -135,7 +156,8 @@ export async function prepareIsolatedTestDatabase({
   }
 
   // No Neon project → nothing to isolate.
-  if (!app.neonProjectId) {
+  const neonProjectId = app.neonProjectId;
+  if (!neonProjectId) {
     return { isolation: { mode: "none" }, teardown: NOOP_TEARDOWN };
   }
 
@@ -150,7 +172,11 @@ export async function prepareIsolatedTestDatabase({
     };
   }
 
-  const appPath = getDyadAppPath(app.path);
+  const appPath = appPathOverride ?? getDyadAppPath(app.path);
+  // The env file this teardown restores lives inside the disposable sandbox,
+  // not in the user's project. Nothing the user can see depends on that restore
+  // succeeding, and the directory is deleted moments later either way.
+  const envIsDisposable = appPathOverride !== undefined;
   let envSnapshot: string | null = null;
   let envModified = false;
   let branchId: string | undefined;
@@ -173,12 +199,18 @@ export async function prepareIsolatedTestDatabase({
         logger.error(
           `Failed to restore .env.local for app ${app.id}: ${error}`,
         );
-        emit(
-          "Warning: Dyad couldn't restore your real database settings, so the temporary Neon branch was kept tracked for retry. Restore .env.local before running more tests.\n",
-          "setup",
-        );
+        // Only the recorder's swap can strand the user's real project. Saying
+        // this on the sandbox path would name a file in a directory that is
+        // about to be deleted and tell the user to fix something they never
+        // had a problem with.
+        if (!envIsDisposable) {
+          emit(
+            "Warning: Dyad couldn't restore your real database settings, so the temporary Neon branch was kept tracked for retry. Restore .env.local before running more tests.\n",
+            "setup",
+          );
+        }
       }
-      if (envRestored && !options.skipRestart) {
+      if (envRestored && restartApp && !options.skipRestart) {
         try {
           await restartAppInPlace({ app, appPath });
         } catch (error) {
@@ -196,15 +228,23 @@ export async function prepareIsolatedTestDatabase({
     // it, and the row's id is what the startup sweep reconciles from. App
     // deletion — the one case where that row is about to disappear — handles the
     // branch itself, after the deletion commits.
-    if (branchId && envRestored) {
+    //
+    // That reasoning cannot apply when the env file is the sandbox's own copy:
+    // nothing is left pointing at the branch, so gating on the restore there
+    // would only leak a real Neon branch over a file that no longer exists.
+    let remoteCleanupCompleted = true;
+    if (branchId && (envRestored || envIsDisposable)) {
       // Shared with the recovery path in `neon_test_branch`: the cleanup-only
       // marker is written before the fallible remote delete, so a crash in
       // between leaves a row that says the env is real and only the branch is
       // outstanding. Both callers must encode that ordering identically or
       // teardown and recovery drift apart.
-      await markAndDeleteTempTestBranch(app, branchId);
+      remoteCleanupCompleted = await markAndDeleteTempTestBranch(app, branchId);
+    } else if (branchId) {
+      // Deliberately kept, but still outstanding from the user's perspective.
+      remoteCleanupCompleted = false;
     }
-    return { envRestored };
+    return { envRestored, remoteCleanupCompleted };
   };
 
   try {
@@ -220,7 +260,15 @@ export async function prepareIsolatedTestDatabase({
     envSnapshot = await readEnvFileIfExists({ appPath });
 
     // 2. Create the throwaway branch (off the preview branch, CoW).
-    const branch = await createTempTestBranch(app);
+    //
+    // The E2E sandbox never points the real app env at this branch, so it asks
+    // for the cleanup-only marker to be the *first* thing persisted — inside
+    // `createTempTestBranch`, before its own auth provisioning. Writing it
+    // afterwards would leave a window where a crash makes startup recovery
+    // rewrite the user's real `.env.local` for a run that never touched it.
+    const branch = await createTempTestBranch(app, {
+      cleanupOnly: !restartApp,
+    });
     branchId = branch.branchId;
 
     // 3. Point the app at the throwaway branch. Mark the env as modified before
@@ -237,9 +285,11 @@ export async function prepareIsolatedTestDatabase({
 
     // 4. Restart so the dev server reads the throwaway branch, then wait until
     //    it's serving again before Playwright points at it.
-    emit("Starting the app against the isolated test database…\n", "setup");
-    const processId = await restartAppInPlace({ app, appPath });
-    await waitForServerReady(app.id, signal, processId);
+    if (restartApp) {
+      emit("Starting the app against the isolated test database…\n", "setup");
+      const processId = await restartAppInPlace({ app, appPath });
+      await waitForServerReady(app.id, signal, processId);
+    }
 
     // 5. If the app uses Neon Auth, provision a throwaway Better Auth account on
     //    the branch so auth-gated recordings/tests can sign in. Best-effort: on
@@ -285,6 +335,15 @@ export async function prepareIsolatedTestDatabase({
       isolation: { mode: "neon-branch" },
       testCredentials,
       authSetup,
+      authorizeRuntimeOrigin: branch.neonAuthBaseUrl
+        ? async (origin) => {
+            await ensureNeonAuthTrustedOrigin({
+              projectId: neonProjectId,
+              branchId: branch.branchId,
+              origin,
+            });
+          }
+        : undefined,
       teardown,
     };
   } catch (error) {
@@ -298,8 +357,9 @@ export async function prepareIsolatedTestDatabase({
     // `NOOP_TEARDOWN` — a no-op answers "restored" and would let the app be
     // relaunched against the temporary branch.
     let envRestored = false;
+    let remoteCleanupCompleted = false;
     try {
-      envRestored = (await teardown()).envRestored;
+      ({ envRestored, remoteCleanupCompleted } = await teardown());
     } catch (teardownError) {
       logger.error(
         `Teardown failed during error recovery for app ${app.id}: ${teardownError}`,
@@ -308,6 +368,7 @@ export async function prepareIsolatedTestDatabase({
     // Already torn down; this only carries the verdict to whoever asks later.
     const settledTeardown = async (): Promise<TeardownResult> => ({
       envRestored,
+      remoteCleanupCompleted,
     });
     // A user Stop surfaces here too (waitForServerReady & co. throw on abort).
     // That's a deliberate cancellation, not an infra failure — don't show the
@@ -369,19 +430,28 @@ async function prepareSupabaseTestUserIsolation({
   // Nothing here touches `.env.local` — the Supabase path isolates by test user,
   // not by swapping the app's database — so the environment is never at risk.
   const teardown = async (): Promise<TeardownResult> => {
+    let remoteCleanupCompleted = true;
     if (testUser) {
       try {
-        await deleteTempTestUser({
+        // The RETURN value, not just the absence of a throw. This delete is
+        // best-effort inside — a 5xx from the Auth Admin API, or a
+        // service-role key fetch that fails, resolves `false` and deliberately
+        // leaves `supabaseTestUserId` on the row for the startup sweep. Reading
+        // only the throw would report a clean teardown for a test user still
+        // sitting in the user's real project. The Neon sibling reads its
+        // verdict the same way.
+        remoteCleanupCompleted = await deleteTempTestUser({
           ...app,
           supabaseTestUserId: testUser.userId,
         });
       } catch (error) {
+        remoteCleanupCompleted = false;
         logger.error(
           `Failed to delete isolated Supabase test user ${testUser.userId} for app ${app.id}: ${error}`,
         );
       }
     }
-    return { envRestored: true };
+    return { envRestored: true, remoteCleanupCompleted };
   };
 
   try {
@@ -472,14 +542,29 @@ async function prepareSupabaseTestUserIsolation({
       teardown,
     };
   } catch (error) {
-    await teardown();
+    // Keep the verdict. `NOOP_TEARDOWN` answers "nothing left over", which
+    // would report a clean cancellation for a Stop pressed just after the test
+    // user was created and whose delete then failed. The Neon path carries its
+    // verdict forward the same way.
+    let remoteCleanupCompleted = false;
+    try {
+      ({ remoteCleanupCompleted } = await teardown());
+    } catch (teardownError) {
+      logger.error(
+        `Teardown failed during error recovery for app ${app.id}: ${teardownError}`,
+      );
+    }
+    const settledTeardown = async (): Promise<TeardownResult> => ({
+      envRestored: true,
+      remoteCleanupCompleted,
+    });
     // The pre-flight abort check above throws into this catch; a user Stop is
     // a deliberate cancellation, not a setup failure.
     if (signal?.aborted) {
       return {
         isolation: { mode: "none", reason: "Test run stopped." },
         infraError: { message: "Test run stopped." },
-        teardown: NOOP_TEARDOWN,
+        teardown: settledTeardown,
       };
     }
     const message = error instanceof Error ? error.message : String(error);
@@ -494,7 +579,7 @@ async function prepareSupabaseTestUserIsolation({
       infraError: {
         message: `Couldn't set up an isolated test user, so the run was stopped. Your real data was not touched. Reason: ${message}`,
       },
-      teardown: NOOP_TEARDOWN,
+      teardown: settledTeardown,
     };
   }
 }

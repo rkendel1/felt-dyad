@@ -143,6 +143,7 @@ function resolveAuthBranchType(
  */
 export async function createTempTestBranch(
   appData: AppRow,
+  { cleanupOnly = false }: { cleanupOnly?: boolean } = {},
 ): Promise<TempTestBranch> {
   const projectId = appData.neonProjectId;
   if (!projectId) {
@@ -216,10 +217,20 @@ export async function createTempTestBranch(
   // SQLite lock), neither teardown nor reconciliation can find the branch to
   // delete it, so remove the branch we just created before rethrowing rather
   // than leaking it.
+  //
+  // A caller that will never point the real app at this branch writes the
+  // cleanup-only form HERE, not after this function returns. Everything below —
+  // Neon Auth provisioning, the cookie secret, their retries and backoff — can
+  // take seconds, and a crash or quit inside that window would otherwise leave
+  // a raw marker that startup recovery reads as the recorder's env swap and
+  // "restores" by rewriting the user's real `.env.local`.
+  const marker = cleanupOnly
+    ? `${CLEANUP_ONLY_BRANCH_PREFIX}${branch.id}`
+    : branch.id;
   try {
     await db
       .update(apps)
-      .set({ neonTestBranchId: branch.id })
+      .set({ neonTestBranchId: marker })
       .where(eq(apps.id, appData.id));
   } catch (error) {
     await deleteBranchBestEffort(projectId, branch.id);
@@ -352,7 +363,7 @@ export async function deleteTempTestBranch(appData: AppRow): Promise<boolean> {
 export async function markAndDeleteTempTestBranch(
   appData: AppRow,
   branchId: string,
-): Promise<void> {
+): Promise<boolean> {
   // `deleteTempTestBranch` reads the marker off the row it is given, and the
   // caller's copy is stale by now, so carry the branch we actually created.
   let cleanupApp: AppRow = { ...appData, neonTestBranchId: branchId };
@@ -364,11 +375,15 @@ export async function markAndDeleteTempTestBranch(
     );
   }
   try {
-    await deleteTempTestBranch(cleanupApp);
+    // Still best-effort — never throws — but the verdict is reported now.
+    // Callers that promise the user "Dyad will retry remote cleanup on next
+    // startup" need to know whether the branch actually leaked.
+    return await deleteTempTestBranch(cleanupApp);
   } catch (error) {
     logger.error(
       `Failed to delete temporary test branch ${trackedBranchId(branchId)} for app ${appData.id}: ${error}`,
     );
+    return false;
   }
 }
 

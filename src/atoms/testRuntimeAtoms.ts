@@ -44,7 +44,7 @@ export type TestRunPhase =
   | "setup" // first-run Playwright bootstrap streaming
   | "running" // playwright test executing
   | "stopping" // Stop pressed; killing the Playwright process tree
-  | "cleaning-up"; // tests gone; isolation teardown still restoring the app
+  | "cleaning-up"; // tests gone; isolated provider data is still being removed
 
 export interface TestRunState {
   phase: TestRunPhase;
@@ -72,6 +72,12 @@ export interface TestRunState {
    * a run completes.
    */
   isolation?: TestIsolation;
+  /**
+   * Whether the run executed in an isolated sandbox. Drives the cleanup copy:
+   * the fallback path (Docker/cloud runtime, or the user's opt-out) creates no
+   * workspace, so there is no sandbox to claim Dyad is deleting.
+   */
+  sandboxed?: boolean;
   startedAt?: number;
 }
 
@@ -275,6 +281,8 @@ export const applyTestRunStartedAtom = atom(
             ),
         runError: undefined,
         isolation: undefined,
+        // Reported by the main process once the run has picked its path.
+        sandboxed: undefined,
         startedAt: startedAt ?? Date.now(),
       }),
     });

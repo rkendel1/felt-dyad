@@ -4,9 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { eq } from "drizzle-orm";
 
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
 import type { RemoveFileAndCommitResult } from "../services/git_service";
 import { apps } from "@/db/schema";
+import { DEFAULT_SETTINGS } from "@/main/settings";
+import { runningApps } from "../utils/process_manager";
 import {
   appOperationCoordinator,
   type AppOperationRequest,
@@ -74,6 +76,13 @@ vi.mock("../services/git_service", () => ({
 
 const queueCloudSandboxSnapshotSyncMock = vi.hoisted(() => vi.fn());
 const prepareIsolatedTestDatabaseMock = vi.hoisted(() => vi.fn());
+const readSettingsMock = vi.hoisted(() => vi.fn());
+const sendTelemetryEventMock = vi.hoisted(() => vi.fn());
+const ensurePlaywrightBootstrapMock = vi.hoisted(() => vi.fn());
+const createE2eTestWorkspaceMock = vi.hoisted(() => vi.fn());
+const retainE2eTestArtifactsMock = vi.hoisted(() => vi.fn());
+const startE2eTestRuntimeMock = vi.hoisted(() => vi.fn());
+const spawnStreamingMock = vi.hoisted(() => vi.fn());
 const broadcastToRegisteredWindowsMock = vi.hoisted(() => vi.fn());
 // Partially mocked: this module is pulled in transitively by the runtime
 // service, so replacing it wholesale breaks whenever an unrelated export is
@@ -94,6 +103,49 @@ vi.mock("../services/isolated_test_db", async (importOriginal) => {
     prepareIsolatedTestDatabase: prepareIsolatedTestDatabaseMock,
   };
 });
+vi.mock("../utils/playwright_bootstrap", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../utils/playwright_bootstrap")>();
+  return {
+    ...actual,
+    ensurePlaywrightBootstrap: ensurePlaywrightBootstrapMock,
+  };
+});
+vi.mock("../utils/socket_firewall", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../utils/socket_firewall")>();
+  return {
+    ...actual,
+    getPackageManagerCommandEnv: vi.fn(
+      (env: NodeJS.ProcessEnv = process.env) => env,
+    ),
+  };
+});
+vi.mock("../services/e2e_test_workspace", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../services/e2e_test_workspace")>();
+  return {
+    ...actual,
+    createE2eTestWorkspace: createE2eTestWorkspaceMock,
+    retainE2eTestArtifacts: retainE2eTestArtifactsMock,
+  };
+});
+vi.mock("../services/e2e_test_runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../services/e2e_test_runtime")>();
+  return { ...actual, startE2eTestRuntime: startE2eTestRuntimeMock };
+});
+vi.mock("@/main/settings", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/main/settings")>();
+  return { ...actual, readSettings: readSettingsMock };
+});
+vi.mock("../utils/telemetry", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../utils/telemetry")>();
+  return { ...actual, sendTelemetryEvent: sendTelemetryEventMock };
+});
+vi.mock("../utils/spawn_streaming", () => ({
+  spawnStreaming: spawnStreamingMock,
+}));
 vi.mock("@/ipc/utils/window_broadcast", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@/ipc/utils/window_broadcast")>();
@@ -117,6 +169,37 @@ describe("tests handlers", () => {
     removeFileAndCommitMock.mockClear();
     queueCloudSandboxSnapshotSyncMock.mockClear();
     prepareIsolatedTestDatabaseMock.mockReset();
+    readSettingsMock.mockReset();
+    readSettingsMock.mockImplementation(() =>
+      structuredClone(DEFAULT_SETTINGS),
+    );
+    sendTelemetryEventMock.mockReset();
+    ensurePlaywrightBootstrapMock.mockReset();
+    ensurePlaywrightBootstrapMock.mockResolvedValue({ installed: false });
+    retainE2eTestArtifactsMock.mockReset();
+    retainE2eTestArtifactsMock.mockResolvedValue(undefined);
+    createE2eTestWorkspaceMock.mockReset();
+    createE2eTestWorkspaceMock.mockImplementation(
+      async ({ appPath }: { appPath: string }) => ({
+        workspacePath: appPath,
+        artifactPath: path.join(TEMP_BASE, "artifacts"),
+        dispose: vi.fn(),
+      }),
+    );
+    startE2eTestRuntimeMock.mockReset();
+    startE2eTestRuntimeMock.mockResolvedValue({
+      baseUrl: "http://127.0.0.1:49999",
+      process: null,
+      stop: vi.fn(),
+    });
+    spawnStreamingMock.mockReset();
+    spawnStreamingMock.mockResolvedValue({
+      code: 1,
+      stdout: "",
+      stderr: "no report",
+      aborted: false,
+      timedOut: false,
+    });
     broadcastToRegisteredWindowsMock.mockClear();
     harness = setupHandlerTestHarness();
     registerTestsHandlers();
@@ -142,7 +225,7 @@ describe("tests handlers", () => {
   }
 
   describe("tests:run", () => {
-    it("owns the working tree without excluding Git ref snapshots", async () => {
+    it("releases the working tree after snapshotting the sandbox", async () => {
       const appId = seedApp("app");
       harness.db
         .update(apps)
@@ -152,7 +235,10 @@ describe("tests handlers", () => {
       prepareIsolatedTestDatabaseMock.mockResolvedValue({
         isolation: { mode: "none" },
         infraError: { message: "setup stopped" },
-        teardown: vi.fn().mockResolvedValue({ envRestored: true }),
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: true,
+        }),
       });
       const requests: AppOperationRequest[] = [];
       const originalRun = appOperationCoordinator.run.bind(
@@ -180,13 +266,25 @@ describe("tests handlers", () => {
       ).toMatchObject({
         resources: [
           { resource: "app-path", mode: "read" },
-          { resource: "repository-ref", mode: "read" },
-          "repository-worktree",
           "provider",
-          "runtime",
-          "runtime-config",
           "test-files",
         ],
+        allowCompatibleQueueBypass: true,
+      });
+      expect(
+        requests.find(
+          ({ operation }) => operation === "prepare-e2e-test-workspace",
+        ),
+      ).toMatchObject({
+        resources: [
+          { resource: "app-path", mode: "read" },
+          { resource: "repository-ref", mode: "read" },
+          "repository-worktree",
+          "test-files",
+        ],
+        // Same as the run stage: while the snapshot waits behind an unrelated
+        // blocker, work that only conflicts with it on `test-files` must not
+        // queue behind the whole test run.
         allowCompatibleQueueBypass: true,
       });
     });
@@ -229,7 +327,7 @@ describe("tests handlers", () => {
       }
     });
 
-    it("reports an unrestored test-run environment", async () => {
+    it("reports a leaked test branch, not an unrestored sandbox env", async () => {
       const appId = seedApp("app");
       harness.db
         .update(apps)
@@ -241,7 +339,10 @@ describe("tests handlers", () => {
         infraError: {
           message: "Isolation setup stopped before running tests.",
         },
-        teardown: vi.fn().mockResolvedValue({ envRestored: false }),
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: false,
+        }),
       });
 
       const result = await runAppTestsWithIsolation({
@@ -250,7 +351,488 @@ describe("tests handlers", () => {
         source: "panel",
       });
 
-      expect(result.infraError?.message).toMatch(/real database settings/i);
+      expect(result.infraError?.message).toMatch(/isolated test database/i);
+      expect(result.infraError?.message).toMatch(/settings were not changed/i);
+    });
+
+    it("names the leftover Supabase test user, not a database", async () => {
+      // The Supabase path leaks a temporary auth user in the user's real
+      // project — no sweep picks that up, and no database was involved.
+      const appId = seedApp("app");
+      harness.db
+        .update(apps)
+        .set({ testingEnabled: true })
+        .where(eq(apps.id, appId))
+        .run();
+      prepareIsolatedTestDatabaseMock.mockResolvedValue({
+        isolation: { mode: "supabase-test-user" },
+        infraError: {
+          message: "Isolation setup stopped before running tests.",
+        },
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: false,
+        }),
+      });
+
+      const result = await runAppTestsWithIsolation({
+        event: { sender: {} } as any,
+        appId,
+        source: "panel",
+      });
+
+      expect(result.infraError?.message).toMatch(/temporary test user/i);
+      expect(result.infraError?.message).not.toMatch(/isolated test database/i);
+    });
+
+    it("stays quiet when only the sandbox env was left unrestored", async () => {
+      // The sandbox `.env.local` is deleted with the workspace seconds later,
+      // so `envRestored` says nothing the user needs to hear.
+      const appId = seedApp("app");
+      harness.db
+        .update(apps)
+        .set({ testingEnabled: true })
+        .where(eq(apps.id, appId))
+        .run();
+      prepareIsolatedTestDatabaseMock.mockResolvedValue({
+        isolation: { mode: "neon-branch" },
+        infraError: {
+          message: "Isolation setup stopped before running tests.",
+        },
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: false,
+          remoteCleanupCompleted: true,
+        }),
+      });
+
+      const result = await runAppTestsWithIsolation({
+        event: { sender: {} } as any,
+        appId,
+        source: "panel",
+      });
+
+      expect(result.infraError?.message).toBe(
+        "Isolation setup stopped before running tests.",
+      );
+    });
+
+    it("authorizes the isolated server origin before Playwright starts", async () => {
+      const appId = seedApp("app");
+      harness.db
+        .update(apps)
+        .set({ testingEnabled: true })
+        .where(eq(apps.id, appId))
+        .run();
+      const events: string[] = [];
+      const authorizeRuntimeOrigin = vi.fn(async () => {
+        events.push("authorize");
+      });
+      prepareIsolatedTestDatabaseMock.mockResolvedValue({
+        isolation: { mode: "neon-branch" },
+        authorizeRuntimeOrigin,
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: true,
+        }),
+      });
+      startE2eTestRuntimeMock.mockImplementation(async () => {
+        events.push("server");
+        return {
+          baseUrl: "http://127.0.0.1:49999/path",
+          process: null,
+          stop: vi.fn(),
+        };
+      });
+      spawnStreamingMock.mockImplementation(async () => {
+        events.push("playwright");
+        return {
+          code: 1,
+          stdout: "",
+          stderr: "no report",
+          aborted: false,
+          timedOut: false,
+        };
+      });
+
+      await runAppTestsWithIsolation({
+        event: { sender: {} } as any,
+        appId,
+        source: "panel",
+      });
+
+      expect(authorizeRuntimeOrigin).toHaveBeenCalledWith(
+        "http://127.0.0.1:49999",
+      );
+      expect(events).toEqual(["server", "authorize", "playwright"]);
+    });
+
+    it("stops and cleans up when Neon origin authorization fails", async () => {
+      const appId = seedApp("app");
+      harness.db
+        .update(apps)
+        .set({ testingEnabled: true })
+        .where(eq(apps.id, appId))
+        .run();
+      const stop = vi.fn().mockResolvedValue(undefined);
+      const teardown = vi
+        .fn()
+        .mockResolvedValue({ envRestored: true, remoteCleanupCompleted: true });
+      const dispose = vi.fn().mockResolvedValue(undefined);
+      createE2eTestWorkspaceMock.mockResolvedValue({
+        workspacePath: path.join(TEMP_BASE, "app"),
+        artifactPath: path.join(TEMP_BASE, "artifacts"),
+        dispose,
+      });
+      prepareIsolatedTestDatabaseMock.mockResolvedValue({
+        isolation: { mode: "neon-branch" },
+        authorizeRuntimeOrigin: vi
+          .fn()
+          .mockRejectedValue(new Error("Neon unavailable")),
+        teardown,
+      });
+      startE2eTestRuntimeMock.mockResolvedValue({
+        baseUrl: "http://127.0.0.1:49999",
+        process: null,
+        stop,
+      });
+
+      const result = await runAppTestsWithIsolation({
+        event: { sender: {} } as any,
+        appId,
+        source: "panel",
+      });
+
+      expect(result.infraError?.message).toMatch(/Neon Auth/i);
+      expect(spawnStreamingMock).not.toHaveBeenCalled();
+      expect(stop).toHaveBeenCalledOnce();
+      expect(teardown).toHaveBeenCalledOnce();
+      expect(dispose).toHaveBeenCalledOnce();
+    });
+
+    it("refuses a testing-disabled app before bootstrapping or copying", async () => {
+      const appId = seedApp("app");
+
+      const result = await runAppTestsWithIsolation({
+        event: { sender: {} } as any,
+        appId,
+        source: "panel",
+      });
+
+      expect(result.infraError?.message).toMatch(/Testing isn't enabled/i);
+      // Bootstrap writes into the user's real project and the snapshot copies
+      // the whole app; a refusal must stay side-effect-free.
+      expect(ensurePlaywrightBootstrapMock).not.toHaveBeenCalled();
+      expect(createE2eTestWorkspaceMock).not.toHaveBeenCalled();
+    });
+
+    it("reports the first run in telemetry when bootstrap installed Playwright", async () => {
+      const appId = seedApp("app");
+      harness.db
+        .update(apps)
+        .set({ testingEnabled: true })
+        .where(eq(apps.id, appId))
+        .run();
+      ensurePlaywrightBootstrapMock.mockResolvedValue({ installed: true });
+      prepareIsolatedTestDatabaseMock.mockResolvedValue({
+        isolation: { mode: "none" },
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: true,
+        }),
+      });
+      spawnStreamingMock.mockImplementation(
+        async ({ cwd }: { cwd: string }) => {
+          const reportPath = path.join(cwd, "test-results", "results.json");
+          fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+          fs.writeFileSync(
+            reportPath,
+            JSON.stringify({
+              suites: [
+                {
+                  file: "e2e-tests/a.spec.ts",
+                  specs: [
+                    {
+                      title: "works",
+                      file: "e2e-tests/a.spec.ts",
+                      line: 1,
+                      tests: [{ status: "expected", results: [{}] }],
+                    },
+                  ],
+                },
+              ],
+            }),
+          );
+          return {
+            code: 0,
+            stdout: "",
+            stderr: "",
+            aborted: false,
+            timedOut: false,
+          };
+        },
+      );
+
+      const result = await runAppTestsWithIsolation({
+        event: { sender: {} } as any,
+        appId,
+        source: "panel",
+      });
+
+      expect(result.infraError).toBeUndefined();
+      expect(sendTelemetryEventMock).toHaveBeenCalledWith(
+        "e2e_tests_run",
+        expect.objectContaining({ first_run: true }),
+      );
+    });
+
+    it("returns cleanly when Stop lands during the sandbox copy", async () => {
+      // The workspace copy and the test-server start both signal cancellation
+      // by throwing. Letting that escape rejects the IPC call and records an
+      // internal product exception for an ordinary user cancellation.
+      const appId = seedApp("app");
+      harness.db
+        .update(apps)
+        .set({ testingEnabled: true })
+        .where(eq(apps.id, appId))
+        .run();
+      const stop = new AbortController();
+      createE2eTestWorkspaceMock.mockImplementation(async () => {
+        stop.abort();
+        throw new Error("Test run stopped.");
+      });
+
+      const result = await runAppTestsWithIsolation({
+        event: { sender: {} } as any,
+        appId,
+        source: "panel",
+        externalSignal: stop.signal,
+      });
+
+      expect(result.infraError?.message).toBe("Test run stopped.");
+      expect(startE2eTestRuntimeMock).not.toHaveBeenCalled();
+    });
+
+    it("reports a failed Playwright bootstrap as an infra error, not a crash", async () => {
+      // This call used to live inside `runAppTestsCore`, which classified it as
+      // an `infraError`. Letting it escape from the sandbox prepare stage would
+      // reject the IPC call, record an internal product exception, and throw
+      // out of the agent's turn instead of counting as a non-attempt.
+      const appId = seedApp("app");
+      harness.db
+        .update(apps)
+        .set({ testingEnabled: true })
+        .where(eq(apps.id, appId))
+        .run();
+      ensurePlaywrightBootstrapMock.mockRejectedValue(
+        new Error("npm registry unreachable"),
+      );
+
+      const result = await runAppTestsWithIsolation({
+        event: { sender: {} } as any,
+        appId,
+        source: "panel",
+      });
+
+      expect(result.infraError?.message).toMatch(/registry unreachable/i);
+      expect(result.results).toEqual([]);
+      expect(createE2eTestWorkspaceMock).not.toHaveBeenCalled();
+      // No workspace was ever created, so the cleanup copy must not offer to
+      // remove one — `CancellationBanner` and the panel both branch on this.
+      const finished = broadcastToRegisteredWindowsMock.mock.calls
+        .filter(([, channel]) => channel === "tests:run-state")
+        .map(([, , payload]) => payload)
+        .find((payload) => payload.state === "finished");
+      expect(finished?.sandboxed).toBe(false);
+    });
+
+    it("reports a failed sandbox copy as an infra error, not a crash", async () => {
+      // The Run button is enabled without a dev server now, so an app whose
+      // dependencies were never installed reaches this — and must be told so,
+      // not answered with a rejected IPC call.
+      const appId = seedApp("app");
+      harness.db
+        .update(apps)
+        .set({ testingEnabled: true })
+        .where(eq(apps.id, appId))
+        .run();
+      createE2eTestWorkspaceMock.mockRejectedValue(
+        new DyadError(
+          "The app's dependencies are not installed. Start the app successfully before running tests.",
+          DyadErrorKind.Precondition,
+        ),
+      );
+
+      const result = await runAppTestsWithIsolation({
+        event: { sender: {} } as any,
+        appId,
+        source: "panel",
+      });
+
+      expect(result.infraError?.message).toMatch(
+        /dependencies are not installed/i,
+      );
+      expect(startE2eTestRuntimeMock).not.toHaveBeenCalled();
+    });
+
+    it("keeps a finished run's results when artifact retention fails", async () => {
+      const appId = seedApp("app");
+      harness.db
+        .update(apps)
+        .set({ testingEnabled: true })
+        .where(eq(apps.id, appId))
+        .run();
+      prepareIsolatedTestDatabaseMock.mockResolvedValue({
+        isolation: { mode: "none" },
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: true,
+        }),
+      });
+      // Windows still holding a trace file, a full disk — retention is
+      // best-effort and must cost at most the screenshots.
+      retainE2eTestArtifactsMock.mockRejectedValue(new Error("EBUSY"));
+      spawnStreamingMock.mockImplementation(
+        async ({ cwd }: { cwd: string }) => {
+          const reportPath = path.join(cwd, "test-results", "results.json");
+          fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+          fs.writeFileSync(
+            reportPath,
+            JSON.stringify({
+              suites: [
+                {
+                  file: "e2e-tests/a.spec.ts",
+                  specs: [
+                    {
+                      title: "works",
+                      ok: true,
+                      tests: [{ results: [{ status: "passed" }] }],
+                    },
+                  ],
+                },
+              ],
+            }),
+          );
+          return {
+            code: 0,
+            stdout: "",
+            stderr: "",
+            aborted: false,
+            timedOut: false,
+          };
+        },
+      );
+
+      const result = await runAppTestsWithIsolation({
+        event: { sender: {} } as any,
+        appId,
+        source: "panel",
+      });
+
+      expect(result.infraError).toBeUndefined();
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].status).toBe("passed");
+    });
+
+    it("routes around the sandbox when the user turned it off", async () => {
+      const appId = seedApp("app");
+      harness.db
+        .update(apps)
+        .set({ testingEnabled: true })
+        .where(eq(apps.id, appId))
+        .run();
+      readSettingsMock.mockImplementation(() => ({
+        ...structuredClone(DEFAULT_SETTINGS),
+        disableSandboxedE2eTests: true,
+      }));
+      runningApps.set(appId, { proxyUrl: "http://localhost:32100" } as any);
+      prepareIsolatedTestDatabaseMock.mockResolvedValue({
+        isolation: { mode: "none" },
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: true,
+        }),
+      });
+
+      let result;
+      try {
+        result = await runAppTestsWithIsolation({
+          event: { sender: {} } as any,
+          appId,
+          source: "panel",
+        });
+      } finally {
+        runningApps.clear();
+      }
+
+      expect(createE2eTestWorkspaceMock).not.toHaveBeenCalled();
+      expect(startE2eTestRuntimeMock).not.toHaveBeenCalled();
+      expect(spawnStreamingMock).toHaveBeenCalled();
+      expect(result.isolation?.reason).toMatch(/turned off in Settings/i);
+    });
+
+    describe("non-host runtime", () => {
+      afterEach(() => {
+        runningApps.clear();
+      });
+
+      function seedRunningApp(name: string): number {
+        const appId = seedApp(name);
+        harness.db
+          .update(apps)
+          .set({ testingEnabled: true })
+          .where(eq(apps.id, appId))
+          .run();
+        readSettingsMock.mockImplementation(() => ({
+          ...structuredClone(DEFAULT_SETTINGS),
+          runtimeMode2: "docker",
+        }));
+        runningApps.set(appId, { proxyUrl: "http://localhost:32100" } as any);
+        return appId;
+      }
+
+      it("keeps running against the normal preview and discloses the gap", async () => {
+        const appId = seedRunningApp("app");
+        prepareIsolatedTestDatabaseMock.mockResolvedValue({
+          isolation: { mode: "supabase-test-user" },
+          teardown: vi.fn().mockResolvedValue({
+            envRestored: true,
+            remoteCleanupCompleted: true,
+          }),
+        });
+
+        const result = await runAppTestsWithIsolation({
+          event: { sender: {} } as any,
+          appId,
+          source: "panel",
+        });
+
+        expect(spawnStreamingMock).toHaveBeenCalled();
+        expect(createE2eTestWorkspaceMock).not.toHaveBeenCalled();
+        expect(startE2eTestRuntimeMock).not.toHaveBeenCalled();
+        expect(result.isolation).toMatchObject({
+          mode: "supabase-test-user",
+          reason: expect.stringMatching(/docker runtime/i),
+        });
+      });
+
+      it("refuses a Neon app rather than testing against the real database", async () => {
+        const appId = seedRunningApp("app");
+        harness.db
+          .update(apps)
+          .set({ neonProjectId: "neon-project" })
+          .where(eq(apps.id, appId))
+          .run();
+
+        const result = await runAppTestsWithIsolation({
+          event: { sender: {} } as any,
+          appId,
+          source: "panel",
+        });
+
+        expect(result.infraError?.message).toMatch(/real database/i);
+        expect(prepareIsolatedTestDatabaseMock).not.toHaveBeenCalled();
+        expect(spawnStreamingMock).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -291,7 +873,7 @@ describe("tests handlers", () => {
         isolation: { mode: "neon-branch" },
         teardown: vi.fn().mockImplementation(async () => {
           statesWhenTeardownRan = runStates();
-          return { envRestored: true };
+          return { envRestored: true, remoteCleanupCompleted: true };
         }),
       });
 
@@ -307,13 +889,17 @@ describe("tests handlers", () => {
       expect(runStates()).toContain("finished");
     });
 
-    it("stays quiet when there is no isolation to tear down", async () => {
-      // `NOOP_TEARDOWN` returns immediately, so a `cleaning-up` label would
-      // flash for a frame and read as a glitch.
+    it("announces the sandbox deletion even with no isolation to tear down", async () => {
+      // `NOOP_TEARDOWN` returns immediately, but removing the cloned
+      // node_modules tree does not, and the panel keeps Run/Record/Delete
+      // disabled for all of it. An unlabelled wait reads as a hang.
       const appId = seedTestableApp("app");
       prepareIsolatedTestDatabaseMock.mockResolvedValue({
         isolation: { mode: "none" },
-        teardown: vi.fn().mockResolvedValue({ envRestored: true }),
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: true,
+        }),
       });
 
       await runAppTestsWithIsolation({
@@ -322,6 +908,37 @@ describe("tests handlers", () => {
         source: "panel",
       });
 
+      expect(runStates()).toContain("cleaning-up");
+    });
+
+    it("stays quiet when no sandbox was taken and there is nothing to tear down", async () => {
+      // Without a sandbox to delete, `NOOP_TEARDOWN` returns immediately and a
+      // `cleaning-up` label would flash for a frame and read as a glitch.
+      const appId = seedTestableApp("app");
+      readSettingsMock.mockImplementation(() => ({
+        ...structuredClone(DEFAULT_SETTINGS),
+        disableSandboxedE2eTests: true,
+      }));
+      runningApps.set(appId, { proxyUrl: "http://localhost:32100" } as any);
+      prepareIsolatedTestDatabaseMock.mockResolvedValue({
+        isolation: { mode: "none" },
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: true,
+        }),
+      });
+
+      try {
+        await runAppTestsWithIsolation({
+          event: { sender: {} } as any,
+          appId,
+          source: "panel",
+        });
+      } finally {
+        runningApps.clear();
+      }
+
+      expect(createE2eTestWorkspaceMock).not.toHaveBeenCalled();
       expect(runStates()).not.toContain("cleaning-up");
     });
 
@@ -331,7 +948,10 @@ describe("tests handlers", () => {
       const appId = seedTestableApp("app");
       prepareIsolatedTestDatabaseMock.mockResolvedValue({
         isolation: { mode: "none" },
-        teardown: vi.fn().mockResolvedValue({ envRestored: true }),
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: true,
+        }),
       });
 
       await runAppTestsWithIsolation({
@@ -354,7 +974,10 @@ describe("tests handlers", () => {
       let resolveFirstPrepare!: (value: {
         isolation: { mode: "neon-branch" };
         infraError: { message: string };
-        teardown: () => Promise<{ envRestored: boolean }>;
+        teardown: () => Promise<{
+          envRestored: boolean;
+          remoteCleanupCompleted: boolean;
+        }>;
       }) => void;
       prepareIsolatedTestDatabaseMock
         .mockReturnValueOnce(
@@ -365,7 +988,10 @@ describe("tests handlers", () => {
         .mockResolvedValueOnce({
           isolation: { mode: "none" },
           infraError: { message: "second run stopped before execution" },
-          teardown: vi.fn().mockResolvedValue({ envRestored: true }),
+          teardown: vi.fn().mockResolvedValue({
+            envRestored: true,
+            remoteCleanupCompleted: true,
+          }),
         });
 
       const firstRun = runAppTestsWithIsolation({
@@ -385,13 +1011,25 @@ describe("tests handlers", () => {
       resolveFirstPrepare({
         isolation: { mode: "neon-branch" },
         infraError: { message: "first run stopped before execution" },
-        teardown: vi.fn().mockResolvedValue({ envRestored: true }),
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: true,
+        }),
       });
 
       await Promise.all([firstRun, secondRun]);
 
-      expect(runStates()).not.toContain("stopping");
-      expect(runStates()).not.toContain("cleaning-up");
+      // The superseded run must contribute no progress at all. The replacement
+      // legitimately announces its own sandbox deletion, so the assertion is
+      // scoped to the first run's generation rather than to the whole stream.
+      const supersededRunId = Math.min(
+        ...runStatePayloads().map((payload) => payload.runId),
+      );
+      const supersededStates = runStatePayloads()
+        .filter((payload) => payload.runId === supersededRunId)
+        .map((payload) => payload.state);
+      expect(supersededStates).not.toContain("stopping");
+      expect(supersededStates).not.toContain("cleaning-up");
     });
 
     it("attributes a queued run's stop to its own generation", async () => {
@@ -399,7 +1037,10 @@ describe("tests handlers", () => {
       let resolveFirstPrepare!: (value: {
         isolation: { mode: "neon-branch" };
         infraError: { message: string };
-        teardown: () => Promise<{ envRestored: boolean }>;
+        teardown: () => Promise<{
+          envRestored: boolean;
+          remoteCleanupCompleted: boolean;
+        }>;
       }) => void;
       prepareIsolatedTestDatabaseMock
         .mockReturnValueOnce(
@@ -410,7 +1051,10 @@ describe("tests handlers", () => {
         .mockResolvedValueOnce({
           isolation: { mode: "none" },
           infraError: { message: "queued run stopped before execution" },
-          teardown: vi.fn().mockResolvedValue({ envRestored: true }),
+          teardown: vi.fn().mockResolvedValue({
+            envRestored: true,
+            remoteCleanupCompleted: true,
+          }),
         });
 
       const firstRun = runAppTestsWithIsolation({
@@ -445,7 +1089,10 @@ describe("tests handlers", () => {
       resolveFirstPrepare({
         isolation: { mode: "neon-branch" },
         infraError: { message: "first run superseded" },
-        teardown: vi.fn().mockResolvedValue({ envRestored: true }),
+        teardown: vi.fn().mockResolvedValue({
+          envRestored: true,
+          remoteCleanupCompleted: true,
+        }),
       });
       await Promise.all([firstRun, secondRun]);
     });
