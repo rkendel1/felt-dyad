@@ -219,6 +219,8 @@ describe("shouldBypassNonProTelemetrySampling", () => {
       "screenshot-prompt:capture-failed",
       "screenshot-prompt:decline",
       "screenshot-prompt:dismissed",
+      "issue-form:opened",
+      "issue-form:blocked",
       "session-report:copy-session-id",
     ]) {
       expect(
