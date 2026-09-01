@@ -209,6 +209,7 @@ export type {
   FeltDBConnection,
   FeltDBProject,
   FeltDBAccount,
+  FeltDBState,
   InitializeFeltDBParams,
   GetFeltDBStatusParams,
   SetManagedProjectParams,

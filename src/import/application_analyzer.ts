@@ -4,11 +4,14 @@ import {
   ApplicationAnalysis,
   FrameworkType,
 } from "@/ipc/types/conversion-analysis";
+import { discoverJavaScriptProject } from "./project_discovery";
 
 export async function analyzeApplication(
   appPath: string,
 ): Promise<ApplicationAnalysis> {
-  const packageJsonPath = path.join(appPath, "package.json");
+  const discovered = discoverJavaScriptProject(appPath);
+  const analysisPath = discovered?.rootPath ?? appPath;
+  const packageJsonPath = path.join(analysisPath, "package.json");
 
   let packageJson = { devDependencies: {}, dependencies: {} };
   if (fs.existsSync(packageJsonPath)) {
@@ -24,19 +27,19 @@ export async function analyzeApplication(
   const framework = detectFramework(packageJson);
 
   // Detect package manager
-  const packageManager = detectPackageManager(appPath);
+  const packageManager = discovered?.packageManager ?? "unknown";
 
   // Detect build system
   const buildSystem = detectBuildSystem(packageJson);
 
   // Detect entry points
-  const entryPoints = detectEntryPoints(appPath, packageJson);
+  const entryPoints = detectEntryPoints(analysisPath, packageJson);
 
   // Detect routes
-  const routes = detectRoutes(appPath, framework);
+  const routes = detectRoutes(analysisPath, framework);
 
   // Detect components
-  const components = detectComponents(appPath, framework);
+  const components = detectComponents(analysisPath, framework);
 
   return {
     framework,
@@ -58,16 +61,6 @@ function detectFramework(packageJson: any): FrameworkType {
   if (deps.solid) return "SOLID";
 
   return "UNKNOWN";
-}
-
-function detectPackageManager(
-  appPath: string,
-): "npm" | "yarn" | "pnpm" | "bun" | "unknown" {
-  if (fs.existsSync(path.join(appPath, "yarn.lock"))) return "yarn";
-  if (fs.existsSync(path.join(appPath, "pnpm-lock.yaml"))) return "pnpm";
-  if (fs.existsSync(path.join(appPath, "bun.lockb"))) return "bun";
-  if (fs.existsSync(path.join(appPath, "package-lock.json"))) return "npm";
-  return "unknown";
 }
 
 function detectBuildSystem(
@@ -129,8 +122,16 @@ function detectRoutes(
   const pagesPath = path.join(srcPath, "pages");
   const routesPath = path.join(srcPath, "routes");
   const appPath2 = path.join(srcPath, "app");
+  const rootAppPath = path.join(appPath, "app");
+  const rootPagesPath = path.join(appPath, "pages");
 
-  const pathsToCheck = [pagesPath, routesPath, appPath2];
+  const pathsToCheck = [
+    pagesPath,
+    routesPath,
+    appPath2,
+    rootAppPath,
+    rootPagesPath,
+  ];
 
   for (const checkPath of pathsToCheck) {
     if (fs.existsSync(checkPath)) {
@@ -170,38 +171,43 @@ function detectComponents(
 ): Array<{ name: string; file: string; usesState: boolean }> {
   const components: Array<{ name: string; file: string; usesState: boolean }> =
     [];
-  const componentsPath = path.join(appPath, "src", "components");
+  const componentsPaths = [
+    path.join(appPath, "src", "components"),
+    path.join(appPath, "components"),
+  ].filter((candidate) => fs.existsSync(candidate));
 
-  if (!fs.existsSync(componentsPath)) {
+  if (componentsPaths.length === 0) {
     return components;
   }
 
   try {
-    const files = fs.readdirSync(componentsPath, { recursive: true });
-    for (const file of files) {
-      if (
-        typeof file === "string" &&
-        (file.endsWith(".tsx") ||
-          file.endsWith(".ts") ||
-          file.endsWith(".jsx") ||
-          file.endsWith(".js"))
-      ) {
-        const filePath = path.join(componentsPath, file);
-        const content = fs.readFileSync(filePath, "utf-8");
-        const relativePath = path.relative(appPath, filePath);
-        const name = path.basename(file, path.extname(file));
+    for (const componentsPath of componentsPaths) {
+      const files = fs.readdirSync(componentsPath, { recursive: true });
+      for (const file of files) {
+        if (
+          typeof file === "string" &&
+          (file.endsWith(".tsx") ||
+            file.endsWith(".ts") ||
+            file.endsWith(".jsx") ||
+            file.endsWith(".js"))
+        ) {
+          const filePath = path.join(componentsPath, file);
+          const content = fs.readFileSync(filePath, "utf-8");
+          const relativePath = path.relative(appPath, filePath);
+          const name = path.basename(file, path.extname(file));
 
-        // Check if component uses state
-        const usesState =
-          /useState|useReducer|useContext|useRecoilState|useAtom|useSelector/.test(
-            content,
-          );
+          // Check if component uses state
+          const usesState =
+            /useState|useReducer|useContext|useRecoilState|useAtom|useSelector/.test(
+              content,
+            );
 
-        components.push({
-          name,
-          file: relativePath,
-          usesState,
-        });
+          components.push({
+            name,
+            file: relativePath,
+            usesState,
+          });
+        }
       }
     }
   } catch {

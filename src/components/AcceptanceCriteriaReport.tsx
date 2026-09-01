@@ -326,11 +326,11 @@ export const AcceptanceCriteriaReport: React.FC<
         <CardContent className="space-y-3">
           <div className="text-sm">
             <p className="font-medium mb-2">Detected tables: {dataCount}</p>
-            {plan.dataAnalysis.tables &&
-              plan.dataAnalysis.tables.length > 0 && (
+            {plan.dataAnalysis.schema?.tables &&
+              plan.dataAnalysis.schema.tables.length > 0 && (
                 <div className="text-xs text-gray-600 space-y-1">
-                  {plan.dataAnalysis.tables.map((table, idx) => (
-                    <div key={idx}>✓ {table}</div>
+                  {plan.dataAnalysis.schema.tables.map((table) => (
+                    <div key={table.name}>✓ {table.name}</div>
                   ))}
                 </div>
               )}

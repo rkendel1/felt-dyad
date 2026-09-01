@@ -67,11 +67,16 @@ function detectApiRoutes(
 
 function detectNextJsRoutes(appPath: string): ApiRoute[] {
   const routes: ApiRoute[] = [];
-  const appDir = path.join(appPath, "src", "app");
-  const pagesDir = path.join(appPath, "src", "pages");
+  const appDirs = [path.join(appPath, "src", "app"), path.join(appPath, "app")];
+  const pagesDirs = [
+    path.join(appPath, "src", "pages"),
+    path.join(appPath, "pages"),
+  ];
 
   // Check app directory (Next.js 13+)
-  if (fs.existsSync(appDir)) {
+  for (const appDir of appDirs.filter((directory) =>
+    fs.existsSync(directory),
+  )) {
     const files = getAllFiles(appDir);
     for (const file of files) {
       if (
@@ -98,7 +103,9 @@ function detectNextJsRoutes(appPath: string): ApiRoute[] {
   }
 
   // Check pages directory (Next.js 12 and below)
-  if (fs.existsSync(pagesDir)) {
+  for (const pagesDir of pagesDirs.filter((directory) =>
+    fs.existsSync(directory),
+  )) {
     const files = getAllFiles(pagesDir);
     for (const file of files) {
       if (
@@ -257,18 +264,13 @@ function detectDatabaseClient(appPath: string, packageJson: any): boolean {
 
 function detectHttpMethods(content: string): string[] {
   const methods: Set<string> = new Set();
-
-  if (
-    /export\s+(?:const|function)\s+GET\s+=/i.test(content) ||
-    /export\s+(?:async\s+)?(?:function)\s+GET\s+\(/i.test(content)
-  ) {
-    methods.add("GET");
+  for (const method of ["GET", "POST", "PUT", "DELETE", "PATCH"] as const) {
+    const exportedHandler = new RegExp(
+      `export\\s+(?:(?:async\\s+)?function\\s+${method}\\s*\\(|const\\s+${method}\\s*=)`,
+      "i",
+    );
+    if (exportedHandler.test(content)) methods.add(method);
   }
-
-  if (content.includes("POST")) methods.add("POST");
-  if (content.includes("PUT")) methods.add("PUT");
-  if (content.includes("DELETE")) methods.add("DELETE");
-  if (content.includes("PATCH")) methods.add("PATCH");
 
   return Array.from(methods);
 }

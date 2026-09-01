@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StateSurface, StateInspector } from "@/components/state";
+import { StateSurface } from "@/components/state";
 import { ProposalPanel } from "@/components/proposals/ProposalPanel";
 import { ChangesPanel } from "@/components/changes/ChangesPanel";
 import {
@@ -72,12 +72,8 @@ export const ChatPanelTabs: React.FC<ChatPanelTabsProps> = ({ children }) => {
       >
         <StateSurface
           collections={feltdbState?.collections || []}
-          onSelectCollection={() => {}}
-        />
-        <StateInspector
-          selectedState={undefined}
-          isVisible={true}
-          onToggleVisibility={() => {}}
+          configured={feltdbState?.configured}
+          message={feltdbState?.message}
         />
       </TabsContent>
 

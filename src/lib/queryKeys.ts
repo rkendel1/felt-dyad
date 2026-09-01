@@ -151,6 +151,8 @@ export const queryKeys = {
     account: ["feltdb", "account"] as const,
     status: ({ appId }: { appId: number }) =>
       ["feltdb", "status", appId] as const,
+    state: ({ appId }: { appId: number | null }) =>
+      ["feltdb", "state", appId] as const,
     managedProjects: ({ accountId }: { accountId: string }) =>
       ["feltdb", "managed-projects", accountId] as const,
   },

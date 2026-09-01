@@ -9,9 +9,46 @@ import {
   listFeltDBProjects,
   storeFeltDBCredentials,
 } from "./feltdb_oauth";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { createFeltDB, parseFlowSpec } from "@feltdb/core";
+import { getDyadAppPath } from "../../paths/paths";
 
 const logger = log.scope("feltdb_handlers");
 const testOnlyHandle = createTestOnlyLoggedHandler(logger);
+
+export async function readLocalFeltDBState(appPath: string) {
+  const flowPath = path.join(appPath, "feltdb.flow");
+  const flowSource = await fs.readFile(flowPath, "utf8").catch(() => null);
+  if (!flowSource) {
+    return {
+      configured: false,
+      collections: [],
+      message: "This app has not been converted to FeltDB yet.",
+    };
+  }
+
+  const flow = parseFlowSpec(flowSource);
+  const config: { namespace?: string } = await fs
+    .readFile(path.join(appPath, "feltdb.config.json"), "utf8")
+    .then((value) => JSON.parse(value) as { namespace?: string })
+    .catch(() => ({}));
+  const db = createFeltDB({
+    namespace: config.namespace || flow.app,
+    path: path.join(appPath, ".feltdb", "data"),
+  });
+  try {
+    const collections = await Promise.all(
+      flow.collections.map(async (collection) => ({
+        name: collection.name,
+        recordCount: (await db.collection(collection.name).all()).length,
+      })),
+    );
+    return { configured: true, collections };
+  } finally {
+    await db.close();
+  }
+}
 
 export function registerFeltdbHandlers() {
   // Initialize FeltDB for an app
@@ -63,6 +100,13 @@ export function registerFeltdbHandlers() {
       projectId: appData.feltdbProjectId || undefined,
       accountId: appData.feltdbAccountId || undefined,
     };
+  });
+
+  createTypedHandler(feltdbContracts.getState, async (_, { appId }) => {
+    const app = await getProjectStore().getApp(appId);
+    if (!app) throw new Error(`App ${appId} not found`);
+    const appPath = getDyadAppPath(app.path);
+    return readLocalFeltDBState(appPath);
   });
 
   // Browser FeltDB is embedded in the generated app. Server FeltDB is hosted by

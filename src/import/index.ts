@@ -6,12 +6,15 @@ import { analyzeExternalServices } from "./external_services_analyzer";
 import { analyzeSimplification } from "./simplification_analyzer";
 import { generateConversionPlan } from "./conversion_plan";
 import { ConversionPlan } from "@/ipc/types/conversion-analysis";
+import { discoverJavaScriptProject } from "./project_discovery";
 
 export async function runFullAnalysis(
   appId: number,
   appPath: string,
 ): Promise<ConversionPlan> {
   try {
+    const analysisPath =
+      discoverJavaScriptProject(appPath)?.rootPath ?? appPath;
     // Run all analyzers in parallel for efficiency
     const [
       applicationAnalysis,
@@ -20,14 +23,14 @@ export async function runFullAnalysis(
       externalServices,
     ] = await Promise.all([
       analyzeApplication(appPath),
-      analyzeBackend(appPath),
-      analyzeData(appPath),
-      analyzeExternalServices(appPath),
+      analyzeBackend(analysisPath),
+      analyzeData(analysisPath),
+      analyzeExternalServices(analysisPath),
     ]);
 
     // State analysis depends on application analysis framework
     const stateAnalysis = await analyzeState(
-      appPath,
+      analysisPath,
       applicationAnalysis.framework,
     );
 
@@ -37,7 +40,7 @@ export async function runFullAnalysis(
       stateAnalysis,
       backendAnalysis,
       dataAnalysis,
-      appPath,
+      analysisPath,
     );
 
     // Generate the conversion plan

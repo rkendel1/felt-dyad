@@ -283,6 +283,12 @@ export const appContracts = {
     output: z.void(),
   }),
 
+  removeAppFromBuilder: defineContract({
+    channel: "remove-app-from-builder",
+    input: DeleteAppParamsSchema,
+    output: z.void(),
+  }),
+
   copyApp: defineContract({
     channel: "copy-app",
     input: CopyAppParamsSchema,

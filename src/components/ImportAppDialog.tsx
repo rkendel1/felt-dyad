@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ipc } from "@/ipc/types";
 import { useMutation } from "@tanstack/react-query";
-import { showError, showSuccess } from "@/lib/toast";
+import { showError, showSuccess, showWarning } from "@/lib/toast";
 import { Folder, X, Loader2, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -27,6 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { selectedAppIdAtom } from "@/atoms/appAtoms";
+import { activeChatPanelTabAtom } from "@/atoms/viewAtoms";
 import { useSetAtom } from "jotai";
 import { useLoadApps } from "@/hooks/useLoadApps";
 import {
@@ -58,6 +59,7 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
   const { streamMessage } = useStreamChat({ hasChatId: false });
   const { refreshApps } = useLoadApps();
   const setSelectedAppId = useSetAtom(selectedAppIdAtom);
+  const setActiveChatPanelTab = useSetAtom(activeChatPanelTabAtom);
   // GitHub import state
   const [repos, setRepos] = useState<GithubRepository[]>([]);
   const [loading, setLoading] = useState(false);
@@ -269,6 +271,14 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
           ? "App imported successfully. FeltDB Builder will automatically generate an AI_RULES.md now."
           : "App imported successfully",
       );
+      if (result.analysisStatus === "completed") {
+        showSuccess("FeltDB conversion analysis is ready for review.");
+        setActiveChatPanelTab("changes");
+      } else {
+        showWarning(
+          `The app was imported, but FeltDB conversion analysis failed: ${result.analysisError ?? "Unknown error"}`,
+        );
+      }
       onClose();
 
       navigate({ to: "/chat", search: { id: result.chatId } });

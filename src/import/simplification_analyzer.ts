@@ -152,7 +152,12 @@ function estimateLOC(
 ): number {
   // Rough heuristic: average LOC per file based on framework
   const avgLOCPerFile = appAnalysis.framework === "REACT" ? 150 : 120;
-  const numFiles = appAnalysis.sourceFiles || 50;
+  const numFiles = Math.max(
+    (appAnalysis.entryPoints?.length ?? 0) +
+      (appAnalysis.routes?.length ?? 0) +
+      (appAnalysis.components?.length ?? 0),
+    1,
+  );
   return Math.max(numFiles * avgLOCPerFile, 10000);
 }
 

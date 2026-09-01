@@ -210,6 +210,7 @@ export const ExternalServiceSchema = z.object({
     "ANALYTICS",
     "WEBHOOKS",
     "API",
+    "DATABASE",
     "OTHER",
   ]),
   file: z.string().optional(),

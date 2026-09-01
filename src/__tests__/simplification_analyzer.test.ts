@@ -5,13 +5,13 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "fs";
 import path from "path";
-import { analyzeSimplification } from "../src/import/simplification_analyzer";
+import { analyzeSimplification } from "../import/simplification_analyzer";
 import type {
   ApplicationAnalysis,
   StateAnalysis,
   BackendAnalysis,
   DataAnalysis,
-} from "../src/ipc/types/conversion-analysis";
+} from "../ipc/types/conversion-analysis";
 
 describe("SimplificationAnalyzer", () => {
   const testProjectPath = path.join(

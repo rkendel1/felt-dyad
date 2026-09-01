@@ -111,6 +111,25 @@ describe("FeltDBProjectStore", () => {
       const retrieved = await store.getApp(created.id);
       expect(retrieved).toBeNull();
     });
+
+    it("should remove an app's Builder conversations", async () => {
+      const created = await store.createApp({
+        name: "Imported App",
+        path: "/tmp/imported-app",
+      });
+      const chat = await store.createChat({ appId: created.id });
+      await store.createMessage({
+        chatId: chat.id,
+        role: "user",
+        content: "Hi",
+      });
+
+      await store.deleteApp(created.id);
+
+      expect(await store.getChat(chat.id)).toBeNull();
+      expect(await store.listChats(created.id)).toEqual([]);
+      expect(await store.listMessages(chat.id)).toEqual([]);
+    });
   });
 
   describe("Chat and Message Operations", () => {

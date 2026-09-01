@@ -41,6 +41,15 @@ export const FeltDBAccountSchema = z.object({
 
 export type FeltDBAccount = z.infer<typeof FeltDBAccountSchema>;
 
+export const FeltDBStateSchema = z.object({
+  configured: z.boolean(),
+  collections: z.array(
+    z.object({ name: z.string(), recordCount: z.number().nonnegative() }),
+  ),
+  message: z.string().optional(),
+});
+export type FeltDBState = z.infer<typeof FeltDBStateSchema>;
+
 // =============================================================================
 // FeltDB Parameter Schemas
 // =============================================================================
@@ -107,6 +116,12 @@ export const feltdbContracts = {
     channel: "feltdb:get-status",
     input: GetFeltDBStatusParamsSchema,
     output: FeltDBConnectionSchema.optional(),
+  }),
+
+  getState: defineContract({
+    channel: "feltdb:get-state",
+    input: GetFeltDBStatusParamsSchema,
+    output: FeltDBStateSchema,
   }),
 
   // Start local FeltDB runtime

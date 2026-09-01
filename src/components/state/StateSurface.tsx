@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Database, ChevronDown, ChevronRight } from "lucide-react";
 
 interface StateCollection {
@@ -10,19 +9,20 @@ interface StateCollection {
 
 interface StateSurfaceProps {
   collections: StateCollection[];
-  onSelectCollection?: (collectionName: string) => void;
+  configured?: boolean;
+  message?: string;
 }
 
 /**
  * StateSurface Component
  *
- * Displays FeltDB collections and record counts in a non-developer friendly way.
- * Shows collections like "Customers: 2,341" with a friendly interface.
+ * Displays real FeltDB collections and record counts.
  * Part of PR8: FeltDB State-First Application Studio
  */
 export const StateSurface: React.FC<StateSurfaceProps> = ({
   collections,
-  onSelectCollection,
+  configured = true,
+  message,
 }) => {
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(
     new Set(),
@@ -49,7 +49,10 @@ export const StateSurface: React.FC<StateSurfaceProps> = ({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            No collections yet. Start building to see your app's state here.
+            {message ||
+              (configured
+                ? "No collections are declared in feltdb.flow yet."
+                : "This app has not been converted to FeltDB yet.")}
           </p>
         </CardContent>
       </Card>
@@ -90,13 +93,6 @@ export const StateSurface: React.FC<StateSurfaceProps> = ({
             </div>
           </div>
         ))}
-        <Button
-          onClick={() => onSelectCollection?.("")}
-          variant="outline"
-          className="w-full mt-4"
-        >
-          Open State Inspector
-        </Button>
       </CardContent>
     </Card>
   );

@@ -297,6 +297,13 @@ export class FeltDBProjectStore implements IProjectStore {
     const feltId = this.appIdMap.get(appId);
     if (!feltId) throw new Error(`App ${appId} not found`);
 
+    // Project-owned conversations are Builder metadata and must not be left
+    // orphaned when an app is removed from the Builder.
+    const chats = await this.listChats(appId);
+    for (const chat of chats) {
+      await this.deleteChat(chat.id);
+    }
+
     const apps = this.db.collection("apps");
     await apps.delete(feltId);
 

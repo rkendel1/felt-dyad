@@ -64,6 +64,7 @@ import {
   MAX_FILE_SEARCH_SIZE,
   RIPGREP_EXCLUDED_GLOBS,
 } from "../utils/ripgrep_utils";
+import { getDiscoveredRunCommand } from "@/import/project_discovery";
 
 const logger = log.scope("app_handlers");
 const handle = createLoggedHandler(logger);
@@ -121,9 +122,12 @@ function buildSnippetFromMatch({
   };
 }
 
-function getDefaultCommand(appId: number): string {
+function getDefaultCommand(appId: number, appPath: string): string {
   const port = getAppPort(appId);
-  return `(pnpm install && pnpm run dev --port ${port}) || (npm install --legacy-peer-deps && npm run dev -- --port ${port})`;
+  return (
+    getDiscoveredRunCommand(appPath, port) ??
+    `echo "No runnable JavaScript application or dev/start/serve/preview script was found" && exit 1`
+  );
 }
 async function copyDir(
   source: string,
@@ -212,7 +216,12 @@ async function executeAppLocalNode({
   installCommand?: string | null;
   startCommand?: string | null;
 }): Promise<void> {
-  const command = getCommand({ appId, installCommand, startCommand });
+  const command = getCommand({
+    appId,
+    appPath,
+    installCommand,
+    startCommand,
+  });
   const spawnedProcess = spawn(command, [], {
     cwd: appPath,
     shell: true,
@@ -520,7 +529,7 @@ RUN npm install -g pnpm
       `dyad-app-${appId}`,
       "sh",
       "-c",
-      getCommand({ appId, installCommand, startCommand }),
+      getCommand({ appId, appPath, installCommand, startCommand }),
     ],
     {
       stdio: "pipe",
@@ -1303,6 +1312,30 @@ export function registerAppHandlers() {
     });
   });
 
+  createTypedHandler(appContracts.removeAppFromBuilder, async (_, params) => {
+    const { appId } = params;
+
+    return withLock(appId, async () => {
+      const app = await getProjectStore().getApp(appId);
+      if (!app) throw new Error("App not found");
+
+      if (runningApps.has(appId)) {
+        const appInfo = runningApps.get(appId)!;
+        try {
+          await stopAppByInfo(appId, appInfo);
+        } catch (error) {
+          logger.error(`Error stopping app ${appId} before removal:`, error);
+        }
+      }
+
+      clearLogs(appId);
+      await getProjectStore().deleteApp(appId);
+      logger.info(
+        `Removed app ${appId} from Builder without deleting ${getDyadAppPath(app.path)}`,
+      );
+    });
+  });
+
   createTypedHandler(appContracts.addToFavorite, async (_, params) => {
     const { appId } = params;
     return withLock(appId, async () => {
@@ -1843,17 +1876,19 @@ export function registerAppHandlers() {
 
 function getCommand({
   appId,
+  appPath,
   installCommand,
   startCommand,
 }: {
   appId: number;
+  appPath: string;
   installCommand?: string | null;
   startCommand?: string | null;
 }) {
   const hasCustomCommands = !!installCommand?.trim() && !!startCommand?.trim();
   return hasCustomCommands
     ? `${installCommand!.trim()} && ${startCommand!.trim()}`
-    : getDefaultCommand(appId);
+    : getDefaultCommand(appId, appPath);
 }
 
 async function cleanUpPort(port: number) {

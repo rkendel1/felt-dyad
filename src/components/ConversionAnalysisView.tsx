@@ -7,6 +7,7 @@ import { ConversionDetails } from "./ConversionDetails";
 import { AcceptanceCriteriaReport } from "./AcceptanceCriteriaReport";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export interface ConversionAnalysisViewProps {
   appId: number;
@@ -58,25 +59,37 @@ export const ConversionAnalysisView: React.FC<ConversionAnalysisViewProps> = ({
   }
 
   return (
-    <div>
-      {/* Tabbed interface for different views */}
-      <div className="flex gap-2 mb-6 border-b">
-        <button className="px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-medium">
+    <Tabs defaultValue="overview" className="w-full">
+      <TabsList className="mb-6 grid h-auto w-full grid-cols-3 rounded-none border-b bg-transparent p-0">
+        <TabsTrigger
+          value="overview"
+          className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
+        >
           Overview
-        </button>
-        <button className="px-4 py-2 border-b border-gray-200 text-gray-600 hover:text-gray-900">
+        </TabsTrigger>
+        <TabsTrigger
+          value="details"
+          className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
+        >
           Detailed Analysis
-        </button>
-        <button className="px-4 py-2 border-b border-gray-200 text-gray-600 hover:text-gray-900">
+        </TabsTrigger>
+        <TabsTrigger
+          value="acceptance"
+          className="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
+        >
           Acceptance Criteria
-        </button>
-      </div>
+        </TabsTrigger>
+      </TabsList>
 
-      <div className="space-y-6">
+      <TabsContent value="overview" className="mt-0">
         <ConversionSummary plan={plan} />
+      </TabsContent>
+      <TabsContent value="details" className="mt-0">
         <ConversionDetails plan={plan} />
+      </TabsContent>
+      <TabsContent value="acceptance" className="mt-0">
         <AcceptanceCriteriaReport plan={plan} />
-      </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 };

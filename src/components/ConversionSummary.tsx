@@ -8,7 +8,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { ConversionPlan } from "@/ipc/types";
-import { AlertTriangle, Check, Info } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Database,
+  Info,
+  Route,
+  Workflow,
+} from "lucide-react";
 import { SimplificationSummary } from "./SimplificationSummary";
 
 export interface ConversionSummaryProps {
@@ -24,27 +31,38 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
   const uiChangeCount = plan.uiChanges.length;
   const warningCount = plan.warnings?.length || 0;
   const manualDecisionCount = plan.manualDecisions?.length || 0;
+  const framework =
+    plan.applicationAnalysis.buildSystem === "next"
+      ? "Next.js"
+      : plan.applicationAnalysis.framework || "Unknown framework";
+  const database =
+    plan.dataAnalysis.database === "NONE"
+      ? "No database detected"
+      : plan.dataAnalysis.database;
+  const databaseServices = plan.externalServices
+    .filter((service) => service.type === "DATABASE")
+    .map((service) => service.name);
+  const moveToFeltDBCount = plan.stateAnalysis.sources.filter((source) =>
+    ["MOVE_TO_FELTDB", "REPLACE_WITH_FELTDB"].includes(source.classification),
+  ).length;
+  const localStateCount = stateSourceCount - moveToFeltDBCount;
 
   return (
     <div className="space-y-4">
-      {/* Main Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>State-First Conversion Analysis</CardTitle>
+          <CardTitle>{framework} → FeltDB conversion</CardTitle>
           <CardDescription>
-            Analysis of {plan.applicationAnalysis.framework || "unknown"}{" "}
-            application
+            A project-specific plan based on the code, routes, state, and data
+            layer detected in this application.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">{plan.summary}</p>
-
-          {/* Key Metrics */}
+        <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{stateSourceCount}</div>
               <div className="text-xs text-muted-foreground">
-                State sources found
+                State sources inspected
               </div>
             </div>
             <div className="rounded-lg border p-3">
@@ -54,39 +72,72 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{externalServiceCount}</div>
               <div className="text-xs text-muted-foreground">
-                External services
+                Integrations detected
               </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{uiChangeCount}</div>
               <div className="text-xs text-muted-foreground">
-                UI changes needed
+                Proposed UI changes
               </div>
             </div>
           </div>
 
-          {/* Framework & Build Info */}
-          <div className="grid gap-2 pt-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Framework:</span>
-              <Badge>{plan.applicationAnalysis.framework || "Unknown"}</Badge>
-            </div>
-            {plan.applicationAnalysis.buildSystem && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Build system:</span>
-                <Badge variant="outline">
-                  {plan.applicationAnalysis.buildSystem}
-                </Badge>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg border p-4">
+              <div className="mb-3 flex items-center gap-2 font-semibold">
+                <Database className="h-4 w-4" /> What this app uses
               </div>
-            )}
-            {plan.applicationAnalysis.packageManager && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Package manager:</span>
+              <div className="flex flex-wrap gap-2">
+                <Badge>{framework}</Badge>
+                <Badge variant="outline">{database}</Badge>
                 <Badge variant="outline">
                   {plan.applicationAnalysis.packageManager}
                 </Badge>
+                {databaseServices.map((service) => (
+                  <Badge key={service} variant="secondary">
+                    {service}
+                  </Badge>
+                ))}
               </div>
-            )}
+              <p className="mt-3 text-sm text-muted-foreground">
+                {apiRouteCount} API {apiRouteCount === 1 ? "route" : "routes"}
+                {plan.dataAnalysis.totalTables > 0
+                  ? ` and ${plan.dataAnalysis.totalTables} data ${plan.dataAnalysis.totalTables === 1 ? "model" : "models"}`
+                  : ""}{" "}
+                were found.
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <div className="mb-3 flex items-center gap-2 font-semibold">
+                <Workflow className="h-4 w-4" /> Recommended conversion
+              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  Move {moveToFeltDBCount} persistent state{" "}
+                  {moveToFeltDBCount === 1 ? "flow" : "flows"} into FeltDB.
+                </li>
+                <li>
+                  Keep {localStateCount} temporary UI state{" "}
+                  {localStateCount === 1 ? "flow" : "flows"} local.
+                </li>
+                <li>
+                  Replace {apiRouteCount} detected API{" "}
+                  {apiRouteCount === 1 ? "route" : "routes"} where FeltDB can
+                  own the state transition.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2 rounded-lg bg-muted p-4 text-sm">
+            <Route className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              The detailed analysis maps every recommendation to its source
+              file. Acceptance Criteria separates automatic work from items that
+              need your decision.
+            </p>
           </div>
         </CardContent>
       </Card>

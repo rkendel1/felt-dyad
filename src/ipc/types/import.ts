@@ -18,6 +18,9 @@ export type ImportAppParams = z.infer<typeof ImportAppParamsSchema>;
 export const ImportAppResultSchema = z.object({
   appId: z.number(),
   chatId: z.number(),
+  analysisStatus: z.enum(["completed", "failed"]),
+  conversionPlanId: z.string().optional(),
+  analysisError: z.string().optional(),
 });
 
 export type ImportAppResult = z.infer<typeof ImportAppResultSchema>;

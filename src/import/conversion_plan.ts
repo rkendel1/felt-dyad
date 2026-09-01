@@ -48,6 +48,11 @@ export function generateConversionPlan(
     summary,
     warnings,
     manualDecisions,
+    targetRuntime: {
+      provider: "feltdb",
+      runtime: "server",
+      mode: "local",
+    },
     createdAt: new Date(),
     updatedAt: new Date(),
   };

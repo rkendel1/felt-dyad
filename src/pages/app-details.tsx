@@ -47,6 +47,7 @@ export default function AppDetailsPage() {
   const [appsList] = useAtom(appsListAtom);
   const { refreshApps } = useLoadApps();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isRenameConfirmDialogOpen, setIsRenameConfirmDialogOpen] =
@@ -87,6 +88,25 @@ export default function AppDetailsPage() {
       navigate({ to: "/", search: {} });
     } catch (error) {
       setIsDeleteDialogOpen(false);
+      showError(error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRemoveFromBuilder = async () => {
+    if (!appId) return;
+
+    try {
+      setIsDeleting(true);
+      await ipc.app.removeAppFromBuilder({ appId });
+      setIsRemoveDialogOpen(false);
+      setSelectedAppId(null);
+      await refreshApps();
+      navigate({ to: "/", search: {} });
+      showSuccess("App removed from Builder. Its files were not deleted.");
+    } catch (error) {
+      setIsRemoveDialogOpen(false);
       showError(error);
     } finally {
       setIsDeleting(false);
@@ -336,7 +356,16 @@ export default function AppDetailsPage() {
                   size="sm"
                   className="h-8 justify-start text-xs"
                 >
-                  Delete
+                  Delete files
+                </Button>
+                <Button
+                  onClick={() => setIsRemoveDialogOpen(true)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 justify-start text-xs"
+                  data-testid="app-details-remove-from-builder-button"
+                >
+                  Remove from Builder
                 </Button>
               </div>
             </PopoverContent>
@@ -781,6 +810,38 @@ export default function AppDetailsPage() {
                 ) : (
                   "Delete App"
                 )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
+          <DialogContent className="max-w-sm p-4">
+            <DialogHeader className="pb-2">
+              <DialogTitle>
+                Remove "{selectedApp.name}" from Builder?
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                This removes the app and its Builder chat history from the app
+                list. The project folder at {currentAppPath} will remain
+                untouched.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsRemoveDialogOpen(false)}
+                disabled={isDeleting}
+                size="sm"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRemoveFromBuilder}
+                disabled={isDeleting}
+                size="sm"
+              >
+                {isDeleting ? "Removing…" : "Remove from Builder"}
               </Button>
             </DialogFooter>
           </DialogContent>

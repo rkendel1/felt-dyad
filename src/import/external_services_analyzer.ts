@@ -67,7 +67,7 @@ export async function analyzeExternalServices(
       name: "Supabase",
       type: "DATABASE",
       usedFor: "Backend database and realtime services",
-      classification: "MIGRATE_TO_FELTDB",
+      classification: "REPLACE_WITH_FELTDB",
     });
   }
 
@@ -76,7 +76,7 @@ export async function analyzeExternalServices(
       name: "Neon",
       type: "DATABASE",
       usedFor: "Serverless PostgreSQL database",
-      classification: "MIGRATE_TO_FELTDB",
+      classification: "REPLACE_WITH_FELTDB",
     });
   }
 
@@ -85,7 +85,7 @@ export async function analyzeExternalServices(
       name: "Prisma",
       type: "DATABASE",
       usedFor: "TypeScript ORM for database management",
-      classification: "MIGRATE_TO_FELTDB",
+      classification: "REPLACE_WITH_FELTDB",
     });
   }
 
@@ -94,7 +94,7 @@ export async function analyzeExternalServices(
       name: "Firebase",
       type: "DATABASE",
       usedFor: "NoSQL database and realtime services",
-      classification: "MIGRATE_TO_FELTDB",
+      classification: "REPLACE_WITH_FELTDB",
     });
   }
 
@@ -103,7 +103,7 @@ export async function analyzeExternalServices(
       name: "SQLite",
       type: "DATABASE",
       usedFor: "Local SQL database",
-      classification: "MIGRATE_TO_FELTDB",
+      classification: "REPLACE_WITH_FELTDB",
     });
   }
 
@@ -112,7 +112,7 @@ export async function analyzeExternalServices(
       name: "MongoDB",
       type: "DATABASE",
       usedFor: "NoSQL database",
-      classification: "MIGRATE_TO_FELTDB",
+      classification: "REPLACE_WITH_FELTDB",
     });
   }
 
@@ -121,7 +121,7 @@ export async function analyzeExternalServices(
       name: "Sequelize",
       type: "DATABASE",
       usedFor: "Node.js ORM for SQL databases",
-      classification: "MIGRATE_TO_FELTDB",
+      classification: "REPLACE_WITH_FELTDB",
     });
   }
 
@@ -130,7 +130,7 @@ export async function analyzeExternalServices(
       name: "TypeORM",
       type: "DATABASE",
       usedFor: "TypeScript ORM",
-      classification: "MIGRATE_TO_FELTDB",
+      classification: "REPLACE_WITH_FELTDB",
     });
   }
 

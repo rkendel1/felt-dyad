@@ -9,6 +9,8 @@ import { getProjectStore } from "@/store";
 import { ImportAppParams, ImportAppResult } from "@/ipc/types";
 import { copyDirectoryRecursive } from "../utils/file_utils";
 import { gitCommit, gitAdd, gitInit } from "../utils/git_utils";
+import { runFullAnalysis } from "../../import";
+import { getConversionPlanStore } from "../../store/conversion_plan_store";
 
 const logger = log.scope("import-handlers");
 const handle = createLoggedHandler(logger);
@@ -139,26 +141,28 @@ export function registerImportHandlers() {
       // Create an initial chat for this app
       const chat = await getProjectStore().createChat({ appId: app.id });
 
-      // Trigger analysis asynchronously (non-blocking)
-      // This will be persisted to FeltDB but won't block the import flow
-      setImmediate(async () => {
-        try {
-          const { runFullAnalysis } = require("../../import");
-          const {
-            getConversionPlanStore,
-          } = require("../../store/conversion_plan_store");
-
-          const appPath = skipCopy ? sourcePath : getDyadAppPath(appName);
-          const plan = await runFullAnalysis(app.id, appPath);
-          const store = await getConversionPlanStore(appPath);
-          await store.savePlan(app.id, plan);
-          logger.info(`Analysis completed and persisted for app ${app.id}`);
-        } catch (error) {
-          logger.warn(`Failed to analyze imported app ${app.id}:`, error);
-        }
-      });
-
-      return { appId: app.id, chatId: chat.id };
+      try {
+        const plan = await runFullAnalysis(app.id, appPath);
+        const store = await getConversionPlanStore(appPath);
+        const conversionPlanId = await store.savePlan(app.id, plan);
+        logger.info(`Analysis completed and persisted for app ${app.id}`);
+        return {
+          appId: app.id,
+          chatId: chat.id,
+          analysisStatus: "completed" as const,
+          conversionPlanId,
+        };
+      } catch (error) {
+        const analysisError =
+          error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to analyze imported app ${app.id}:`, error);
+        return {
+          appId: app.id,
+          chatId: chat.id,
+          analysisStatus: "failed" as const,
+          analysisError,
+        };
+      }
     },
   );
 

@@ -130,6 +130,42 @@ describe("Application Analyzer", () => {
   });
 });
 
+describe("Nested application analysis", () => {
+  it("analyzes a frontend workspace instead of reporting UNKNOWN", async () => {
+    const repository = fs.mkdtempSync(path.join(process.cwd(), ".nested-app-"));
+    const frontend = path.join(repository, "web");
+    fs.mkdirSync(path.join(frontend, "app", "api", "links"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(frontend, "package.json"),
+      JSON.stringify({
+        scripts: { dev: "next dev" },
+        dependencies: { next: "15.0.0", react: "19.0.0", pg: "8.0.0" },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(frontend, "pnpm-lock.yaml"),
+      "lockfileVersion: '9.0'",
+    );
+    fs.writeFileSync(
+      path.join(frontend, "app", "api", "links", "route.ts"),
+      "export async function GET() { return fetch('/links'); }",
+    );
+
+    try {
+      const plan = await runFullAnalysis(99, repository);
+      expect(plan.applicationAnalysis.framework).toBe("REACT");
+      expect(plan.applicationAnalysis.packageManager).toBe("pnpm");
+      expect(plan.backendAnalysis.framework).toBe("NEXT_JS");
+      expect(plan.backendAnalysis.apiRoutes.length).toBeGreaterThan(0);
+      expect(plan.stateAnalysis.analyzedFiles).toBeGreaterThan(0);
+    } finally {
+      fs.rmSync(repository, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("State Analyzer", () => {
   beforeAll(() => {
     createTestProject();

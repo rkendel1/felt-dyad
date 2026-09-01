@@ -10,11 +10,13 @@ export async function analyzeState(
   appPath: string,
   _framework: FrameworkType,
 ): Promise<StateAnalysis> {
-  const srcPath = path.join(appPath, "src");
   const stateSources: StateSource[] = [];
   let analyzedFiles = 0;
+  const sourcePaths = ["src", "app", "pages", "components", "lib"]
+    .map((directory) => path.join(appPath, directory))
+    .filter((directory) => fs.existsSync(directory));
 
-  if (!fs.existsSync(srcPath)) {
+  if (sourcePaths.length === 0) {
     return {
       sources: [],
       totalStates: 0,
@@ -23,7 +25,9 @@ export async function analyzeState(
   }
 
   // Analyze files for state usage
-  const files = getAllFiles(srcPath);
+  const files = [
+    ...new Set(sourcePaths.flatMap((sourcePath) => getAllFiles(sourcePath))),
+  ];
 
   for (const file of files) {
     if (
