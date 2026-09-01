@@ -1,6 +1,7 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StateSurface, StateInspector } from "@/components/state";
+import { ProposalPanel } from "@/components/proposals/ProposalPanel";
 import {
   Database,
   GitBranch,
@@ -87,10 +88,7 @@ export const ChatPanelTabs: React.FC<ChatPanelTabsProps> = ({ children }) => {
       </TabsContent>
 
       <TabsContent value="proposals" className="flex-1 overflow-y-auto p-4">
-        <div className="text-sm text-muted-foreground">
-          Proposals view coming soon. Will show active proposals and their
-          status.
-        </div>
+        <ProposalPanel />
       </TabsContent>
     </Tabs>
   );
