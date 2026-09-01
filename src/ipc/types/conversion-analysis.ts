@@ -314,9 +314,23 @@ export const ConversionPlanSchema = z.object({
       }),
     )
     .optional(),
+  // Target runtime for conversion (always FeltDB per PR6)
+  targetRuntime: z
+    .object({
+      provider: z.literal("feltdb"),
+      runtime: z.enum(["server", "browser"]).default("server"),
+      mode: z.enum(["local", "managed"]).default("local"),
+    })
+    .optional()
+    .default({
+      provider: "feltdb",
+      runtime: "server",
+      mode: "local",
+    }),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
+
 
 export type ConversionPlan = z.infer<typeof ConversionPlanSchema>;
 

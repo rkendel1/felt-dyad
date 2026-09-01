@@ -61,6 +61,79 @@ export async function analyzeExternalServices(
     });
   }
 
+  // Database services
+  if (deps["@supabase/supabase-js"] || deps.supabase) {
+    services.push({
+      name: "Supabase",
+      type: "DATABASE",
+      usedFor: "Backend database and realtime services",
+      classification: "MIGRATE_TO_FELTDB",
+    });
+  }
+
+  if (deps["@neon/serverless"] || deps["@neondatabase/serverless"]) {
+    services.push({
+      name: "Neon",
+      type: "DATABASE",
+      usedFor: "Serverless PostgreSQL database",
+      classification: "MIGRATE_TO_FELTDB",
+    });
+  }
+
+  if (deps["@prisma/client"]) {
+    services.push({
+      name: "Prisma",
+      type: "DATABASE",
+      usedFor: "TypeScript ORM for database management",
+      classification: "MIGRATE_TO_FELTDB",
+    });
+  }
+
+  if (deps.firebase || deps["@firebase/database"]) {
+    services.push({
+      name: "Firebase",
+      type: "DATABASE",
+      usedFor: "NoSQL database and realtime services",
+      classification: "MIGRATE_TO_FELTDB",
+    });
+  }
+
+  if (deps.sqlite3 || deps["better-sqlite3"]) {
+    services.push({
+      name: "SQLite",
+      type: "DATABASE",
+      usedFor: "Local SQL database",
+      classification: "MIGRATE_TO_FELTDB",
+    });
+  }
+
+  if (deps.mongodb) {
+    services.push({
+      name: "MongoDB",
+      type: "DATABASE",
+      usedFor: "NoSQL database",
+      classification: "MIGRATE_TO_FELTDB",
+    });
+  }
+
+  if (deps.sequelize) {
+    services.push({
+      name: "Sequelize",
+      type: "DATABASE",
+      usedFor: "Node.js ORM for SQL databases",
+      classification: "MIGRATE_TO_FELTDB",
+    });
+  }
+
+  if (deps.typeorm) {
+    services.push({
+      name: "TypeORM",
+      type: "DATABASE",
+      usedFor: "TypeScript ORM",
+      classification: "MIGRATE_TO_FELTDB",
+    });
+  }
+
   // Payment services
   if (deps.stripe || deps["@stripe/react-stripe-js"]) {
     services.push({

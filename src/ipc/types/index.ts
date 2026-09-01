@@ -51,6 +51,8 @@ export { securityContracts } from "./security";
 export { miscContracts, miscEvents } from "./misc";
 export { freeAgentQuotaContracts } from "./free_agent_quota";
 export { conversionAnalysisContracts } from "./conversion-analysis";
+export { feltdbContracts } from "./feltdb";
+
 
 // =============================================================================
 // Client Exports
@@ -81,6 +83,8 @@ export { securityClient } from "./security";
 export { miscClient, miscEventClient } from "./misc";
 export { freeAgentQuotaClient } from "./free_agent_quota";
 export { conversionAnalysisClient } from "./conversion-analysis";
+export { feltdbClient } from "./feltdb";
+
 
 // =============================================================================
 // Type Exports
@@ -198,6 +202,22 @@ export type {
   GetNeonProjectParams,
   GetNeonProjectResponse,
 } from "./neon";
+
+// FeltDB types
+export type {
+  FeltDBRuntime,
+  FeltDBMode,
+  FeltDBStatus,
+  FeltDBConnection,
+  FeltDBProject,
+  FeltDBAccount,
+  InitializeFeltDBParams,
+  GetFeltDBStatusParams,
+  SetManagedProjectParams,
+  ListManagedProjectsParams,
+  AuthenticateManagedParams,
+} from "./feltdb";
+
 
 // System types
 export type {
@@ -346,6 +366,7 @@ import { mcpClient, mcpEventClient } from "./mcp";
 import { vercelClient } from "./vercel";
 import { supabaseClient } from "./supabase";
 import { neonClient } from "./neon";
+import { feltdbClient } from "./feltdb";
 import { systemClient, systemEventClient } from "./system";
 import { versionClient } from "./version";
 import { languageModelClient } from "./language-model";
@@ -400,6 +421,8 @@ export const ipc = {
   vercel: vercelClient,
   supabase: supabaseClient,
   neon: neonClient,
+  feltdb: feltdbClient,
+
 
   // Features
   system: systemClient,
