@@ -22,15 +22,15 @@ interface ImpactAnalysisProps {
 
 /**
  * ImpactAnalyzer Component
- * 
+ *
  * Shows application impact of proposed changes:
  * - Affected UI components
  * - Affected FeltDB collections
  * - Affected backend services
  * - External service impact
- * 
+ *
  * Displays warnings for major changes (3+ components, 2+ collections, etc)
- * 
+ *
  * Part of PR8: FeltDB State-First Application Studio - Feature 4
  */
 export const ImpactAnalyzer: React.FC<ImpactAnalysisProps> = ({
@@ -39,7 +39,7 @@ export const ImpactAnalyzer: React.FC<ImpactAnalysisProps> = ({
   summary,
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(["affected"])
+    new Set(["affected"]),
   );
 
   const toggleCategory = (category: string) => {
@@ -62,7 +62,7 @@ export const ImpactAnalyzer: React.FC<ImpactAnalysisProps> = ({
       }
       return acc;
     },
-    {} as Record<string, ImpactItem[]>
+    {} as Record<string, ImpactItem[]>,
   );
 
   const preservedByType = affectedItems.reduce(
@@ -75,7 +75,7 @@ export const ImpactAnalyzer: React.FC<ImpactAnalysisProps> = ({
       }
       return acc;
     },
-    {} as Record<string, ImpactItem[]>
+    {} as Record<string, ImpactItem[]>,
   );
 
   const impactColors = {
@@ -87,11 +87,11 @@ export const ImpactAnalyzer: React.FC<ImpactAnalysisProps> = ({
 
   const affectedCount = Object.values(affectedByType).reduce(
     (sum, items) => sum + items.length,
-    0
+    0,
   );
   const preservedCount = Object.values(preservedByType).reduce(
     (sum, items) => sum + items.length,
-    0
+    0,
   );
 
   return (
@@ -130,9 +130,7 @@ export const ImpactAnalyzer: React.FC<ImpactAnalysisProps> = ({
                 <ChevronRight className="h-4 w-4" />
               )}
               <AlertTriangle className="h-4 w-4 text-red-500" />
-              <span className="font-semibold">
-                Affected ({affectedCount})
-              </span>
+              <span className="font-semibold">Affected ({affectedCount})</span>
             </button>
             {expandedCategories.has("affected") && (
               <div className="ml-6 space-y-3 pb-3 border-b border-border">

@@ -1,8 +1,22 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import type { ConversionPlan } from "@/ipc/types";
-import { ChevronDown, ChevronRight, Database, Zap, Layers, Globe, TrendingDown } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Database,
+  Zap,
+  Layers,
+  Globe,
+  TrendingDown,
+} from "lucide-react";
 import { SimplificationDetails } from "./SimplificationDetails";
 
 export interface ConversionDetailsProps {
@@ -97,10 +111,12 @@ export const ConversionDetails: React.FC<ConversionDetailsProps> = ({
                   </div>
                   <div className="mt-2 space-y-1 font-mono text-xs">
                     <div>
-                      <span className="text-red-600">-</span> {change.currentPattern}
+                      <span className="text-red-600">-</span>{" "}
+                      {change.currentPattern}
                     </div>
                     <div>
-                      <span className="text-green-600">+</span> {change.proposedPattern}
+                      <span className="text-green-600">+</span>{" "}
+                      {change.proposedPattern}
                     </div>
                   </div>
                   {change.isManual && (
@@ -131,7 +147,11 @@ export const ConversionDetails: React.FC<ConversionDetailsProps> = ({
               <Globe className="h-4 w-4" />
               Backend Changes
             </div>
-            {expandedSections.has("backend") ? <ChevronDown /> : <ChevronRight />}
+            {expandedSections.has("backend") ? (
+              <ChevronDown />
+            ) : (
+              <ChevronRight />
+            )}
           </CardTitle>
           <CardDescription>
             {plan.backendAnalysis.apiRoutes.length} API routes identified
@@ -179,7 +199,9 @@ export const ConversionDetails: React.FC<ConversionDetailsProps> = ({
             {expandedSections.has("data") ? <ChevronDown /> : <ChevronRight />}
           </CardTitle>
           <CardDescription>
-            {plan.dataAnalysis.database ? `${plan.dataAnalysis.database} database` : "No database"}
+            {plan.dataAnalysis.database
+              ? `${plan.dataAnalysis.database} database`
+              : "No database"}
           </CardDescription>
         </CardHeader>
         {expandedSections.has("data") && (
@@ -187,21 +209,23 @@ export const ConversionDetails: React.FC<ConversionDetailsProps> = ({
             <div className="space-y-3">
               <div className="rounded border p-3 text-sm">
                 <div className="font-medium">{plan.dataAnalysis.database}</div>
-                {plan.dataAnalysis.schema && plan.dataAnalysis.schema.tables.length > 0 && (
-                  <div className="mt-2">
-                    <div className="text-xs font-medium text-muted-foreground">
-                      Tables ({plan.dataAnalysis.totalTables}):
+                {plan.dataAnalysis.schema &&
+                  plan.dataAnalysis.schema.tables.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs font-medium text-muted-foreground">
+                        Tables ({plan.dataAnalysis.totalTables}):
+                      </div>
+                      <ul className="mt-1 space-y-1">
+                        {plan.dataAnalysis.schema.tables.map((table, tidx) => (
+                          <li key={tidx} className="text-xs">
+                            • {table.name}
+                            {table.rowCount !== undefined &&
+                              ` (${table.rowCount.toLocaleString()} rows)`}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul className="mt-1 space-y-1">
-                      {plan.dataAnalysis.schema.tables.map((table, tidx) => (
-                        <li key={tidx} className="text-xs">
-                          • {table.name}
-                          {table.rowCount !== undefined && ` (${table.rowCount.toLocaleString()} rows)`}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                  )}
               </div>
             </div>
           </CardContent>
@@ -220,10 +244,18 @@ export const ConversionDetails: React.FC<ConversionDetailsProps> = ({
                 <TrendingDown className="h-4 w-4" />
                 Complexity Reduction
               </div>
-              {expandedSections.has("simplification") ? <ChevronDown /> : <ChevronRight />}
+              {expandedSections.has("simplification") ? (
+                <ChevronDown />
+              ) : (
+                <ChevronRight />
+              )}
             </CardTitle>
             <CardDescription>
-              Estimated {Math.round(plan.simplification.complexity.estimatedReductionPercent)}% code reduction
+              Estimated{" "}
+              {Math.round(
+                plan.simplification.complexity.estimatedReductionPercent,
+              )}
+              % code reduction
             </CardDescription>
           </CardHeader>
           {expandedSections.has("simplification") && (
@@ -245,7 +277,11 @@ export const ConversionDetails: React.FC<ConversionDetailsProps> = ({
               <Globe className="h-4 w-4" />
               External Services
             </div>
-            {expandedSections.has("external") ? <ChevronDown /> : <ChevronRight />}
+            {expandedSections.has("external") ? (
+              <ChevronDown />
+            ) : (
+              <ChevronRight />
+            )}
           </CardTitle>
           <CardDescription>
             {plan.externalServices.length} external service(s) identified

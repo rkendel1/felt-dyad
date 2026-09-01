@@ -53,7 +53,11 @@ export class ConversionWorkspaceManager {
   ): Promise<ConversionExecutionRecord> {
     try {
       const conversionId = uuidv4();
-      const executionDir = path.join(this.workspaceDir, "executions", conversionId);
+      const executionDir = path.join(
+        this.workspaceDir,
+        "executions",
+        conversionId,
+      );
 
       // Create execution directory
       await fsPromises.mkdir(executionDir, { recursive: true });
@@ -88,9 +92,7 @@ export class ConversionWorkspaceManager {
         ),
       );
 
-      logger.info(
-        `Created execution record ${conversionId} for app ${appId}`,
-      );
+      logger.info(`Created execution record ${conversionId} for app ${appId}`);
 
       return record;
     } catch (error) {
@@ -138,10 +140,7 @@ export class ConversionWorkspaceManager {
 
       return record as ConversionExecutionRecord;
     } catch (error) {
-      logger.error(
-        `Failed to load execution record ${conversionId}:`,
-        error,
-      );
+      logger.error(`Failed to load execution record ${conversionId}:`, error);
       return null;
     }
   }
@@ -184,9 +183,7 @@ export class ConversionWorkspaceManager {
   /**
    * Update an execution record status and metadata
    */
-  async updateExecution(
-    record: ConversionExecutionRecord,
-  ): Promise<void> {
+  async updateExecution(record: ConversionExecutionRecord): Promise<void> {
     try {
       const recordFile = path.join(
         this.workspaceDir,

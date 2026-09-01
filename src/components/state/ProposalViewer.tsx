@@ -52,13 +52,13 @@ interface ProposalViewerProps {
 
 /**
  * ProposalViewer Component
- * 
+ *
  * Shows structured breakdown of proposed changes:
  * - UI changes (component modifications)
  * - State changes (FeltDB collection/field changes)
  * - Data changes (records affected)
  * - Files (which files will be modified)
- * 
+ *
  * Part of PR8: FeltDB State-First Application Studio - Feature 3
  */
 export const ProposalViewer: React.FC<ProposalViewerProps> = ({
@@ -74,7 +74,7 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({
   isLoading,
 }) => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(["ui", "state", "data", "files"])
+    new Set(["ui", "state", "data", "files"]),
   );
 
   const toggleSection = (section: string) => {
@@ -104,7 +104,9 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({
           <div className="flex-1 min-w-0">
             <CardTitle>{title}</CardTitle>
             {description && (
-              <p className="text-sm text-muted-foreground mt-1">{description}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {description}
+              </p>
             )}
           </div>
           {impactLevel && (
@@ -112,7 +114,9 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({
               className={`${impactColors[impactLevel]} border shrink-0`}
               variant="outline"
             >
-              {impactLevel === "high" && <AlertCircle className="h-3 w-3 mr-1" />}
+              {impactLevel === "high" && (
+                <AlertCircle className="h-3 w-3 mr-1" />
+              )}
               {impactLevel === "high" ? "Major Impact" : impactLevel}
             </Badge>
           )}
@@ -285,9 +289,7 @@ export const ProposalViewer: React.FC<ProposalViewerProps> = ({
                     <div className="flex items-center gap-2">
                       <Badge
                         variant={
-                          change.type === "delete"
-                            ? "destructive"
-                            : "secondary"
+                          change.type === "delete" ? "destructive" : "secondary"
                         }
                         className="text-xs"
                       >

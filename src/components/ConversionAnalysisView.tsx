@@ -15,7 +15,11 @@ export interface ConversionAnalysisViewProps {
 export const ConversionAnalysisView: React.FC<ConversionAnalysisViewProps> = ({
   appId,
 }) => {
-  const { data: plan, isLoading, error } = useQuery({
+  const {
+    data: plan,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: queryKeys.apps.conversionPlan({ appId }),
     queryFn: async () => {
       return ipc.conversionAnalysis.getConversionPlan({ appId });

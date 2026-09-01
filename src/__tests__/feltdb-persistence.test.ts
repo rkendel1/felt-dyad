@@ -66,11 +66,11 @@ describe("FeltDB Persistence", () => {
   it("should save and retrieve conversion plan from FeltDB", async () => {
     // Run analysis
     const plan = await runFullAnalysis(1, tempDir);
-    
+
     // Save to FeltDB
     const store = await getConversionPlanStore(tempDir);
     const planId = await store.savePlan(1, plan);
-    
+
     expect(planId).toBeDefined();
     expect(typeof planId).toBe("string");
   });
@@ -78,14 +78,14 @@ describe("FeltDB Persistence", () => {
   it("should retrieve saved conversion plan from FeltDB", async () => {
     // Run analysis
     const plan = await runFullAnalysis(1, tempDir);
-    
+
     // Save to FeltDB
     const store = await getConversionPlanStore(tempDir);
     await store.savePlan(1, plan);
-    
+
     // Retrieve from FeltDB
     const retrieved = await store.getPlan(1);
-    
+
     expect(retrieved).toBeDefined();
     expect(retrieved?.appId).toBe(1);
     expect(retrieved?.status).toBe("PENDING_APPROVAL");
@@ -95,14 +95,14 @@ describe("FeltDB Persistence", () => {
   it("should list all conversion plans from FeltDB", async () => {
     // Run analysis
     const plan = await runFullAnalysis(1, tempDir);
-    
+
     // Save to FeltDB
     const store = await getConversionPlanStore(tempDir);
     await store.savePlan(1, plan);
-    
+
     // List all plans
     const plans = await store.listPlans();
-    
+
     expect(Array.isArray(plans)).toBe(true);
     expect(plans.length).toBeGreaterThan(0);
   });
@@ -110,15 +110,15 @@ describe("FeltDB Persistence", () => {
   it("should delete conversion plan from FeltDB", async () => {
     // Run analysis
     const plan = await runFullAnalysis(1, tempDir);
-    
+
     // Save to FeltDB
     const store = await getConversionPlanStore(tempDir);
     await store.savePlan(1, plan);
-    
+
     // Delete plan
     const deleted = await store.deletePlan(1);
     expect(deleted).toBe(true);
-    
+
     // Verify it's gone
     const retrieved = await store.getPlan(1);
     expect(retrieved).toBeNull();

@@ -11,10 +11,10 @@ import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * ProposalPanel Component
- * 
+ *
  * Integrates ProposalViewer with actual proposal data from the builder.
  * Handles proposal approval and rejection.
- * 
+ *
  * Part of PR8: FeltDB State-First Application Studio
  */
 export const ProposalPanel: React.FC = () => {
@@ -108,9 +108,7 @@ export const ProposalPanel: React.FC = () => {
         dataChanges={[]}
         fileChanges={proposal.filesChanged}
         impactLevel="medium"
-        onApply={() =>
-          approveMutation.mutate(messageId)
-        }
+        onApply={() => approveMutation.mutate(messageId)}
         onEdit={() => {
           // TODO: Implement edit mode
         }}

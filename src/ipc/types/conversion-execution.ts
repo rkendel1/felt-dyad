@@ -115,7 +115,8 @@ export type GetConversionExecutionParams = z.infer<
   typeof GetConversionExecutionParamsSchema
 >;
 
-export const GetConversionExecutionResultSchema = ConversionExecutionRecordSchema.optional();
+export const GetConversionExecutionResultSchema =
+  ConversionExecutionRecordSchema.optional();
 
 export type GetConversionExecutionResult = z.infer<
   typeof GetConversionExecutionResultSchema

@@ -15,7 +15,7 @@ interface StateSurfaceProps {
 
 /**
  * StateSurface Component
- * 
+ *
  * Displays FeltDB collections and record counts in a non-developer friendly way.
  * Shows collections like "Customers: 2,341" with a friendly interface.
  * Part of PR8: FeltDB State-First Application Studio
@@ -24,9 +24,9 @@ export const StateSurface: React.FC<StateSurfaceProps> = ({
   collections,
   onSelectCollection,
 }) => {
-  const [expandedCollections, setExpandedCollections] = useState<
-    Set<string>
-  >(new Set());
+  const [expandedCollections, setExpandedCollections] = useState<Set<string>>(
+    new Set(),
+  );
 
   const toggleExpanded = (collectionName: string) => {
     const newSet = new Set(expandedCollections);

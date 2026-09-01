@@ -16,7 +16,13 @@
  */
 
 import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertCircle, HelpCircle } from "lucide-react";
 import type { ConversionPlan } from "@/ipc/types";
@@ -25,9 +31,9 @@ interface AcceptanceCriteriaReportProps {
   plan: ConversionPlan;
 }
 
-export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> = ({
-  plan,
-}) => {
+export const AcceptanceCriteriaReport: React.FC<
+  AcceptanceCriteriaReportProps
+> = ({ plan }) => {
   // Criterion 1: What state exists?
   const stateCount = plan.stateAnalysis.sources.length;
   const stateTypes = new Set(plan.stateAnalysis.sources.map((s) => s.type));
@@ -89,8 +95,8 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
           Conversion Analysis: Acceptance Criteria Report
         </h2>
         <p className="text-sm text-blue-800">
-          This report addresses all 11 acceptance criteria from PR5. Review each section to understand
-          exactly what will change during conversion.
+          This report addresses all 11 acceptance criteria from PR5. Review each
+          section to understand exactly what will change during conversion.
         </p>
       </div>
 
@@ -114,7 +120,10 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
                   (s) => s.type === type,
                 ).length;
                 return (
-                  <div key={type} className="rounded border p-2 bg-gray-50 text-xs">
+                  <div
+                    key={type}
+                    className="rounded border p-2 bg-gray-50 text-xs"
+                  >
                     <div className="font-medium">{type}</div>
                     <div className="text-gray-600">{count} instance(s)</div>
                   </div>
@@ -139,7 +148,9 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
         <CardContent className="space-y-2">
           {uniqueLocations.map((location) => (
             <div key={location.type} className="text-sm">
-              <div className="font-medium text-gray-900 mb-1">{location.type}</div>
+              <div className="font-medium text-gray-900 mb-1">
+                {location.type}
+              </div>
               <div className="space-y-1 ml-3">
                 {location.locations.slice(0, 3).map((file, idx) => (
                   <div key={idx} className="text-xs text-gray-600 font-mono">
@@ -171,11 +182,16 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
         <CardContent className="space-y-2">
           {moveToFeltDB.length > 0 ? (
             moveToFeltDB.map((source, idx) => (
-              <div key={idx} className="text-sm border-l-2 border-emerald-500 pl-3 py-1">
+              <div
+                key={idx}
+                className="text-sm border-l-2 border-emerald-500 pl-3 py-1"
+              >
                 <div className="font-medium text-gray-900">{source.name}</div>
                 <div className="text-xs text-gray-600">{source.type}</div>
                 {source.file && (
-                  <div className="text-xs text-gray-500 font-mono">{source.file}</div>
+                  <div className="text-xs text-gray-500 font-mono">
+                    {source.file}
+                  </div>
                 )}
               </div>
             ))
@@ -201,10 +217,15 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
         <CardContent className="space-y-2">
           {remainExternal.length > 0 ? (
             remainExternal.map((service, idx) => (
-              <div key={idx} className="text-sm border-l-2 border-orange-500 pl-3 py-1">
+              <div
+                key={idx}
+                className="text-sm border-l-2 border-orange-500 pl-3 py-1"
+              >
                 <div className="font-medium text-gray-900">{service.name}</div>
                 <div className="text-xs text-gray-600">{service.type}</div>
-                <div className="text-xs text-gray-500 italic">{service.usedFor}</div>
+                <div className="text-xs text-gray-500 italic">
+                  {service.usedFor}
+                </div>
               </div>
             ))
           ) : (
@@ -232,7 +253,8 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
               Automatic changes: {uiChangeCount - manualUIChanges.length}
             </p>
             <p className="text-xs text-gray-600 mb-3">
-              Removing manual fetch/loading/error patterns, connecting to FeltDB reactive state
+              Removing manual fetch/loading/error patterns, connecting to FeltDB
+              reactive state
             </p>
             {manualUIChanges.length > 0 && (
               <>
@@ -241,7 +263,10 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
                 </p>
                 <div className="space-y-1">
                   {manualUIChanges.map((change, idx) => (
-                    <div key={idx} className="text-xs text-gray-600 bg-yellow-50 p-2 rounded">
+                    <div
+                      key={idx}
+                      className="text-xs text-gray-600 bg-yellow-50 p-2 rounded"
+                    >
                       {change.component}: {change.impact}
                     </div>
                   ))}
@@ -266,17 +291,22 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="border rounded p-2">
-              <div className="font-medium text-gray-900">{apiFeltDBChanges}</div>
+              <div className="font-medium text-gray-900">
+                {apiFeltDBChanges}
+              </div>
               <div className="text-xs text-gray-600">Routes → FeltDB</div>
             </div>
             <div className="border rounded p-2">
-              <div className="font-medium text-gray-900">{apiRouteCount - apiFeltDBChanges}</div>
+              <div className="font-medium text-gray-900">
+                {apiRouteCount - apiFeltDBChanges}
+              </div>
               <div className="text-xs text-gray-600">Routes remain</div>
             </div>
           </div>
           {serverActionsCount > 0 && (
             <div className="text-xs text-gray-600 border-t pt-2">
-              {serverActionsCount} server action(s) will be updated to work with FeltDB
+              {serverActionsCount} server action(s) will be updated to work with
+              FeltDB
             </div>
           )}
         </CardContent>
@@ -296,13 +326,14 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
         <CardContent className="space-y-3">
           <div className="text-sm">
             <p className="font-medium mb-2">Detected tables: {dataCount}</p>
-            {plan.dataAnalysis.tables && plan.dataAnalysis.tables.length > 0 && (
-              <div className="text-xs text-gray-600 space-y-1">
-                {plan.dataAnalysis.tables.map((table, idx) => (
-                  <div key={idx}>✓ {table}</div>
-                ))}
-              </div>
-            )}
+            {plan.dataAnalysis.tables &&
+              plan.dataAnalysis.tables.length > 0 && (
+                <div className="text-xs text-gray-600 space-y-1">
+                  {plan.dataAnalysis.tables.map((table, idx) => (
+                    <div key={idx}>✓ {table}</div>
+                  ))}
+                </div>
+              )}
             {excludedFields.length > 0 && (
               <div className="mt-3 p-2 bg-red-50 rounded border border-red-200">
                 <p className="text-xs font-medium text-red-900 mb-1">
@@ -336,9 +367,16 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
           {manualDecisions.length > 0 ? (
             <div className="space-y-3">
               {manualDecisions.map((decision, idx) => (
-                <div key={idx} className="border-l-2 border-amber-500 pl-3 py-2">
-                  <div className="font-medium text-gray-900">{decision.item}</div>
-                  <div className="text-sm text-gray-700 mt-1">{decision.reason}</div>
+                <div
+                  key={idx}
+                  className="border-l-2 border-amber-500 pl-3 py-2"
+                >
+                  <div className="font-medium text-gray-900">
+                    {decision.item}
+                  </div>
+                  <div className="text-sm text-gray-700 mt-1">
+                    {decision.reason}
+                  </div>
                   <div className="text-sm text-amber-700 italic mt-2">
                     👉 {decision.recommendation}
                   </div>
@@ -380,7 +418,8 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
             </ul>
           ) : (
             <div className="text-sm text-gray-600">
-              No approval decisions needed. Review the full plan and proceed to conversion.
+              No approval decisions needed. Review the full plan and proceed to
+              conversion.
             </div>
           )}
         </CardContent>
@@ -406,7 +445,9 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
           <div className="space-y-2">
             <div>✓ This is an analysis-only operation</div>
             <div>✓ No source code has been changed</div>
-            <div>✓ Status: <span className="font-medium">{plan.status}</span></div>
+            <div>
+              ✓ Status: <span className="font-medium">{plan.status}</span>
+            </div>
             <div>✓ Ready for review before proceeding to PR6 conversion</div>
           </div>
         </CardContent>
@@ -422,7 +463,11 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
                 11. Simplification & Complexity Metrics
               </span>
               <Badge className="bg-emerald-600">
-                -{Math.round(simplification.complexity.estimatedReductionPercent)}%
+                -
+                {Math.round(
+                  simplification.complexity.estimatedReductionPercent,
+                )}
+                %
               </Badge>
             </CardTitle>
             <CardDescription className="text-emerald-800">
@@ -446,9 +491,13 @@ export const AcceptanceCriteriaReport: React.FC<AcceptanceCriteriaReportProps> =
               </div>
             </div>
             <div className="border-t border-emerald-200 pt-2">
-              <div>Net reduction: ~{simplification.netEstimatedReduction.toLocaleString()} LOC</div>
+              <div>
+                Net reduction: ~
+                {simplification.netEstimatedReduction.toLocaleString()} LOC
+              </div>
               <div className="text-xs text-emerald-700 mt-1">
-                {simplification.flowStats.canBeEliminated} state flows can be eliminated
+                {simplification.flowStats.canBeEliminated} state flows can be
+                eliminated
               </div>
             </div>
           </CardContent>

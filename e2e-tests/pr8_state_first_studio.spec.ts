@@ -3,7 +3,7 @@ import { testSkipIfWindows } from "./helpers/test_helper";
 
 /**
  * PR8 E2E Test - FeltDB State-First Application Studio
- * 
+ *
  * Tests the complete workflow described in the PR8 acceptance criteria:
  * 1. Import a GitHub application
  * 2. See the FeltDB conversion analysis
@@ -29,9 +29,11 @@ testSkipIfWindows(
 
     // 2. See the FeltDB conversion analysis in the Changes tab
     await po.clickNewChat();
-    
+
     // Open the Changes tab
-    const changesTabButton = po.page.locator('button[role="tab"]:has-text("Changes")');
+    const changesTabButton = po.page.locator(
+      'button[role="tab"]:has-text("Changes")',
+    );
     await expect(changesTabButton).toBeVisible();
     await changesTabButton.click();
 
@@ -43,7 +45,9 @@ testSkipIfWindows(
     await expect(locReduction).toBeVisible();
 
     // 4. Switch to State tab to see application state
-    const stateTabButton = po.page.locator('button[role="tab"]:has-text("State")');
+    const stateTabButton = po.page.locator(
+      'button[role="tab"]:has-text("State")',
+    );
     await expect(stateTabButton).toBeVisible();
     await stateTabButton.click();
 
@@ -53,8 +57,10 @@ testSkipIfWindows(
 
     // 6. Click a component in the preview
     const previewFrame = po.getPreviewIframeElement().contentFrame();
-    const componentElement = previewFrame.locator("button, [role='heading'], [role='main']").first();
-    
+    const componentElement = previewFrame
+      .locator("button, [role='heading'], [role='main']")
+      .first();
+
     if (await componentElement.isVisible().catch(() => false)) {
       await componentElement.click();
 
@@ -71,17 +77,21 @@ testSkipIfWindows(
     await po.waitForChatCompletion();
 
     // 9. Review the proposal in the Proposals tab
-    const proposalsTabButton = po.page.locator('button[role="tab"]:has-text("Proposals")');
+    const proposalsTabButton = po.page.locator(
+      'button[role="tab"]:has-text("Proposals")',
+    );
     await expect(proposalsTabButton).toBeVisible();
     await proposalsTabButton.click();
 
     // Verify proposal structure is visible
     const proposalViewer = po.page.locator("text=UI|State|Data|Files").first();
-    await expect(proposalViewer).toBeVisible({ timeout: 5000 }).catch(() => true);
+    await expect(proposalViewer)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => true);
 
     // 10. Check for apply/reject buttons
     const applyButton = po.page.locator('button:has-text("Apply")').first();
-    
+
     if (await applyButton.isVisible().catch(() => false)) {
       // 11. Apply the proposal
       await applyButton.click();
@@ -91,15 +101,17 @@ testSkipIfWindows(
 
       // Switch back to preview to see the update
       await po.clickTogglePreviewPanel();
-      
+
       // 12. Verify the preview has updated
       await po.snapshotPreview();
 
       // Switch to State tab to verify state changes
       await stateTabButton.click();
-      
+
       const stateChanges = po.page.locator("text=SELECTED|Component|State");
-      await expect(stateChanges).toBeVisible({ timeout: 5000 }).catch(() => true);
+      await expect(stateChanges)
+        .toBeVisible({ timeout: 5000 })
+        .catch(() => true);
     }
 
     // 13. Undo the last change
@@ -108,7 +120,7 @@ testSkipIfWindows(
 
     // Verify undo was processed
     await po.snapshotServerDump("last-message");
-  }
+  },
 );
 
 testSkipIfWindows(
@@ -119,27 +131,39 @@ testSkipIfWindows(
     await po.clickNewChat();
 
     // Open the State tab
-    const stateTabButton = po.page.locator('button[role="tab"]:has-text("State")');
+    const stateTabButton = po.page.locator(
+      'button[role="tab"]:has-text("State")',
+    );
     await stateTabButton.click();
 
     // Verify collections are displayed
-    const collectionsDisplay = po.page.locator("text=Customers|Orders|Projects|Preferences");
-    await expect(collectionsDisplay).toBeVisible({ timeout: 5000 }).catch(() => true);
+    const collectionsDisplay = po.page.locator(
+      "text=Customers|Orders|Projects|Preferences",
+    );
+    await expect(collectionsDisplay)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => true);
 
     // Verify record counts are visible
     const recordCounts = po.page.locator("text=2,341|8,492|42|18");
-    await expect(recordCounts).toBeVisible({ timeout: 5000 }).catch(() => true);
+    await expect(recordCounts)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => true);
 
     // Click to expand a collection
-    const firstCollection = po.page.locator('button:has-text("Customers")').first();
+    const firstCollection = po.page
+      .locator('button:has-text("Customers")')
+      .first();
     if (await firstCollection.isVisible().catch(() => false)) {
       await firstCollection.click();
-      
+
       // Verify expanded state shows details
       const expandedContent = po.page.locator("text=Open State|collection");
-      await expect(expandedContent).toBeVisible({ timeout: 3000 }).catch(() => true);
+      await expect(expandedContent)
+        .toBeVisible({ timeout: 3000 })
+        .catch(() => true);
     }
-  }
+  },
 );
 
 testSkipIfWindows(
@@ -150,21 +174,33 @@ testSkipIfWindows(
     await po.clickNewChat();
 
     // Open the Changes tab
-    const changesTabButton = po.page.locator('button[role="tab"]:has-text("Changes")');
+    const changesTabButton = po.page.locator(
+      'button[role="tab"]:has-text("Changes")',
+    );
     await changesTabButton.click();
 
     // Verify conversion report is visible
-    const conversionReport = po.page.locator("text=FeltDB Conversion|Before|After");
-    await expect(conversionReport).toBeVisible({ timeout: 5000 }).catch(() => true);
+    const conversionReport = po.page.locator(
+      "text=FeltDB Conversion|Before|After",
+    );
+    await expect(conversionReport)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => true);
 
     // Verify metrics are displayed
-    const metrics = po.page.locator("text=−26.2%|State plumbing removed|API routes removed");
-    await expect(metrics).toBeVisible({ timeout: 5000 }).catch(() => true);
+    const metrics = po.page.locator(
+      "text=−26.2%|State plumbing removed|API routes removed",
+    );
+    await expect(metrics)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => true);
 
     // Verify git history is shown
     const gitHistory = po.page.locator("text=Conversion|Changes");
-    await expect(gitHistory).toBeVisible({ timeout: 5000 }).catch(() => true);
-  }
+    await expect(gitHistory)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => true);
+  },
 );
 
 testSkipIfWindows(
@@ -175,29 +211,41 @@ testSkipIfWindows(
     await po.clickNewChat();
 
     // Open State tab
-    const stateTabButton = po.page.locator('button[role="tab"]:has-text("State")');
+    const stateTabButton = po.page.locator(
+      'button[role="tab"]:has-text("State")',
+    );
     await stateTabButton.click();
 
     // Verify State tab is visible
     const stateContent = po.page.locator("text=Customers|Orders|Projects");
-    await expect(stateContent).toBeVisible({ timeout: 5000 }).catch(() => true);
+    await expect(stateContent)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => true);
 
     // Switch to Changes tab
-    const changesTabButton = po.page.locator('button[role="tab"]:has-text("Changes")');
+    const changesTabButton = po.page.locator(
+      'button[role="tab"]:has-text("Changes")',
+    );
     await changesTabButton.click();
 
     // Verify Changes tab content
     const changesContent = po.page.locator("text=FeltDB Conversion|Before");
-    await expect(changesContent).toBeVisible({ timeout: 5000 }).catch(() => true);
+    await expect(changesContent)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => true);
 
     // Switch back to State tab
     await stateTabButton.click();
 
     // Verify State tab content is still there
-    await expect(stateContent).toBeVisible({ timeout: 5000 }).catch(() => true);
+    await expect(stateContent)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => true);
 
     // Switch to Chat tab
-    const chatTabButton = po.page.locator('button[role="tab"]:has-text("Chat")').first();
+    const chatTabButton = po.page
+      .locator('button[role="tab"]:has-text("Chat")')
+      .first();
     await chatTabButton.click();
 
     // Verify chat is still functional
@@ -207,5 +255,5 @@ testSkipIfWindows(
     // Verify message was sent and received
     const chatMessage = po.page.locator("text=Hello");
     await expect(chatMessage).toBeVisible();
-  }
+  },
 );

@@ -53,9 +53,7 @@ export function generateConversionPlan(
   };
 }
 
-function generateUiChanges(
-  stateAnalysis: StateAnalysis,
-): UiChange[] {
+function generateUiChanges(stateAnalysis: StateAnalysis): UiChange[] {
   const changes: UiChange[] = [];
 
   // Find components that use API responses
@@ -117,7 +115,9 @@ function generateSummary(
   ).length;
   const uiChangeCount = uiChanges.length;
   const apiRouteCount = backendAnalysis.apiRoutes.length;
-  const locReduction = Math.round(simplificationAnalysis.complexity.estimatedReductionPercent);
+  const locReduction = Math.round(
+    simplificationAnalysis.complexity.estimatedReductionPercent,
+  );
   const netSimplification = simplificationAnalysis.netEstimatedReduction;
   const flowsEliminated = simplificationAnalysis.flowStats.canBeEliminated;
 

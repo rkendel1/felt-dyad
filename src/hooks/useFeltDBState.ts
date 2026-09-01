@@ -13,10 +13,10 @@ interface FeltDBState {
 
 /**
  * useFeltDBState Hook
- * 
+ *
  * Fetches FeltDB state information for the current application.
  * Returns collections and their record counts for display in StateSurface.
- * 
+ *
  * Part of PR8: FeltDB State-First Application Studio
  */
 export function useFeltDBState(enabled: boolean = true) {
@@ -33,7 +33,7 @@ export function useFeltDBState(enabled: boolean = true) {
         // TODO: Implement IPC call to get FeltDB state
         // const state = await ipc.feltdb.getState({ appId: selectedAppId });
         // return state;
-        
+
         // Temporary mock data for demonstration
         return {
           collections: [

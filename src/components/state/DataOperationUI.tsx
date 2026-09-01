@@ -16,16 +16,19 @@ interface DataOperationUIProps {
   collection: string;
   operation: "create" | "update" | "delete";
   fields: DataField[];
-  onExecute?: (operation: "create" | "update" | "delete", data: Record<string, any>) => void;
+  onExecute?: (
+    operation: "create" | "update" | "delete",
+    data: Record<string, any>,
+  ) => void;
   isLoading?: boolean;
 }
 
 /**
  * DataOperationUI Component
- * 
+ *
  * Provides safe UI for non-developers to create, update, or delete records in FeltDB.
  * Shows all fields, their types, and validation before applying changes.
- * 
+ *
  * Part of PR8: FeltDB State-First Application Studio - Feature 9
  */
 export const DataOperationUI: React.FC<DataOperationUIProps> = ({
@@ -41,8 +44,8 @@ export const DataOperationUI: React.FC<DataOperationUIProps> = ({
         ...acc,
         [field.name]: field.value || "",
       }),
-      {}
-    )
+      {},
+    ),
   );
 
   const [showPreview, setShowPreview] = useState(false);
@@ -114,7 +117,7 @@ export const DataOperationUI: React.FC<DataOperationUIProps> = ({
                       field.name,
                       field.type === "number"
                         ? Number(e.target.value)
-                        : e.target.value
+                        : e.target.value,
                     )
                   }
                   placeholder={`Enter ${field.name}`}

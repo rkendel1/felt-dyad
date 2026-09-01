@@ -287,7 +287,9 @@ export const SimplificationAnalysisSchema = z.object({
   }),
 });
 
-export type SimplificationAnalysis = z.infer<typeof SimplificationAnalysisSchema>;
+export type SimplificationAnalysis = z.infer<
+  typeof SimplificationAnalysisSchema
+>;
 
 // =============================================================================
 // Conversion Plan
@@ -330,7 +332,6 @@ export const ConversionPlanSchema = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
 });
-
 
 export type ConversionPlan = z.infer<typeof ConversionPlanSchema>;
 

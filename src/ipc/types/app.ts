@@ -39,7 +39,6 @@ export const AppBaseSchema = z.object({
   feltdbStatus: z.enum(["ready", "initializing", "failed"]).nullable(),
 });
 
-
 /**
  * Schema for a full App object as returned from the database with computed fields.
  * Used for getApp which returns the full app with resolved paths and files.

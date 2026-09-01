@@ -20,7 +20,7 @@ test.describe("FeltDB Full Workflow E2E", () => {
     await page.click('button:has-text("Create")');
 
     // Wait for app to be created
-    await page.waitForSelector('text=FeltDB');
+    await page.waitForSelector("text=FeltDB");
 
     // Verify FeltDB is shown as default
     const feltdbStatus = await page.locator("text=Server (Node)");
@@ -44,7 +44,7 @@ test.describe("FeltDB Full Workflow E2E", () => {
     await page.waitForSelector("text=Ready");
 
     // Verify FeltDB is running
-    const status = await page.locator('text=Ready');
+    const status = await page.locator("text=Ready");
     expect(status).toBeDefined();
 
     // Stop FeltDB
@@ -106,11 +106,7 @@ test.describe("FeltDB Full Workflow E2E", () => {
     const appName = "test-feltdb-persistence";
 
     // Create test app directory
-    const testAppPath = path.join(
-      process.cwd(),
-      "test-apps",
-      appName,
-    );
+    const testAppPath = path.join(process.cwd(), "test-apps", appName);
 
     if (!fs.existsSync(testAppPath)) {
       fs.mkdirSync(testAppPath, { recursive: true });
@@ -119,9 +115,7 @@ test.describe("FeltDB Full Workflow E2E", () => {
     // Verify FeltDB metadata file
     const metadataPath = path.join(testAppPath, ".feltdb", "metadata.json");
     if (fs.existsSync(metadataPath)) {
-      const metadata = JSON.parse(
-        fs.readFileSync(metadataPath, "utf-8"),
-      );
+      const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
       expect(metadata.provider).toBe("feltdb");
       expect(metadata.runtime).toBe("node");
       expect(metadata.mode).toBe("local");
@@ -144,9 +138,7 @@ test.describe("FeltDB Full Workflow E2E", () => {
       await managedOption.click();
 
       // Should show account connection UI
-      const connectButton = await page.locator(
-        'button:has-text("Connect")',
-      );
+      const connectButton = await page.locator('button:has-text("Connect")');
       expect(connectButton).toBeDefined();
     }
   });
@@ -196,9 +188,7 @@ test.describe("FeltDB Full Workflow E2E", () => {
     expect(["ready", "initializing", "stopped"]).toContain(status);
   });
 
-  test("FeltDB configuration persists across navigations", async ({
-    page,
-  }) => {
+  test("FeltDB configuration persists across navigations", async ({ page }) => {
     // Navigate to app
     await page.goto("http://localhost:3000/apps");
 
@@ -206,9 +196,7 @@ test.describe("FeltDB Full Workflow E2E", () => {
     await page.click('button:has-text("test-app")');
 
     // Check FeltDB config
-    let feltdbRuntime = await page.locator(
-      "text=Server",
-    );
+    let feltdbRuntime = await page.locator("text=Server");
     expect(feltdbRuntime).toBeDefined();
 
     // Navigate away
@@ -218,9 +206,7 @@ test.describe("FeltDB Full Workflow E2E", () => {
     await page.click('a:has-text("Overview")');
 
     // Verify FeltDB config is still there
-    feltdbRuntime = await page.locator(
-      "text=Server",
-    );
+    feltdbRuntime = await page.locator("text=Server");
     expect(feltdbRuntime).toBeDefined();
   });
 });

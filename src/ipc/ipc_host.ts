@@ -40,7 +40,7 @@ import { registerAgentToolHandlers } from "../pro/main/ipc/handlers/local_agent/
 import { registerFreeAgentQuotaHandlers } from "./handlers/free_agent_quota_handlers";
 import { registerConversionAnalysisHandlers } from "./handlers/conversion_analysis_handlers";
 import { registerConversionExecutionHandlers } from "./handlers/conversion_execution_handlers";
-
+import { registerApplicationIntelligenceHandlers } from "./handlers/application_intelligence_handlers";
 
 export function registerIpcHandlers() {
   // Register all IPC handlers by category
@@ -86,4 +86,5 @@ export function registerIpcHandlers() {
   registerFreeAgentQuotaHandlers();
   registerConversionAnalysisHandlers();
   registerConversionExecutionHandlers();
+  registerApplicationIntelligenceHandlers();
 }

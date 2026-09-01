@@ -41,6 +41,7 @@ import { miscContracts, miscEvents } from "../types/misc";
 import { freeAgentQuotaContracts } from "../types/free_agent_quota";
 import { conversionAnalysisContracts } from "../types/conversion-analysis";
 import { conversionExecutionContracts } from "../types/conversion-execution";
+import { applicationIntelligenceContracts } from "../types/application-intelligence-contracts";
 
 // =============================================================================
 // Invoke Channels (derived from all contracts)
@@ -91,6 +92,7 @@ export const VALID_INVOKE_CHANNELS = [
   ...getInvokeChannels(freeAgentQuotaContracts),
   ...getInvokeChannels(conversionAnalysisContracts),
   ...getInvokeChannels(conversionExecutionContracts),
+  ...getInvokeChannels(applicationIntelligenceContracts),
 ] as const;
 
 // =============================================================================

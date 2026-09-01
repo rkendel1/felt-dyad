@@ -5,9 +5,7 @@ import { apps } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { getDyadAppPath } from "../../paths/paths";
 import { getConversionPlanStore } from "../../store/conversion_plan_store";
-import {
-  createConversionExecutor,
-} from "../../main/conversion_executor";
+import { createConversionExecutor } from "../../main/conversion_executor";
 import { ConversionWorkspaceManager } from "../../main/conversion_workspace";
 import { ConversionCheckpointManager } from "../../ipc/utils/conversion_checkpoint";
 import type {
@@ -99,9 +97,7 @@ export function registerConversionExecutionHandlers() {
         const plan = await store.getPlan(params.appId);
 
         if (!plan) {
-          throw new Error(
-            `No conversion plan found for app ${params.appId}.`,
-          );
+          throw new Error(`No conversion plan found for app ${params.appId}.`);
         }
 
         // Verify plan is APPROVED
@@ -202,7 +198,9 @@ export function registerConversionExecutionHandlers() {
         const allApps = await db.query.apps.findMany();
         for (const app of allApps) {
           const workspaceManager = new ConversionWorkspaceManager(app.path);
-          const execution = await workspaceManager.loadExecution(params.conversionId);
+          const execution = await workspaceManager.loadExecution(
+            params.conversionId,
+          );
           if (execution) {
             appRecord = app;
             appId = execution.appId;
@@ -211,9 +209,7 @@ export function registerConversionExecutionHandlers() {
         }
 
         if (!appRecord) {
-          throw new Error(
-            `Conversion ${params.conversionId} not found`,
-          );
+          throw new Error(`Conversion ${params.conversionId} not found`);
         }
 
         // Create executor
