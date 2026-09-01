@@ -1,0 +1,7 @@
+# FeltDB runtime files
+*.db
+*.log
+*.lock
+connections.json
+pairing.json
+workspace.json
