@@ -172,8 +172,8 @@ export class FeltDBRuntimeManager {
           logger.info(`FeltDB health check passed for app ${appId}`);
           return true;
         }
-      } catch (error) {
-        // Still connecting, retry
+      } catch (_error) {
+        // Still connecting, retry on error
       }
 
       // Wait before retrying

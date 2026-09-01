@@ -1,6 +1,5 @@
 import log from "electron-log";
-import { ipcMain, BrowserWindow } from "electron";
-import { defineContract, createTypedHandler } from "../contracts/core";
+import { BrowserWindow } from "electron";
 import { z } from "zod";
 
 const logger = log.scope("feltdb_oauth_handlers");
@@ -39,7 +38,7 @@ export type FeltDBOAuthCredential = z.infer<
  * Opens a browser window with the OAuth authorization URL
  */
 export async function startFeltDBOAuthFlow(
-  mainWindow: BrowserWindow | null,
+  _mainWindow: BrowserWindow | null,
 ): Promise<FeltDBOAuthCredential | null> {
   logger.info("Starting FeltDB OAuth flow");
 

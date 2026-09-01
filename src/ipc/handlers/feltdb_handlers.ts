@@ -6,12 +6,6 @@ import { createTypedHandler } from "./base";
 import { createTestOnlyLoggedHandler } from "./safe_handle";
 import { feltdbContracts } from "../types/feltdb";
 import { feltdbRuntimeManager } from "../../main/feltdb_runtime_manager";
-import {
-  startFeltDBOAuthFlow,
-  getFeltDBCredentials,
-  storeFeltDBCredentials,
-  listFeltDBProjects,
-} from "./feltdb_oauth";
 
 const logger = log.scope("feltdb_handlers");
 const testOnlyHandle = createTestOnlyLoggedHandler(logger);
@@ -214,7 +208,7 @@ export function registerFeltdbHandlers() {
   // Authenticate with managed FeltDB
   createTypedHandler(
     feltdbContracts.authenticateManaged,
-    async (_, params) => {
+    async () => {
       logger.info(`Authenticating with managed FeltDB`);
 
       try {

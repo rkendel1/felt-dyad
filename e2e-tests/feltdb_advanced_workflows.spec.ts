@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 test.describe("FeltDB Full Workflow E2E", () => {
-  let appId: string;
+  let _appId: string;
 
   test("Create app with FeltDB defaults", async ({ page }) => {
     // Navigate to app creation
