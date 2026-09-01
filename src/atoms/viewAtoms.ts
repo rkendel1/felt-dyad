@@ -13,3 +13,23 @@ export const activeSettingsSectionAtom = atom<string | null>(
 export const activeChatPanelTabAtom = atom<
   "chat" | "state" | "changes" | "proposals"
 >("chat");
+
+// Selected component/state for display in StateInspector
+export const selectedStateAtom = atom<{
+  component?: {
+    name: string;
+    sourcePath: string;
+  };
+  collection?: {
+    name: string;
+    recordId?: string;
+  };
+  record?: {
+    id: string;
+    fields: Array<{
+      name: string;
+      type: string;
+      value?: string | number | boolean | null;
+    }>;
+  };
+} | undefined>(undefined);
