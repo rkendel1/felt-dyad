@@ -1,10 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ipc } from "@/ipc/types";
 import { showError, showSuccess } from "@/lib/toast";
-
-export const conversionExecutionKeys = {
-  execution: (appId: number) => ["conversion-execution", appId],
-};
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * Hook to approve a conversion plan for execution
@@ -18,7 +15,7 @@ export function useApproveConversion() {
       ipc.conversionExecution.approveConversion({ appId }),
     onSuccess: (data, appId) => {
       queryClient.invalidateQueries({
-        queryKey: conversionExecutionKeys.execution(appId),
+        queryKey: queryKeys.apps.conversionPlan({ appId }),
       });
       showSuccess(data.message || "Conversion plan approved");
     },
@@ -40,7 +37,7 @@ export function useExecuteConversion() {
       ipc.conversionExecution.executeConversion({ appId }),
     onSuccess: (data, appId) => {
       queryClient.invalidateQueries({
-        queryKey: conversionExecutionKeys.execution(appId),
+        queryKey: queryKeys.conversionExecution.byApp({ appId }),
       });
       showSuccess(
         data.message ||
@@ -59,8 +56,8 @@ export function useExecuteConversion() {
 export function useConversionExecutionStatus(appId?: number) {
   return useQuery({
     queryKey: appId
-      ? conversionExecutionKeys.execution(appId)
-      : ["conversion-execution"],
+      ? queryKeys.conversionExecution.byApp({ appId })
+      : queryKeys.conversionExecution.all,
     queryFn: () => {
       if (!appId) throw new Error("appId is required");
       return ipc.conversionExecution.getConversionExecution({ appId });

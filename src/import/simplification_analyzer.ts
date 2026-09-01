@@ -14,6 +14,8 @@ import type {
   BackendAnalysis,
   DataAnalysis,
 } from "@/ipc/types/conversion-analysis";
+import fs from "node:fs";
+import path from "node:path";
 
 export interface ComplexityMetrics {
   currentLOC: number;
@@ -79,15 +81,19 @@ export async function analyzeSimplification(
   const currentLOC = estimateLOC(appAnalysis, projectPath);
 
   // Calculate complexity metrics
-  const removableLOC = estimateRemovableLOC(
-    stateAnalysis,
-    backendAnalysis,
-    dataAnalysis,
+  const removableLOC = Math.min(
+    estimateRemovableLOC(stateAnalysis, backendAnalysis, dataAnalysis),
+    currentLOC,
   );
-  const replaceableLOC = estimateReplaceableLOC(stateAnalysis, backendAnalysis);
-  const unchangedLOC = currentLOC - removableLOC - replaceableLOC;
+  const replaceableLOC = Math.min(
+    estimateReplaceableLOC(stateAnalysis, backendAnalysis),
+    Math.max(currentLOC - removableLOC, 0),
+  );
+  const unchangedLOC = Math.max(currentLOC - removableLOC - replaceableLOC, 0);
   const estimatedReductionPercent =
-    ((removableLOC + replaceableLOC) / currentLOC) * 100;
+    currentLOC > 0
+      ? (Math.min(removableLOC + replaceableLOC, currentLOC) / currentLOC) * 100
+      : 0;
 
   // Calculate category-wise removals
   const categoryRemovals = calculateCategoryRemovals(
@@ -112,17 +118,31 @@ export async function analyzeSimplification(
 
   // Calculate tradeoffs
   const newFeltDBCode = estimateNewFeltDBCode(dataAnalysis, stateAnalysis);
-  const newConcepts = [
-    "FeltDB schema definition",
-    "Local-first state synchronization",
-    "Sync authority & conflict resolution",
-  ];
+  const hasConversionTargets =
+    dataAnalysis.totalTables > 0 ||
+    stateAnalysis.sources.some((source) =>
+      ["MOVE_TO_FELTDB", "REPLACE_WITH_FELTDB"].includes(source.classification),
+    );
+  const newConcepts = hasConversionTargets
+    ? [
+        "FeltDB schema definition",
+        "Server-hosted reactive state",
+        "State authority and conflict resolution",
+      ]
+    : [];
   const netEstimatedReduction = removableLOC + replaceableLOC - newFeltDBCode;
 
   // Estimate LOC after conversion
+  const estimatedLow =
+    currentLOC > 0
+      ? Math.max(currentLOC - removableLOC - replaceableLOC, 1)
+      : 0;
   const estimatedAfterLOC = {
-    low: Math.max(currentLOC - removableLOC - replaceableLOC, 1000),
-    high: Math.max(currentLOC - (removableLOC + replaceableLOC) * 0.7, 1000),
+    low: estimatedLow,
+    high: Math.max(
+      currentLOC - (removableLOC + replaceableLOC) * 0.7,
+      estimatedLow,
+    ),
   };
 
   return {
@@ -147,18 +167,44 @@ export async function analyzeSimplification(
  * Estimate current lines of code based on file count and framework
  */
 function estimateLOC(
-  appAnalysis: ApplicationAnalysis,
-  _projectPath: string,
+  _appAnalysis: ApplicationAnalysis,
+  projectPath: string,
 ): number {
-  // Rough heuristic: average LOC per file based on framework
-  const avgLOCPerFile = appAnalysis.framework === "REACT" ? 150 : 120;
-  const numFiles = Math.max(
-    (appAnalysis.entryPoints?.length ?? 0) +
-      (appAnalysis.routes?.length ?? 0) +
-      (appAnalysis.components?.length ?? 0),
-    1,
-  );
-  return Math.max(numFiles * avgLOCPerFile, 10000);
+  const sourceExtensions = new Set([
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".vue",
+    ".svelte",
+    ".css",
+  ]);
+  const ignored = new Set([".git", ".next", "build", "dist", "node_modules"]);
+  let lines = 0;
+  const queue = [projectPath];
+
+  while (queue.length > 0) {
+    const directory = queue.pop()!;
+    let entries: fs.Dirent[] = [];
+    try {
+      entries = fs.readdirSync(directory, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const filePath = path.join(directory, entry.name);
+      if (entry.isDirectory() && !ignored.has(entry.name)) queue.push(filePath);
+      if (entry.isFile() && sourceExtensions.has(path.extname(entry.name))) {
+        try {
+          const content = fs.readFileSync(filePath, "utf8");
+          lines += content === "" ? 0 : content.split(/\r?\n/).length;
+        } catch {
+          // Ignore unreadable source files.
+        }
+      }
+    }
+  }
+  return lines;
 }
 
 /**
@@ -240,7 +286,7 @@ function calculateCategoryRemovals(
       backendAnalysis.apiRoutes.length - apiRouteReduction,
       0,
     ),
-    changePercent: -55,
+    changePercent: backendAnalysis.apiRoutes.length > 0 ? -55 : 0,
     unit: "routes",
   });
 
@@ -250,19 +296,20 @@ function calculateCategoryRemovals(
   removals.push({
     category: "API client code",
     current: apiClientLOC,
-    estimated: Math.max(apiClientLOC - apiClientReduction, 100),
-    changePercent: -55,
+    estimated: Math.max(apiClientLOC - apiClientReduction, 0),
+    changePercent: apiClientLOC > 0 ? -55 : 0,
     unit: "LOC",
   });
 
   // Database access code reduction
-  const dbAccessLOC = backendAnalysis.apiRoutes.length * 80 + 500;
+  const dbAccessLOC =
+    backendAnalysis.apiRoutes.length * 80 + dataAnalysis.totalTables * 100;
   const dbAccessReduction = Math.round(dbAccessLOC * 0.59);
   removals.push({
     category: "Database access code",
     current: dbAccessLOC,
-    estimated: Math.max(dbAccessLOC - dbAccessReduction, 100),
-    changePercent: -59,
+    estimated: Math.max(dbAccessLOC - dbAccessReduction, 0),
+    changePercent: dbAccessLOC > 0 ? -59 : 0,
     unit: "LOC",
   });
 
@@ -283,8 +330,8 @@ function calculateCategoryRemovals(
   removals.push({
     category: "Client state stores",
     current: clientStores,
-    estimated: Math.max(clientStores - storesReduction, 1),
-    changePercent: -56,
+    estimated: Math.max(clientStores - storesReduction, 0),
+    changePercent: clientStores > 0 ? -56 : 0,
     unit: "stores",
   });
 
@@ -294,8 +341,8 @@ function calculateCategoryRemovals(
   removals.push({
     category: "Loading states",
     current: Math.round(loadingStates),
-    estimated: Math.max(Math.round(loadingStates - loadingReduction), 5),
-    changePercent: -55,
+    estimated: Math.max(Math.round(loadingStates - loadingReduction), 0),
+    changePercent: loadingStates > 0 ? -55 : 0,
     unit: "states",
   });
 
@@ -309,21 +356,19 @@ function calculateCategoryRemovals(
   removals.push({
     category: "Refresh/sync logic",
     current: syncFlows,
-    estimated: Math.max(syncFlows - syncReduction, 1),
-    changePercent: -75,
+    estimated: Math.max(syncFlows - syncReduction, 0),
+    changePercent: syncFlows > 0 ? -75 : 0,
     unit: "flows",
   });
 
   // Database migrations reduction
-  const migrationReduction = Math.round((dataAnalysis.totalTables || 5) * 0.75);
+  const migrationCount = dataAnalysis.totalTables;
+  const migrationReduction = Math.round(migrationCount * 0.75);
   removals.push({
     category: "Database migrations",
-    current: dataAnalysis.totalTables || 5,
-    estimated: Math.max(
-      (dataAnalysis.totalTables || 5) - migrationReduction,
-      1,
-    ),
-    changePercent: -75,
+    current: migrationCount,
+    estimated: Math.max(migrationCount - migrationReduction, 0),
+    changePercent: migrationCount > 0 ? -75 : 0,
     unit: "files",
   });
 
@@ -393,17 +438,21 @@ function identifyStatePlumbingFlows(
  */
 function estimateNewFeltDBCode(
   dataAnalysis: DataAnalysis,
-  _stateAnalysis: StateAnalysis,
+  stateAnalysis: StateAnalysis,
 ): number {
   // Schema definition (estimated 50-80 LOC per collection)
-  const collections = dataAnalysis.totalTables || 5;
+  const stateCollections = stateAnalysis.sources.filter((source) =>
+    ["MOVE_TO_FELTDB", "REPLACE_WITH_FELTDB"].includes(source.classification),
+  ).length;
+  const collections = Math.max(dataAnalysis.totalTables, stateCollections);
+  if (collections === 0) return 0;
   const schemaLOC = collections * 65;
 
   // Query/mutation hooks (estimated 30 LOC per collection)
   const hooksLOC = collections * 30;
 
   // Sync configuration (estimated 100-200 LOC)
-  const syncLOC = 150;
+  const syncLOC = 40;
 
   // Total new code
   return Math.min(schemaLOC + hooksLOC + syncLOC, 2500);

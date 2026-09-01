@@ -64,7 +64,10 @@ import {
   MAX_FILE_SEARCH_SIZE,
   RIPGREP_EXCLUDED_GLOBS,
 } from "../utils/ripgrep_utils";
-import { getDiscoveredRunCommand } from "@/import/project_discovery";
+import {
+  discoverJavaScriptProject,
+  getDiscoveredRunCommand,
+} from "@/import/project_discovery";
 
 const logger = log.scope("app_handlers");
 const handle = createLoggedHandler(logger);
@@ -124,10 +127,30 @@ function buildSnippetFromMatch({
 
 function getDefaultCommand(appId: number, appPath: string): string {
   const port = getAppPort(appId);
-  return (
-    getDiscoveredRunCommand(appPath, port) ??
-    `echo "No runnable JavaScript application or dev/start/serve/preview script was found" && exit 1`
-  );
+  const command = getDiscoveredRunCommand(appPath, port);
+  if (!command) {
+    throw new Error(
+      `No runnable JavaScript application was found at ${appPath}. Check the app path and package.json scripts (dev, start, serve, or preview).`,
+    );
+  }
+  return command;
+}
+
+function resolveRuntimeAppPath(storedPath: string, appName: string): string {
+  const primaryPath = getDyadAppPath(storedPath);
+  if (discoverJavaScriptProject(primaryPath)?.runScript) return primaryPath;
+
+  const nameBasedPath = getDyadAppPath(appName);
+  if (
+    nameBasedPath !== primaryPath &&
+    discoverJavaScriptProject(nameBasedPath)?.runScript
+  ) {
+    logger.warn(
+      `Stored app path ${primaryPath} is stale; using ${nameBasedPath}`,
+    );
+    return nameBasedPath;
+  }
+  return primaryPath;
 }
 async function copyDir(
   source: string,
@@ -1000,7 +1023,7 @@ export function registerAppHandlers() {
 
       logger.debug(`Starting app ${appId} in path ${app.path}`);
 
-      const appPath = getDyadAppPath(app.path);
+      const appPath = resolveRuntimeAppPath(app.path, app.name);
       try {
         // There may have been a previous run that left a process on this port.
         await cleanUpPort(getAppPort(appId));
@@ -1103,7 +1126,7 @@ export function registerAppHandlers() {
           throw new Error("App not found");
         }
 
-        const appPath = getDyadAppPath(app.path);
+        const appPath = resolveRuntimeAppPath(app.path, app.name);
 
         // Remove node_modules if requested
         if (removeNodeModules) {

@@ -13,8 +13,13 @@ export async function runFullAnalysis(
   appPath: string,
 ): Promise<ConversionPlan> {
   try {
-    const analysisPath =
-      discoverJavaScriptProject(appPath)?.rootPath ?? appPath;
+    const discoveredProject = discoverJavaScriptProject(appPath);
+    if (!discoveredProject) {
+      throw new Error(
+        `No JavaScript application was found at ${appPath}. Check the app path and ensure the project contains a package.json.`,
+      );
+    }
+    const analysisPath = discoveredProject.rootPath;
     // Run all analyzers in parallel for efficiency
     const [
       applicationAnalysis,

@@ -35,7 +35,8 @@ export function registerConversionExecutionHandlers() {
         }
 
         // Get the conversion plan
-        const store = await getConversionPlanStore(appRecord.path);
+        const appPath = getDyadAppPath(appRecord.path);
+        const store = await getConversionPlanStore(appPath);
         const plan = await store.getPlan(params.appId);
 
         if (!plan) {
@@ -87,7 +88,8 @@ export function registerConversionExecutionHandlers() {
         }
 
         // Get the conversion plan
-        const store = await getConversionPlanStore(appRecord.path);
+        const appPath = getDyadAppPath(appRecord.path);
+        const store = await getConversionPlanStore(appPath);
         const plan = await store.getPlan(params.appId);
 
         if (!plan) {
@@ -102,11 +104,10 @@ export function registerConversionExecutionHandlers() {
         }
 
         // Create executor
-        const appPath = getDyadAppPath(appRecord.path);
         const executor = await createConversionExecutor(
           appPath,
           params.appId,
-          appRecord.path,
+          appPath,
         );
 
         // Execute conversion

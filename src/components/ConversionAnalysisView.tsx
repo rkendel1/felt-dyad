@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { ipc } from "@/ipc/types";
@@ -8,6 +8,17 @@ import { AcceptanceCriteriaReport } from "./AcceptanceCriteriaReport";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useApproveConversion } from "@/hooks/useConversionExecution";
 
 export interface ConversionAnalysisViewProps {
   appId: number;
@@ -16,6 +27,8 @@ export interface ConversionAnalysisViewProps {
 export const ConversionAnalysisView: React.FC<ConversionAnalysisViewProps> = ({
   appId,
 }) => {
+  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+  const approveConversion = useApproveConversion();
   const {
     data: plan,
     isLoading,
@@ -60,6 +73,31 @@ export const ConversionAnalysisView: React.FC<ConversionAnalysisViewProps> = ({
 
   return (
     <Tabs defaultValue="overview" className="w-full">
+      <div className="sticky top-0 z-10 mb-4 flex items-center justify-between gap-4 rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">Conversion plan</span>
+            <Badge
+              variant={
+                plan.status === "PENDING_APPROVAL" ? "outline" : "secondary"
+              }
+            >
+              {plan.status.replaceAll("_", " ")}
+            </Badge>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {plan.status === "PENDING_APPROVAL"
+              ? "Review the findings, then approve this plan to record your decision."
+              : "This FeltDB conversion plan has been approved."}
+          </p>
+        </div>
+        {plan.status === "PENDING_APPROVAL" && (
+          <Button onClick={() => setIsApprovalDialogOpen(true)}>
+            Approve FeltDB conversion
+          </Button>
+        )}
+      </div>
+
       <TabsList className="mb-6 grid h-auto w-full grid-cols-3 rounded-none border-b bg-transparent p-0">
         <TabsTrigger
           value="overview"
@@ -90,6 +128,39 @@ export const ConversionAnalysisView: React.FC<ConversionAnalysisViewProps> = ({
       <TabsContent value="acceptance" className="mt-0">
         <AcceptanceCriteriaReport plan={plan} />
       </TabsContent>
+
+      <Dialog
+        open={isApprovalDialogOpen}
+        onOpenChange={setIsApprovalDialogOpen}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Approve this FeltDB conversion plan?</DialogTitle>
+            <DialogDescription>
+              This records your approval of the proposed state, API, and data
+              changes. Approval itself does not modify project files.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsApprovalDialogOpen(false)}
+              disabled={approveConversion.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                await approveConversion.mutateAsync(appId);
+                setIsApprovalDialogOpen(false);
+              }}
+              disabled={approveConversion.isPending}
+            >
+              {approveConversion.isPending ? "Approving…" : "Approve plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Tabs>
   );
 };

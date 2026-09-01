@@ -28,6 +28,12 @@ export const queryKeys = {
       ["apps", "conversion-plan", appId] as const,
   },
 
+  conversionExecution: {
+    all: ["conversion-execution"] as const,
+    byApp: ({ appId }: { appId: number }) =>
+      ["conversion-execution", appId] as const,
+  },
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Chats
   // ─────────────────────────────────────────────────────────────────────────────

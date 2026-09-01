@@ -24,6 +24,7 @@ import {
   Tablet,
   Smartphone,
   Pen,
+  AlertTriangle,
 } from "lucide-react";
 import { selectedChatIdAtom } from "@/atoms/chatAtoms";
 import { CopyErrorMessage } from "@/components/CopyErrorMessage";
@@ -70,6 +71,7 @@ import { useAttachments } from "@/hooks/useAttachments";
 import { Annotator } from "@/pro/ui/components/Annotator/Annotator";
 import { VisualEditingToolbar } from "./VisualEditingToolbar";
 import { ComponentSelectionHint } from "./ComponentSelectionHint";
+import { Button } from "@/components/ui/button";
 
 interface ErrorBannerProps {
   error: { message: string; source: "preview-app" | "dyad-app" } | undefined;
@@ -1042,7 +1044,18 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
           }}
         />
 
-        {!appUrl ? (
+        {!appUrl && errorMessage ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gray-50 p-8 text-center dark:bg-gray-950">
+            <AlertTriangle className="h-8 w-8 text-destructive" />
+            <p className="font-semibold">App preview unavailable</p>
+            <p className="max-w-lg text-sm text-muted-foreground">
+              {errorMessage.message}
+            </p>
+            <Button variant="outline" onClick={onRestart}>
+              Retry preview
+            </Button>
+          </div>
+        ) : !appUrl ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 bg-gray-50 dark:bg-gray-950">
             <Loader2 className="w-8 h-8 animate-spin text-gray-400 dark:text-gray-500" />
             <p className="text-gray-600 dark:text-gray-300">

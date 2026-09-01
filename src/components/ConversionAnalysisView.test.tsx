@@ -1,7 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useQuery } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConversionAnalysisView } from "./ConversionAnalysisView";
+
+const { approvePlan } = vi.hoisted(() => ({ approvePlan: vi.fn() }));
 
 vi.mock("@tanstack/react-query", () => ({ useQuery: vi.fn() }));
 vi.mock("./ConversionSummary", () => ({
@@ -13,11 +15,17 @@ vi.mock("./ConversionDetails", () => ({
 vi.mock("./AcceptanceCriteriaReport", () => ({
   AcceptanceCriteriaReport: () => <div>Acceptance content</div>,
 }));
+vi.mock("@/hooks/useConversionExecution", () => ({
+  useApproveConversion: () => ({
+    mutateAsync: approvePlan,
+    isPending: false,
+  }),
+}));
 
 describe("ConversionAnalysisView", () => {
   beforeEach(() => {
     vi.mocked(useQuery).mockReturnValue({
-      data: {},
+      data: { status: "PENDING_APPROVAL" },
       isLoading: false,
       error: null,
     } as ReturnType<typeof useQuery>);
@@ -41,5 +49,25 @@ describe("ConversionAnalysisView", () => {
     fireEvent.mouseDown(acceptanceTab, { button: 0, ctrlKey: false });
     expect(acceptanceTab.getAttribute("aria-selected")).toBe("true");
     expect(screen.getByText("Acceptance content")).toBeTruthy();
+  });
+
+  it("requires confirmation before approving the conversion", async () => {
+    approvePlan.mockResolvedValue({ success: true });
+    render(<ConversionAnalysisView appId={42} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Approve FeltDB conversion" }),
+    );
+    expect(
+      screen.getByText("Approve this FeltDB conversion plan?"),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve plan" }));
+    await waitFor(() => expect(approvePlan).toHaveBeenCalledWith(42));
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Approve this FeltDB conversion plan?"),
+      ).toBeNull(),
+    );
   });
 });

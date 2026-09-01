@@ -17,6 +17,11 @@ export const SimplificationSummary: React.FC<SimplificationSummaryProps> = ({
 }) => {
   const complexity = simplification.complexity;
   const formatLOC = (num: number) => num.toLocaleString();
+  const categoryRemovals = simplification.categoryRemovals.filter(
+    (removal) => Number(removal.current) > 0,
+  );
+  const reductionPercent = Math.round(complexity.estimatedReductionPercent);
+  const netReduction = simplification.netEstimatedReduction;
 
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg border border-emerald-200">
@@ -32,7 +37,7 @@ export const SimplificationSummary: React.FC<SimplificationSummaryProps> = ({
         </div>
         <div className="text-right">
           <div className="text-3xl font-bold text-emerald-600">
-            -{Math.round(complexity.estimatedReductionPercent)}%
+            {reductionPercent > 0 ? `-${reductionPercent}%` : "0%"}
           </div>
           <p className="text-xs text-emerald-600 mt-1">code reduction</p>
         </div>
@@ -98,98 +103,108 @@ export const SimplificationSummary: React.FC<SimplificationSummaryProps> = ({
         </div>
         <div className="mt-2 flex justify-between items-center bg-emerald-50 p-2 rounded">
           <span className="text-sm font-semibold text-emerald-900">
-            Net estimated reduction
+            {netReduction >= 0
+              ? "Net estimated reduction"
+              : "Net estimated increase"}
           </span>
           <span className="font-bold text-emerald-700">
-            ~{formatLOC(simplification.netEstimatedReduction)} LOC
+            ~{formatLOC(Math.abs(netReduction))} LOC
           </span>
         </div>
       </div>
 
       {/* Complexity Removals */}
-      <div className="bg-white rounded-lg p-4 border border-emerald-100">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">
-          Complexity Removed by Category
-        </h4>
-        <div className="space-y-2">
-          {simplification.categoryRemovals.map((removal, idx) => (
-            <div key={idx} className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-700">
-                  {removal.category}
-                </span>
-                <span className="text-xs text-gray-500">({removal.unit})</span>
+      {categoryRemovals.length > 0 && (
+        <div className="bg-white rounded-lg p-4 border border-emerald-100">
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">
+            Complexity Removed by Category
+          </h4>
+          <div className="space-y-2">
+            {categoryRemovals.map((removal, idx) => (
+              <div key={idx} className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700">
+                    {removal.category}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({removal.unit})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">
+                    {removal.current} → {removal.estimated}
+                  </span>
+                  <span
+                    className={`text-sm font-semibold ${
+                      removal.changePercent < -50
+                        ? "text-emerald-600"
+                        : "text-orange-600"
+                    }`}
+                  >
+                    {removal.changePercent}%
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">
-                  {removal.current} → {removal.estimated}
-                </span>
-                <span
-                  className={`text-sm font-semibold ${
-                    removal.changePercent < -50
-                      ? "text-emerald-600"
-                      : "text-orange-600"
-                  }`}
-                >
-                  {removal.changePercent}%
-                </span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* State Plumbing Flows */}
-      <div className="bg-white rounded-lg p-4 border border-emerald-100">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">
-          State Plumbing Flows
-        </h4>
-        <div className="grid grid-cols-3 gap-3 mb-3">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-emerald-600">
-              {simplification.flowStats.canBeEliminated}
-            </p>
-            <p className="text-xs text-gray-600">Can be eliminated</p>
+      {simplification.statePlumbingFlows.length > 0 && (
+        <div className="bg-white rounded-lg p-4 border border-emerald-100">
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">
+            State Plumbing Flows
+          </h4>
+          <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-emerald-600">
+                {simplification.flowStats.canBeEliminated}
+              </p>
+              <p className="text-xs text-gray-600">Can be eliminated</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-orange-600">
+                {simplification.flowStats.canBeConsolidated}
+              </p>
+              <p className="text-xs text-gray-600">Can be consolidated</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-600">
+                {simplification.flowStats.shouldRemain}
+              </p>
+              <p className="text-xs text-gray-600">Should remain</p>
+            </div>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-orange-600">
-              {simplification.flowStats.canBeConsolidated}
-            </p>
-            <p className="text-xs text-gray-600">Can be consolidated</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-gray-600">
-              {simplification.flowStats.shouldRemain}
-            </p>
-            <p className="text-xs text-gray-600">Should remain</p>
-          </div>
+          <p className="text-xs text-gray-600">
+            State plumbing: API request → loading state → fetch → setState →
+            cache → refetch cycle
+          </p>
         </div>
-        <p className="text-xs text-gray-600">
-          State plumbing: API request → loading state → fetch → setState → cache
-          → refetch cycle
-        </p>
-      </div>
+      )}
 
       {/* New FeltDB Concepts */}
-      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-        <h4 className="text-sm font-semibold text-blue-900 mb-2">
-          New Application Concepts
-        </h4>
-        <ul className="space-y-1">
-          {simplification.newConcepts.map((concept, idx) => (
-            <li key={idx} className="text-sm text-blue-800">
-              • {concept}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {simplification.newConcepts.length > 0 && (
+        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <h4 className="text-sm font-semibold text-blue-900 mb-2">
+            New Application Concepts
+          </h4>
+          <ul className="space-y-1">
+            {simplification.newConcepts.map((concept, idx) => (
+              <li key={idx} className="text-sm text-blue-800">
+                • {concept}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Disclaimer */}
       <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
         <p className="text-xs text-gray-600">
           <span className="font-semibold">Note:</span> These are estimates based
-          on static analysis. Actual results will be measured after conversion
-          in PR6.
+          on detected source code. Actual results will be measured after
+          conversion.
         </p>
       </div>
     </div>

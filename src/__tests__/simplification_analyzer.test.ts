@@ -384,7 +384,7 @@ describe("SimplificationAnalyzer", () => {
     expect(result.newFeltDBCode).toBeLessThan(3000);
   });
 
-  it("should include new concepts", async () => {
+  it("should not invent new concepts when there are no conversion targets", async () => {
     const appAnalysis: ApplicationAnalysis = {
       framework: "REACT",
       buildSystem: "VITE",
@@ -422,8 +422,7 @@ describe("SimplificationAnalyzer", () => {
     // Verify new concepts
     expect(result.newConcepts).toBeDefined();
     expect(Array.isArray(result.newConcepts)).toBe(true);
-    expect(result.newConcepts.length).toBeGreaterThan(0);
-    expect(result.newConcepts[0]).toContain("FeltDB");
+    expect(result.newConcepts).toEqual([]);
   });
 
   it("should estimate after LOC range", async () => {

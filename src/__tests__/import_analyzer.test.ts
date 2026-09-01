@@ -283,6 +283,19 @@ describe("Full Analysis", () => {
     expect(plan.warnings?.length || 0).toBeGreaterThanOrEqual(0);
   });
 
+  it("rejects an empty analysis instead of generating fabricated estimates", async () => {
+    const emptyProject = fs.mkdtempSync(
+      path.join(process.cwd(), ".empty-app-"),
+    );
+    try {
+      await expect(runFullAnalysis(2, emptyProject)).rejects.toThrow(
+        "No JavaScript application was found",
+      );
+    } finally {
+      fs.rmSync(emptyProject, { recursive: true, force: true });
+    }
+  });
+
   it("should generate UI changes from analysis", async () => {
     const plan = await runFullAnalysis(1, tempDir);
     expect(plan.uiChanges).toBeDefined();

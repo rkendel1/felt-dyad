@@ -143,7 +143,7 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
       </Card>
 
       {/* Simplification Analysis */}
-      {plan.simplification && (
+      {plan.simplification && plan.simplification.complexity.currentLOC > 0 && (
         <SimplificationSummary simplification={plan.simplification} />
       )}
 

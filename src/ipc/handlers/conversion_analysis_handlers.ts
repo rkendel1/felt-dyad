@@ -4,9 +4,30 @@ import log from "electron-log";
 import { runFullAnalysis } from "../../import";
 import { getConversionPlanStore } from "../../store/conversion_plan_store";
 import { getDyadAppPath } from "../../paths/paths";
+import { discoverJavaScriptProject } from "@/import/project_discovery";
 
 const logger = log.scope("conversion_analysis_handlers");
 const handle = createLoggedHandler(logger);
+
+function resolveAnalysisPath(appRecord: {
+  path: string;
+  name: string;
+}): string {
+  const storedPath = getDyadAppPath(appRecord.path);
+  if (discoverJavaScriptProject(storedPath)) return storedPath;
+
+  const nameBasedPath = getDyadAppPath(appRecord.name);
+  if (
+    nameBasedPath !== storedPath &&
+    discoverJavaScriptProject(nameBasedPath)
+  ) {
+    logger.warn(
+      `Stored app path ${storedPath} is stale; analyzing ${nameBasedPath}`,
+    );
+    return nameBasedPath;
+  }
+  return storedPath;
+}
 
 export function registerConversionAnalysisHandlers() {
   handle("start-app-analysis", async (event, params: { appId: number }) => {
@@ -21,7 +42,7 @@ export function registerConversionAnalysisHandlers() {
       }
 
       // Run the full analysis
-      const appPath = getDyadAppPath(appRecord.path);
+      const appPath = resolveAnalysisPath(appRecord);
       const conversionPlan = await runFullAnalysis(params.appId, appPath);
 
       // Persist to FeltDB
@@ -52,20 +73,18 @@ export function registerConversionAnalysisHandlers() {
       }
 
       // Retrieve from FeltDB
-      const store = await getConversionPlanStore(
-        getDyadAppPath(appRecord.path),
-      );
+      const appPath = resolveAnalysisPath(appRecord);
+      const store = await getConversionPlanStore(appPath);
       let plan = await store.getPlan(params.appId);
 
       // Plans created before workspace discovery only inspected the repository
       // root. Rebuild those empty plans so existing imports benefit from the
       // corrected analyzer without requiring the user to import them again.
-      if (plan?.applicationAnalysis.framework === "UNKNOWN") {
-        const appPath = getDyadAppPath(appRecord.path);
+      if (!plan || plan.applicationAnalysis.framework === "UNKNOWN") {
         plan = await runFullAnalysis(params.appId, appPath);
         await store.savePlan(params.appId, plan);
         logger.info(
-          `Re-analyzed stale conversion plan for app ${params.appId}`,
+          `Generated current conversion plan for app ${params.appId}`,
         );
       }
 
