@@ -6,11 +6,11 @@ import {
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Code2, X, ChevronDown, Sparkles } from "lucide-react";
 import { useState } from "react";
- 
+
 interface SelectedComponentsDisplayProps {
   onEditWithAI?: () => void;
 }
- 
+
 export function SelectedComponentsDisplay({
   onEditWithAI,
 }: SelectedComponentsDisplayProps) {
@@ -22,13 +22,13 @@ export function SelectedComponentsDisplay({
     visualEditingSelectedComponentAtom,
   );
   const [isExpanded, setIsExpanded] = useState(true);
- 
+
   const handleRemoveComponent = (index: number) => {
     const componentToRemove = selectedComponents[index];
     const newComponents = selectedComponents.filter((_, i) => i !== index);
     setSelectedComponents(newComponents);
     setVisualEditingSelectedComponent(null);
- 
+
     // Remove the specific overlay from the iframe
     if (previewIframeRef?.contentWindow) {
       previewIframeRef.contentWindow.postMessage(
@@ -40,7 +40,7 @@ export function SelectedComponentsDisplay({
       );
     }
   };
- 
+
   const handleClearAll = () => {
     setSelectedComponents([]);
     setVisualEditingSelectedComponent(null);
@@ -59,21 +59,21 @@ export function SelectedComponentsDisplay({
     } else {
       // Fallback: try to focus the chat input using a selector
       const chatInput = document.querySelector(
-        '[data-testid="chat-input-content-editable"]'
+        '[data-testid="chat-input-content-editable"]',
       ) as HTMLElement;
       if (chatInput) {
         chatInput.focus();
       }
     }
   };
- 
+
   if (!selectedComponents || selectedComponents.length === 0) {
     return null;
   }
- 
+
   const count = selectedComponents.length;
   const countLabel = count === 1 ? "component" : `${count} components`;
- 
+
   return (
     <div
       className="border-b border-border bg-purple-50 dark:bg-purple-950/20"
@@ -120,7 +120,8 @@ export function SelectedComponentsDisplay({
                       className="truncate text-xs text-muted-foreground"
                       title={`${selectedComponent.relativePath}:${selectedComponent.lineNumber}`}
                     >
-                      {selectedComponent.relativePath}:{selectedComponent.lineNumber}
+                      {selectedComponent.relativePath}:
+                      {selectedComponent.lineNumber}
                     </span>
                   </div>
                 </div>
@@ -130,7 +131,10 @@ export function SelectedComponentsDisplay({
                   title="Deselect component"
                   aria-label={`Remove ${selectedComponent.name}`}
                 >
-                  <X size={16} className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400" />
+                  <X
+                    size={16}
+                    className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
+                  />
                 </button>
               </div>
             ))}
@@ -144,7 +148,7 @@ export function SelectedComponentsDisplay({
             Show details
           </button>
         )}
-         
+
         {/* Edit with AI Button */}
         <button
           onClick={handleEditWithAI}

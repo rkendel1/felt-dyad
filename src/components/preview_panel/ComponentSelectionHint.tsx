@@ -12,7 +12,7 @@ export function ComponentSelectionHint() {
   const [isDismissed, setIsDismissed] = useState(() => {
     // Load from localStorage
     const stored = localStorage.getItem(
-      "dyad-component-selection-hint-dismissed"
+      "dyad-component-selection-hint-dismissed",
     );
     return stored === "true";
   });
@@ -45,13 +45,17 @@ export function ComponentSelectionHint() {
 
   return (
     <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md p-3 mx-2 mt-2 flex items-start gap-3">
-      <Lightbulb size={18} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+      <Lightbulb
+        size={18}
+        className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5"
+      />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
           Want to change something?
         </p>
         <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-          Click the <span className="font-semibold">Select</span> button, click a component in the preview, then describe what you'd like to change.
+          Click the <span className="font-semibold">Select</span> button, click
+          a component in the preview, then describe what you'd like to change.
         </p>
       </div>
       <button
