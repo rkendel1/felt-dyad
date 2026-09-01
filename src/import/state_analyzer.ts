@@ -44,7 +44,7 @@ export async function analyzeState(
       analyzedFiles++;
 
       // Detect React hooks
-      if (content.includes("useState")) {
+      if (/\buseState\s*(?:<[^>]*>)?\s*\(/.test(content)) {
         stateSources.push({
           name: `React useState (${path.basename(file)})`,
           type: "REACT_STATE",
@@ -54,7 +54,7 @@ export async function analyzeState(
         });
       }
 
-      if (content.includes("useReducer")) {
+      if (/\buseReducer\s*\(/.test(content)) {
         stateSources.push({
           name: `React useReducer (${path.basename(file)})`,
           type: "REACT_STATE",
@@ -64,7 +64,7 @@ export async function analyzeState(
         });
       }
 
-      if (content.includes("useContext")) {
+      if (/\buseContext\s*\(/.test(content)) {
         stateSources.push({
           name: `React Context (${path.basename(file)})`,
           type: "REACT_CONTEXT",
@@ -83,7 +83,7 @@ export async function analyzeState(
           name: `Recoil atoms (${path.basename(file)})`,
           type: "RECOIL",
           file: path.relative(appPath, file),
-          classification: "MOVE_TO_FELTDB",
+          classification: "REVIEW",
           description: "Recoil state management",
         });
       }
@@ -93,7 +93,7 @@ export async function analyzeState(
           name: `Jotai atoms (${path.basename(file)})`,
           type: "JOTAI",
           file: path.relative(appPath, file),
-          classification: "MOVE_TO_FELTDB",
+          classification: "REVIEW",
           description: "Jotai state management",
         });
       }
@@ -103,33 +103,36 @@ export async function analyzeState(
           name: `Redux store (${path.basename(file)})`,
           type: "REDUX",
           file: path.relative(appPath, file),
-          classification: "MOVE_TO_FELTDB",
+          classification: "REVIEW",
           description: "Redux state management",
         });
       }
 
-      if (content.includes("create(") || content.includes("zustand")) {
+      if (
+        /from\s+["']zustand(?:\/[^"']*)?["']/.test(content) ||
+        /require\(["']zustand(?:\/[^"']*)?["']\)/.test(content)
+      ) {
         stateSources.push({
           name: `Zustand store (${path.basename(file)})`,
           type: "ZUSTAND",
           file: path.relative(appPath, file),
-          classification: "MOVE_TO_FELTDB",
+          classification: "REVIEW",
           description: "Zustand state management",
         });
       }
 
       // Detect localStorage/sessionStorage
-      if (content.includes("localStorage")) {
+      if (/\blocalStorage\.(?:getItem|setItem|removeItem|clear)\s*\(/.test(content)) {
         stateSources.push({
           name: `localStorage (${path.basename(file)})`,
           type: "LOCALSTORAGE",
           file: path.relative(appPath, file),
-          classification: "MOVE_TO_FELTDB",
+          classification: "REVIEW",
           description: "Client-side persistent storage",
         });
       }
 
-      if (content.includes("sessionStorage")) {
+      if (/\bsessionStorage\.(?:getItem|setItem|removeItem|clear)\s*\(/.test(content)) {
         stateSources.push({
           name: `sessionStorage (${path.basename(file)})`,
           type: "SESSION_STORAGE",
@@ -140,19 +143,19 @@ export async function analyzeState(
       }
 
       // Detect IndexedDB
-      if (content.includes("indexedDB") || content.includes("IDBDatabase")) {
+      if (/\bindexedDB\.(?:open|deleteDatabase|cmp)\s*\(/.test(content)) {
         stateSources.push({
           name: `IndexedDB (${path.basename(file)})`,
           type: "INDEXED_DB",
           file: path.relative(appPath, file),
-          classification: "MOVE_TO_FELTDB",
+          classification: "REVIEW",
           description: "Indexed database for client-side storage",
         });
       }
 
       // Detect API responses
       if (
-        content.includes("fetch(") ||
+        /\bfetch\s*\(/.test(content) ||
         content.includes("axios") ||
         content.includes("useQuery") ||
         content.includes("useMutation")
@@ -161,7 +164,7 @@ export async function analyzeState(
           name: `API responses (${path.basename(file)})`,
           type: "API_RESPONSE",
           file: path.relative(appPath, file),
-          classification: "REPLACE_WITH_FELTDB",
+          classification: "REVIEW",
           description: "State populated from API calls",
         });
       }

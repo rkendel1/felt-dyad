@@ -12,6 +12,7 @@ import type {
   GetConversionExecutionParams,
   RollbackConversionParams,
 } from "../types/conversion-execution";
+import { discoverJavaScriptProject } from "@/import/project_discovery";
 
 const logger = log.scope("conversion_execution_handlers");
 const handle = createLoggedHandler(logger);
@@ -36,6 +37,11 @@ export function registerConversionExecutionHandlers() {
 
         // Get the conversion plan
         const appPath = getDyadAppPath(appRecord.path);
+        if (!discoverJavaScriptProject(appPath)?.runScript) {
+          throw new Error(
+            `Cannot approve this conversion because the source project is unavailable at ${appPath}. Reconnect or re-import the complete project first.`,
+          );
+        }
         const store = await getConversionPlanStore(appPath);
         const plan = await store.getPlan(params.appId);
 

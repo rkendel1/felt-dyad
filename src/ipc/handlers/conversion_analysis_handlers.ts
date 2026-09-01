@@ -27,7 +27,9 @@ function resolveAnalysisPath(appRecord: {
     );
     return nameBasedPath;
   }
-  return storedPath;
+  throw new Error(
+    `The source project is unavailable. No package.json was found at ${storedPath} or ${nameBasedPath}. Reconnect or re-import the complete source folder before reviewing or approving a conversion.`,
+  );
 }
 
 export function registerConversionAnalysisHandlers() {
@@ -84,6 +86,7 @@ export function registerConversionAnalysisHandlers() {
       // corrected analyzer without requiring the user to import them again.
       if (
         !plan ||
+        plan.analysisVersion !== 2 ||
         plan.applicationAnalysis.framework === "UNKNOWN" ||
         plan.simplification?.locEstimateAvailable !== false
       ) {

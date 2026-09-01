@@ -19,7 +19,7 @@ export async function analyzeData(appPath: string): Promise<DataAnalysis> {
     }
   }
 
-  const database = detectDatabase(packageJson);
+  const database = detectDatabase(packageJson, appPath);
   const schema = await detectSchema(appPath);
   const hasSeedData = detectSeedData(appPath);
   const hasMigrations = detectMigrations(appPath);
@@ -29,14 +29,41 @@ export async function analyzeData(appPath: string): Promise<DataAnalysis> {
     schema,
     totalTables: schema?.tables.length ?? 0,
     totalRecords: undefined,
-    excludedFields: ["password", "password_hash", "secret", "apiKey", "token"],
+    excludedFields: findSensitiveFields(schema),
     seedData: hasSeedData,
     migrations: hasMigrations,
   };
 }
 
-function detectDatabase(packageJson: any): DatabaseType {
+function findSensitiveFields(schema: DatabaseSchema | undefined): string[] {
+  if (!schema) return [];
+  const sensitiveName = /(password|secret|token|api[_-]?key|private[_-]?key)/i;
+  return [
+    ...new Set(
+      schema.tables.flatMap((table) =>
+        table.fields
+          .filter((field) => sensitiveName.test(field.name))
+          .map((field) => `${table.name}.${field.name}`),
+      ),
+    ),
+  ];
+}
+
+function detectDatabase(packageJson: any, appPath: string): DatabaseType {
   const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+
+  const prismaSchemaPath = path.join(appPath, "prisma", "schema.prisma");
+  if (fs.existsSync(prismaSchemaPath)) {
+    const schemaContent = fs.readFileSync(prismaSchemaPath, "utf8");
+    const provider = schemaContent.match(
+      /datasource\s+\w+\s*\{[\s\S]*?provider\s*=\s*["']([^"']+)["']/,
+    )?.[1];
+    if (provider === "postgresql" || provider === "cockroachdb")
+      return "POSTGRESQL";
+    if (provider === "mysql") return "MYSQL";
+    if (provider === "mongodb") return "MONGODB";
+    if (provider === "sqlite") return "SQLITE";
+  }
 
   if (deps.pg || deps.postgres || deps["@supabase/supabase-js"])
     return "POSTGRESQL";

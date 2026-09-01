@@ -266,6 +266,7 @@ export const StatePlumbingFlowSchema = z.object({
   steps: z.array(z.string()),
   canBeEliminated: z.boolean(),
   canBeConsolidated: z.boolean(),
+  requiresReview: z.boolean().optional(),
 });
 
 export type StatePlumbingFlow = z.infer<typeof StatePlumbingFlowSchema>;
@@ -298,6 +299,7 @@ export type SimplificationAnalysis = z.infer<
 // =============================================================================
 
 export const ConversionPlanSchema = z.object({
+  analysisVersion: z.number().optional(),
   appId: z.number(),
   status: z.enum(["PENDING_APPROVAL", "APPROVED", "IN_PROGRESS", "COMPLETED"]),
   applicationAnalysis: ApplicationAnalysisSchema,
@@ -318,7 +320,7 @@ export const ConversionPlanSchema = z.object({
       }),
     )
     .optional(),
-  // Target runtime for conversion (always FeltDB per PR6)
+  // Target runtime for conversion (always FeltDB)
   targetRuntime: z
     .object({
       provider: z.literal("feltdb"),

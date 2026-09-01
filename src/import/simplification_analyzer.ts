@@ -38,6 +38,7 @@ export interface StatePlumbingFlow {
   steps: string[];
   canBeEliminated: boolean;
   canBeConsolidated: boolean;
+  requiresReview?: boolean;
 }
 
 export interface SimplificationAnalysis {
@@ -316,6 +317,7 @@ function identifyStatePlumbingFlows(
       canBeConsolidated:
         route.classification === "MOVE_TO_FELTDB" ||
         route.classification === "KEEP_SERVER_SIDE",
+      requiresReview: route.classification === "REVIEW",
     });
   }
 
@@ -337,6 +339,7 @@ function identifyStatePlumbingFlows(
       ],
       canBeEliminated: flow.classification === "MOVE_TO_FELTDB",
       canBeConsolidated: flow.classification !== "MOVE_TO_FELTDB",
+      requiresReview: flow.classification === "REVIEW",
     });
   }
 

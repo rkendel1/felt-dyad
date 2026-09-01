@@ -36,6 +36,7 @@ export function generateConversionPlan(
   );
 
   return {
+    analysisVersion: 2,
     appId,
     status: "PENDING_APPROVAL",
     applicationAnalysis,
@@ -63,7 +64,7 @@ function generateUiChanges(stateAnalysis: StateAnalysis): UiChange[] {
 
   // Find components that use API responses
   const apiUsingComponents = stateAnalysis.sources.filter(
-    (s) => s.type === "API_RESPONSE",
+    (source) => source.type === "API_RESPONSE",
   );
 
   for (const component of apiUsingComponents) {
@@ -72,19 +73,11 @@ function generateUiChanges(stateAnalysis: StateAnalysis): UiChange[] {
       file: component.file || "",
       currentPattern: "fetch + useState + useEffect",
       proposedPattern: "FeltDB reactive query",
-      impact: "Remove manual fetch lifecycle, connect to FeltDB state",
-    });
-  }
-
-  // Find components with manual refresh buttons
-  if (apiUsingComponents.length > 0) {
-    changes.push({
-      component: "Generic components with refresh buttons",
-      file: "",
-      currentPattern: "Manual refresh button for re-fetching data",
-      proposedPattern: "Automatic reactivity via FeltDB",
-      impact: "Remove refresh button, UI reacts automatically to state changes",
-      isManual: true,
+      impact:
+        component.classification === "REPLACE_WITH_FELTDB"
+          ? "Remove manual fetch lifecycle, connect to FeltDB state"
+          : "Review whether this request represents durable FeltDB state",
+      isManual: component.classification !== "REPLACE_WITH_FELTDB",
     });
   }
 
@@ -100,6 +93,7 @@ function generateUiChanges(stateAnalysis: StateAnalysis): UiChange[] {
       currentPattern: `${store.type} provider/hook`,
       proposedPattern: "FeltDB collection subscription",
       impact: "Replace store with FeltDB reactive subscription",
+      isManual: store.classification !== "REPLACE_WITH_FELTDB",
     });
   }
 
@@ -233,6 +227,35 @@ function generateManualDecisions(
         "Some localStorage may be user preferences that should sync across devices",
       recommendation:
         "Review each localStorage use case. Preferences → FeltDB, temporary data → local state",
+    });
+  }
+
+  const otherStateReviews = stateAnalysis.sources.filter(
+    (source) =>
+      source.classification === "REVIEW" &&
+      source.type !== "LOCALSTORAGE" &&
+      !source.name.includes("useReducer"),
+  );
+  if (otherStateReviews.length > 0) {
+    decisions.push({
+      item: `State candidates requiring review (${otherStateReviews.length})`,
+      reason:
+        "Static syntax detection cannot determine whether these values are durable application state or temporary implementation details.",
+      recommendation:
+        "Review the named source files and classify each candidate before conversion.",
+    });
+  }
+
+  const routeReviews = backendAnalysis.apiRoutes.filter(
+    (route) => route.classification === "REVIEW",
+  );
+  if (routeReviews.length > 0) {
+    decisions.push({
+      item: `Server routes requiring review (${routeReviews.length})`,
+      reason:
+        "A detected route is not automatically replaceable; redirects, assets, authentication, and external integrations may need to remain server-side.",
+      recommendation:
+        "Review each route implementation and approve only routes whose state transition FeltDB can own.",
     });
   }
 

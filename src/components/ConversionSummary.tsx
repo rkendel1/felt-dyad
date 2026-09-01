@@ -45,7 +45,15 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
   const moveToFeltDBCount = plan.stateAnalysis.sources.filter((source) =>
     ["MOVE_TO_FELTDB", "REPLACE_WITH_FELTDB"].includes(source.classification),
   ).length;
-  const localStateCount = stateSourceCount - moveToFeltDBCount;
+  const keepLocalCount = plan.stateAnalysis.sources.filter(
+    (source) => source.classification === "KEEP_LOCAL",
+  ).length;
+  const reviewStateCount = plan.stateAnalysis.sources.filter(
+    (source) => source.classification === "REVIEW",
+  ).length;
+  const replaceableRouteCount = plan.backendAnalysis.apiRoutes.filter(
+    (route) => route.classification === "REPLACE_WITH_FELTDB",
+  ).length;
 
   return (
     <div className="space-y-4">
@@ -67,7 +75,9 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{apiRouteCount}</div>
-              <div className="text-xs text-muted-foreground">API routes</div>
+              <div className="text-xs text-muted-foreground">
+                Server routes
+              </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{externalServiceCount}</div>
@@ -101,7 +111,8 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
                 ))}
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                {apiRouteCount} API {apiRouteCount === 1 ? "route" : "routes"}
+                {apiRouteCount} server{" "}
+                {apiRouteCount === 1 ? "route" : "routes"}
                 {plan.dataAnalysis.totalTables > 0
                   ? ` and ${plan.dataAnalysis.totalTables} data ${plan.dataAnalysis.totalTables === 1 ? "model" : "models"}`
                   : ""}{" "}
@@ -119,13 +130,18 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
                   {moveToFeltDBCount === 1 ? "flow" : "flows"} into FeltDB.
                 </li>
                 <li>
-                  Keep {localStateCount} temporary UI state{" "}
-                  {localStateCount === 1 ? "flow" : "flows"} local.
+                  Keep {keepLocalCount} temporary UI state{" "}
+                  {keepLocalCount === 1 ? "flow" : "flows"} local.
                 </li>
                 <li>
-                  Replace {apiRouteCount} detected API{" "}
-                  {apiRouteCount === 1 ? "route" : "routes"} where FeltDB can
-                  own the state transition.
+                  Review {reviewStateCount} state{" "}
+                  {reviewStateCount === 1 ? "candidate" : "candidates"} before
+                  deciding whether they belong in FeltDB.
+                </li>
+                <li>
+                  Replace {replaceableRouteCount} verified server{" "}
+                  {replaceableRouteCount === 1 ? "route" : "routes"}; review
+                  the remaining {apiRouteCount - replaceableRouteCount}.
                 </li>
               </ul>
             </div>

@@ -72,7 +72,9 @@ export const SimplificationDetails: React.FC<SimplificationDetailsProps> = ({
                     {flow.canBeConsolidated &&
                       !flow.canBeEliminated &&
                       "Can be consolidated"}
-                    {!flow.canBeEliminated &&
+                    {flow.requiresReview && "Requires review"}
+                    {!flow.requiresReview &&
+                      !flow.canBeEliminated &&
                       !flow.canBeConsolidated &&
                       "Should remain external"}
                   </p>

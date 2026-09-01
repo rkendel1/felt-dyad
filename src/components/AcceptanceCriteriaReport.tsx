@@ -1,7 +1,7 @@
 /**
  * Acceptance Criteria Report Component
  *
- * Directly addresses all 11 acceptance criteria from PR5:
+ * Summarizes the conversion review criteria:
  * 1. What state exists?
  * 2. Where does it live?
  * 3. What should move to FeltDB?
@@ -68,7 +68,9 @@ export const AcceptanceCriteriaReport: React.FC<
 
   // Criterion 6: What backend changes?
   const apiRouteCount = plan.backendAnalysis.apiRoutes.length;
-  const apiFeltDBChanges = Math.round(apiRouteCount * 0.55);
+  const apiFeltDBChanges = plan.backendAnalysis.apiRoutes.filter(
+    (route) => route.classification === "REPLACE_WITH_FELTDB",
+  ).length;
   const serverActionsCount = plan.backendAnalysis.serverActions.length;
 
   // Criterion 7: What happens to existing data?
@@ -92,11 +94,11 @@ export const AcceptanceCriteriaReport: React.FC<
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h2 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5" />
-          Conversion Analysis: Acceptance Criteria Report
+          Conversion Review Checklist
         </h2>
         <p className="text-sm text-blue-800">
-          This report addresses all 11 acceptance criteria from PR5. Review each
-          section to understand exactly what will change during conversion.
+          Review each section to understand what was detected, what can be
+          converted automatically, and what still requires a decision.
         </p>
       </div>
 
@@ -448,7 +450,7 @@ export const AcceptanceCriteriaReport: React.FC<
             <div>
               ✓ Status: <span className="font-medium">{plan.status}</span>
             </div>
-            <div>✓ Ready for review before proceeding to PR6 conversion</div>
+            <div>✓ Ready for review before conversion</div>
           </div>
         </CardContent>
       </Card>
@@ -520,10 +522,10 @@ export const AcceptanceCriteriaReport: React.FC<
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-blue-900">
-          <div>1. Review all 11 acceptance criteria above</div>
+          <div>1. Review the conversion criteria above</div>
           <div>2. Address any warnings or manual decisions</div>
           <div>3. Approve the conversion plan</div>
-          <div>4. Proceed to PR6: Execute State-First FeltDB Conversion</div>
+          <div>4. Start the approved FeltDB conversion</div>
         </CardContent>
       </Card>
     </div>

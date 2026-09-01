@@ -27,7 +27,7 @@ export async function runFullAnalysis(
       dataAnalysis,
       externalServices,
     ] = await Promise.all([
-      analyzeApplication(appPath),
+      analyzeApplication(analysisPath),
       analyzeBackend(analysisPath),
       analyzeData(analysisPath),
       analyzeExternalServices(analysisPath),

@@ -60,6 +60,7 @@ export class ConversionPlanStore {
 
     // Serialize the plan for storage
     const docData = {
+      analysis_version: plan.analysisVersion,
       app_id: appId,
       status: plan.status,
       summary: plan.summary,
@@ -118,6 +119,7 @@ export class ConversionPlanStore {
 
       // Deserialize back to ConversionPlan
       return {
+        analysisVersion: doc.analysis_version,
         id: doc.id,
         appId: doc.app_id,
         status: doc.status,
@@ -153,6 +155,7 @@ export class ConversionPlanStore {
       const all = (await conversionPlans.all()) as any[];
 
       return all.map((doc) => ({
+        analysisVersion: doc.analysis_version,
         id: doc.id,
         appId: doc.app_id,
         status: doc.status,
