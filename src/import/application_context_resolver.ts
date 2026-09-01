@@ -200,7 +200,7 @@ export class ApplicationContextResolver {
         return false; // Only include decisions that explicitly apply to entities
       }
 
-      return decision.appliesTo.some((id) => entityIds.includes(id));
+      return decision.appliesTo.some((id: string) => entityIds.includes(id));
     });
   }
 

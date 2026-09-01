@@ -58,9 +58,11 @@ const applicationIntelligenceStore = new Map<
  */
 export function registerApplicationIntelligenceHandlers() {
   // Index Application
-  ipcMain.handle("application-intelligence:index", async (event, input) => {
-    try {
-      const validatedInput = IndexApplicationSchema.parse(input);
+  ipcMain.handle(
+    "application-intelligence:index",
+    async (_event: Electron.IpcMainInvokeEvent, input: unknown) => {
+      try {
+        const validatedInput = IndexApplicationSchema.parse(input);
 
       logger.info(`Indexing application ${validatedInput.appId}`);
 
@@ -124,7 +126,7 @@ export function registerApplicationIntelligenceHandlers() {
   // Get Application Intelligence
   ipcMain.handle(
     "application-intelligence:get",
-    async (event, input) => {
+    async (_event: Electron.IpcMainInvokeEvent, input: unknown) => {
       try {
         const validatedInput = GetApplicationIntelligenceSchema.parse(input);
         const appId = `app-${validatedInput.appId}`;
@@ -160,7 +162,7 @@ export function registerApplicationIntelligenceHandlers() {
   // Get Application Context
   ipcMain.handle(
     "application-intelligence:get-context",
-    async (event, input) => {
+    async (_event: Electron.IpcMainInvokeEvent, input: unknown) => {
       try {
         const validatedInput = GetApplicationContextSchema.parse(input);
         const appId = `app-${validatedInput.appId}`;
@@ -226,7 +228,7 @@ export function registerApplicationIntelligenceHandlers() {
   );
 
   // Store Decision
-  ipcMain.handle("application-intelligence:store-decision", async (event, input) => {
+  ipcMain.handle<unknown, unknown>("application-intelligence:store-decision", async (_event: Electron.IpcMainInvokeEvent, input: unknown) => {
     try {
       const validatedInput = StoreDecisionSchema.parse(input);
 
@@ -250,7 +252,7 @@ export function registerApplicationIntelligenceHandlers() {
   });
 
   // Record Change
-  ipcMain.handle("application-intelligence:record-change", async (event, input) => {
+  ipcMain.handle<unknown, unknown>("application-intelligence:record-change", async (_event: Electron.IpcMainInvokeEvent, input: unknown) => {
     try {
       const validatedInput = RecordChangeSchema.parse(input);
 
@@ -276,7 +278,7 @@ export function registerApplicationIntelligenceHandlers() {
   // Get Reconciliation Status
   ipcMain.handle(
     "application-intelligence:get-reconciliation-status",
-    async (event, input) => {
+    async (_event: Electron.IpcMainInvokeEvent, input) => {
       try {
         const validatedInput = GetReconciliationStatusSchema.parse(input);
         const appId = `app-${validatedInput.appId}`;
@@ -315,7 +317,7 @@ export function registerApplicationIntelligenceHandlers() {
   // Reindex Application
   ipcMain.handle(
     "application-intelligence:reindex",
-    async (event, input) => {
+    async (_event: Electron.IpcMainInvokeEvent, input) => {
       try {
         const validatedInput = ReindexApplicationSchema.parse(input);
 

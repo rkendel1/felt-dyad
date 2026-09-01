@@ -28,7 +28,7 @@ export function useIndexApplication() {
     mutationFn: async (appId: number) => {
       return applicationIntelligenceClient.index({ appId, full: true });
     },
-    onSuccess: (data, appId) => {
+    onSuccess: (data: IndexApplicationResponse, appId: number) => {
       // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: queryKeys.applicationIntelligence.all,
@@ -103,7 +103,7 @@ export function useStoreDecision() {
     }) => {
       return applicationIntelligenceClient.storeDecision(params);
     },
-    onSuccess: (data, params) => {
+    onSuccess: (data: any, params: any) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.applicationIntelligence.detail({ appId: params.appId }),
       });
@@ -137,7 +137,7 @@ export function useRecordChange() {
     }) => {
       return applicationIntelligenceClient.recordChange(params);
     },
-    onSuccess: (data, params) => {
+    onSuccess: (data: any, params: any) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.applicationIntelligence.detail({ appId: params.appId }),
       });
@@ -169,7 +169,7 @@ export function useReindexApplication() {
     mutationFn: async (params: { appId: number; full?: boolean }) => {
       return applicationIntelligenceClient.reindex(params);
     },
-    onSuccess: (data, params) => {
+    onSuccess: (data: any, params: any) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.applicationIntelligence.detail({ appId: params.appId }),
       });
