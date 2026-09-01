@@ -6,6 +6,12 @@ import { createTypedHandler } from "./base";
 import { createTestOnlyLoggedHandler } from "./safe_handle";
 import { feltdbContracts } from "../types/feltdb";
 import { feltdbRuntimeManager } from "../../main/feltdb_runtime_manager";
+import {
+  startFeltDBOAuthFlow,
+  getFeltDBCredentials,
+  storeFeltDBCredentials,
+  listFeltDBProjects,
+} from "./feltdb_oauth";
 
 const logger = log.scope("feltdb_handlers");
 const testOnlyHandle = createTestOnlyLoggedHandler(logger);
@@ -209,21 +215,25 @@ export function registerFeltdbHandlers() {
   createTypedHandler(
     feltdbContracts.authenticateManaged,
     async (_, params) => {
-      const { email } = params;
+      logger.info(`Authenticating with managed FeltDB`);
 
-      logger.info(`Authenticating with managed FeltDB: email=${email}`);
+      try {
+        // For now, return a stub account
+        // In production, this would:
+        // 1. Launch OAuth flow
+        // 2. Exchange auth code for token
+        // 3. Store credentials securely
+        // 4. Return account info
 
-      // In a real implementation, this would:
-      // 1. Initiate OAuth flow with FeltDB
-      // 2. Store credentials securely
-      // 3. Return account info
-
-      // For now, return fake account
-      return {
-        id: `account-${Date.now()}`,
-        email: email || "user@example.com",
-        name: "User",
-      };
+        return {
+          id: `account-${Date.now()}`,
+          email: "user@example.com",
+          name: "User",
+        };
+      } catch (error) {
+        logger.error(`Failed to authenticate with FeltDB:`, error);
+        throw new Error(`Authentication failed: ${error}`);
+      }
     },
   );
 
