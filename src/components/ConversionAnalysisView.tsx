@@ -4,6 +4,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { ipc } from "@/ipc/types";
 import { ConversionSummary } from "./ConversionSummary";
 import { ConversionDetails } from "./ConversionDetails";
+import { AcceptanceCriteriaReport } from "./AcceptanceCriteriaReport";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Loader2 } from "lucide-react";
 
@@ -53,9 +54,25 @@ export const ConversionAnalysisView: React.FC<ConversionAnalysisViewProps> = ({
   }
 
   return (
-    <div className="space-y-6">
-      <ConversionSummary plan={plan} />
-      <ConversionDetails plan={plan} />
+    <div>
+      {/* Tabbed interface for different views */}
+      <div className="flex gap-2 mb-6 border-b">
+        <button className="px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-medium">
+          Overview
+        </button>
+        <button className="px-4 py-2 border-b border-gray-200 text-gray-600 hover:text-gray-900">
+          Detailed Analysis
+        </button>
+        <button className="px-4 py-2 border-b border-gray-200 text-gray-600 hover:text-gray-900">
+          Acceptance Criteria
+        </button>
+      </div>
+
+      <div className="space-y-6">
+        <ConversionSummary plan={plan} />
+        <ConversionDetails plan={plan} />
+        <AcceptanceCriteriaReport plan={plan} />
+      </div>
     </div>
   );
 };
