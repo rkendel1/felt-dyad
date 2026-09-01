@@ -22,10 +22,7 @@ export function ChatErrorBox({
       <ChatErrorContainer onDismiss={onDismiss}>
         {error}
         <span className="ml-1">
-          <ExternalLink
-            href="https://feltdb.com"
-            variant="primary"
-          >
+          <ExternalLink href="https://feltdb.com" variant="primary">
             Enable FeltDB AI
           </ExternalLink>
         </span>{" "}
@@ -50,10 +47,7 @@ export function ChatErrorBox({
       <ChatErrorContainer onDismiss={onDismiss}>
         {error}
         <div className="mt-2 space-y-2 space-x-2">
-          <ExternalLink
-            href="https://feltdb.com"
-            variant="primary"
-          >
+          <ExternalLink href="https://feltdb.com" variant="primary">
             Enable FeltDB AI
           </ExternalLink>
 
@@ -70,10 +64,7 @@ export function ChatErrorBox({
       <ChatInfoContainer onDismiss={onDismiss}>
         <span>
           Looks like you don't have a valid FeltDB AI key.{" "}
-          <ExternalLink
-            href="https://feltdb.com"
-            variant="primary"
-          >
+          <ExternalLink href="https://feltdb.com" variant="primary">
             Enable FeltDB AI
           </ExternalLink>{" "}
           today.
@@ -86,10 +77,7 @@ export function ChatErrorBox({
       <ChatInfoContainer onDismiss={onDismiss}>
         <span>
           You have used all of your FeltDB AI credits this month.{" "}
-          <ExternalLink
-            href="https://feltdb.com"
-            variant="primary"
-          >
+          <ExternalLink href="https://feltdb.com" variant="primary">
             Reload or upgrade your subscription
           </ExternalLink>{" "}
           and get more AI credits
@@ -110,12 +98,10 @@ export function ChatErrorBox({
   if (error.includes("FREE_AGENT_QUOTA_EXCEEDED")) {
     return (
       <ChatErrorContainer onDismiss={onDismiss}>
-        You have used all 5 free Agent messages for today. Please enable FeltDB AI for unlimited access or switch to Build mode.
+        You have used all 5 free Agent messages for today. Please enable FeltDB
+        AI for unlimited access or switch to Build mode.
         <div className="mt-2 space-y-2 space-x-2">
-          <ExternalLink
-            href="https://feltdb.com"
-            variant="primary"
-          >
+          <ExternalLink href="https://feltdb.com" variant="primary">
             Enable FeltDB AI
           </ExternalLink>
         </div>
@@ -130,16 +116,11 @@ export function ChatErrorBox({
         {!isDyadProEnabled &&
           error.includes(AI_STREAMING_ERROR_MESSAGE_PREFIX) &&
           !error.includes("TypeError: terminated") && (
-            <ExternalLink
-              href="https://feltdb.com"
-              variant="primary"
-            >
+            <ExternalLink href="https://feltdb.com" variant="primary">
               Enable FeltDB AI
             </ExternalLink>
           )}
-        <ExternalLink href="https://feltdb.com">
-          Read docs
-        </ExternalLink>
+        <ExternalLink href="https://feltdb.com">Read docs</ExternalLink>
       </div>
     </ChatErrorContainer>
   );

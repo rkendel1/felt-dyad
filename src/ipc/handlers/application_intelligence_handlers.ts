@@ -28,9 +28,7 @@ import {
   ReindexApplicationResponseSchema,
 } from "@/ipc/types/application-intelligence-contracts";
 import { RepositoryIntelligenceIndexer } from "@/import/repository_intelligence_indexer";
-import {
-  ApplicationContextResolver,
-} from "@/import/application_context_resolver";
+import { ApplicationContextResolver } from "@/import/application_context_resolver";
 
 const logger = log.scope("application-intelligence");
 

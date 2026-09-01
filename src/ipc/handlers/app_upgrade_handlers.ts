@@ -27,7 +27,8 @@ const availableUpgrades: Omit<AppUpgrade, "isNeeded">[] = [
     title: "Upgrade to hybrid mobile app with Capacitor",
     description:
       "Adds Capacitor to your app lets it run on iOS and Android in addition to the web.",
-    manualUpgradeUrl: "https://feltdb.com/docs/guides/mobile-app#upgrade-your-app",
+    manualUpgradeUrl:
+      "https://feltdb.com/docs/guides/mobile-app#upgrade-your-app",
   },
 ];
 
