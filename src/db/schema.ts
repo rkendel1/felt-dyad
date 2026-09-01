@@ -60,6 +60,23 @@ export const apps = sqliteTable("apps", {
     .default(sql`0`),
   // Theme ID for design system theming (null means "no theme")
   themeId: text("theme_id"),
+  // FeltDB configuration (default runtime for new apps)
+  // Runtime type: "server" (Node/local default), "browser" (WASM), or "managed" (account-backed)
+  feltdbRuntime: text("feltdb_runtime", {
+    enum: ["server", "browser", "managed"],
+  }).default("server"),
+  // FeltDB mode: "local" (local server or browser), "managed" (account-backed)
+  feltdbMode: text("feltdb_mode", { enum: ["local", "managed"] }).default(
+    "local",
+  ),
+  // FeltDB project ID (for managed projects)
+  feltdbProjectId: text("feltdb_project_id"),
+  // FeltDB account ID (for managed account)
+  feltdbAccountId: text("feltdb_account_id"),
+  // FeltDB connection status
+  feltdbStatus: text("feltdb_status", {
+    enum: ["ready", "initializing", "failed"],
+  }),
 });
 
 export const chats = sqliteTable("chats", {

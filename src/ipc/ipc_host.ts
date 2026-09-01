@@ -12,6 +12,7 @@ import { registerProposalHandlers } from "./handlers/proposal_handlers";
 import { registerDebugHandlers } from "./handlers/debug_handlers";
 import { registerSupabaseHandlers } from "./handlers/supabase_handlers";
 import { registerNeonHandlers } from "./handlers/neon_handlers";
+import { registerFeltdbHandlers } from "./handlers/feltdb_handlers";
 import { registerLocalModelHandlers } from "./handlers/local_model_handlers";
 import { registerTokenCountHandlers } from "./handlers/token_count_handlers";
 import { registerWindowHandlers } from "./handlers/window_handlers";
@@ -39,6 +40,7 @@ import { registerAgentToolHandlers } from "../pro/main/ipc/handlers/local_agent/
 import { registerFreeAgentQuotaHandlers } from "./handlers/free_agent_quota_handlers";
 import { registerConversionAnalysisHandlers } from "./handlers/conversion_analysis_handlers";
 
+
 export function registerIpcHandlers() {
   // Register all IPC handlers by category
   registerAppHandlers();
@@ -56,6 +58,7 @@ export function registerIpcHandlers() {
   registerDebugHandlers();
   registerSupabaseHandlers();
   registerNeonHandlers();
+  registerFeltdbHandlers();
   registerLocalModelHandlers();
   registerTokenCountHandlers();
   registerWindowHandlers();
