@@ -15,6 +15,7 @@ import {
   ApplicationContext,
   DecisionEntity,
   ChangeEntity,
+  DependencyEntity,
 } from "@/ipc/types/application-intelligence";
 
 export interface ContextResolverInput {
@@ -230,13 +231,7 @@ export function generateAIPrompt(
   if (context.depth0.length > 0) {
     prompt.push("SELECTED ENTITY:");
     for (const item of context.depth0) {
-      prompt.push(`  ${item.type}: ${item.entity.name || item.id}`);
-      if (item.entity.filePath) {
-        prompt.push(`  File: ${item.entity.filePath}`);
-      }
-      if (item.entity.type) {
-        prompt.push(`  Type: ${item.entity.type}`);
-      }
+      prompt.push(`  ${item.type}: ${item.id}`);
     }
     prompt.push("");
   }
@@ -244,7 +239,7 @@ export function generateAIPrompt(
   if (context.depth1.length > 0) {
     prompt.push("RELATED ENTITIES (Depth 1):");
     for (const item of context.depth1) {
-      prompt.push(`  - ${item.type}: ${item.entity.name || item.id}`);
+      prompt.push(`  - ${item.type}: ${item.id}`);
     }
     prompt.push("");
   }
@@ -257,7 +252,7 @@ export function generateAIPrompt(
         item.type === "server-action" ||
         item.type === "external-service"
       ) {
-        prompt.push(`  - ${item.type}: ${item.entity.name || item.id}`);
+        prompt.push(`  - ${item.type}: ${item.id}`);
       }
     }
     prompt.push("");

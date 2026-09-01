@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { AskAboutAppDialog } from "./AskAboutAppDialog";
+import { cn } from "@/lib/utils";
 
 export function ApplicationIntelligenceScreen() {
   const selectedAppId = useAtomValue(selectedAppIdAtom);

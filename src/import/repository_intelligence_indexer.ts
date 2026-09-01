@@ -266,7 +266,7 @@ export class RepositoryIntelligenceIndexer {
     // Simple heuristic: group components by directory
     const componentsByDir: Record<string, ComponentEntity[]> = {};
 
-    for (const component of components) {
+    for (const component of _components) {
       const dir = path.dirname(component.filePath);
       if (!componentsByDir[dir]) {
         componentsByDir[dir] = [];
@@ -420,8 +420,8 @@ export class RepositoryIntelligenceIndexer {
     const now = Date.now();
 
     const deps = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
+      ..._packageJson.dependencies,
+      ..._packageJson.devDependencies,
     };
 
     const serviceMap: Record<string, { name: string; type: any }> = {
