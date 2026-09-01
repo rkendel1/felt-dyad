@@ -149,6 +149,24 @@ export function registerImportHandlers() {
           appId: app.id,
         })
         .returning();
+
+      // Trigger analysis asynchronously (non-blocking)
+      // This will be persisted to FeltDB but won't block the import flow
+      setImmediate(async () => {
+        try {
+          const { runFullAnalysis } = require("../../import");
+          const { getConversionPlanStore } = require("../../store/conversion_plan_store");
+          
+          const appPath = skipCopy ? sourcePath : getDyadAppPath(appName);
+          const plan = await runFullAnalysis(app.id, appPath);
+          const store = await getConversionPlanStore(appPath);
+          await store.savePlan(app.id, plan);
+          logger.info(`Analysis completed and persisted for app ${app.id}`);
+        } catch (error) {
+          logger.warn(`Failed to analyze imported app ${app.id}:`, error);
+        }
+      });
+
       return { appId: app.id, chatId: chat.id };
     },
   );
