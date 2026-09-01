@@ -6,6 +6,7 @@ import {
   DataAnalysis,
   ExternalService,
   UiChange,
+  SimplificationAnalysis,
 } from "@/ipc/types/conversion-analysis";
 
 export function generateConversionPlan(
@@ -15,6 +16,7 @@ export function generateConversionPlan(
   backendAnalysis: BackendAnalysis,
   dataAnalysis: DataAnalysis,
   externalServices: ExternalService[],
+  simplificationAnalysis: SimplificationAnalysis,
 ): ConversionPlan {
   const uiChanges = generateUiChanges(stateAnalysis, backendAnalysis);
   const summary = generateSummary(
@@ -24,6 +26,7 @@ export function generateConversionPlan(
     dataAnalysis,
     externalServices,
     uiChanges,
+    simplificationAnalysis,
   );
   const warnings = generateWarnings(dataAnalysis, externalServices);
   const manualDecisions = generateManualDecisions(
@@ -41,6 +44,7 @@ export function generateConversionPlan(
     dataAnalysis,
     externalServices,
     uiChanges,
+    simplification: simplificationAnalysis,
     summary,
     warnings,
     manualDecisions,
@@ -107,12 +111,16 @@ function generateSummary(
   dataAnalysis: DataAnalysis,
   externalServices: ExternalService[],
   uiChanges: UiChange[],
+  simplificationAnalysis: SimplificationAnalysis,
 ): string {
   const externalCount = externalServices.filter(
     (s) => s.classification === "KEEP_EXTERNAL",
   ).length;
   const uiChangeCount = uiChanges.length;
   const apiRouteCount = backendAnalysis.apiRoutes.length;
+  const locReduction = Math.round(simplificationAnalysis.complexity.estimatedReductionPercent);
+  const netSimplification = simplificationAnalysis.netEstimatedReduction;
+  const flowsEliminated = simplificationAnalysis.flowStats.canBeEliminated;
 
   return `I analyzed your ${applicationAnalysis.framework} application and created a FeltDB conversion plan.
 
@@ -132,6 +140,13 @@ Converting to FeltDB will require:
 - ${apiRouteCount} API route transformations
 - ${dataAnalysis.totalTables} database table migrations
 ${backendAnalysis.serverActions.length > 0 ? `- ${backendAnalysis.serverActions.length} server action updates` : ""}
+
+Estimated Simplification:
+- Potential LOC reduction: ${locReduction}%
+- State plumbing flows that can be eliminated: ${flowsEliminated}
+- Net estimated reduction: ~${netSimplification} LOC
+
+These are estimates based on static analysis. Actual results will be measured after conversion.
 
 Nothing has been changed yet. Review the conversion plan to see exactly what will change.`;
 }

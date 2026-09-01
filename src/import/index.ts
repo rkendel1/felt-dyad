@@ -3,6 +3,7 @@ import { analyzeState } from "./state_analyzer";
 import { analyzeBackend } from "./backend_analyzer";
 import { analyzeData } from "./data_analyzer";
 import { analyzeExternalServices } from "./external_services_analyzer";
+import { analyzeSimplification } from "./simplification_analyzer";
 import { generateConversionPlan } from "./conversion_plan";
 import { ConversionPlan } from "@/ipc/types/conversion-analysis";
 
@@ -30,6 +31,15 @@ export async function runFullAnalysis(
       applicationAnalysis.framework,
     );
 
+    // Simplification analysis depends on other analyses
+    const simplificationAnalysis = await analyzeSimplification(
+      applicationAnalysis,
+      stateAnalysis,
+      backendAnalysis,
+      dataAnalysis,
+      appPath,
+    );
+
     // Generate the conversion plan
     const plan = generateConversionPlan(
       appId,
@@ -38,6 +48,7 @@ export async function runFullAnalysis(
       backendAnalysis,
       dataAnalysis,
       externalServices,
+      simplificationAnalysis,
     );
 
     return plan;

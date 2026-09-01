@@ -235,6 +235,61 @@ export const UiChangeSchema = z.object({
 export type UiChange = z.infer<typeof UiChangeSchema>;
 
 // =============================================================================
+// Simplification Analysis
+// =============================================================================
+
+export const ComplexityMetricsSchema = z.object({
+  currentLOC: z.number(),
+  removableLOC: z.number(),
+  replaceableLOC: z.number(),
+  unchangedLOC: z.number(),
+  estimatedReductionPercent: z.number(),
+});
+
+export type ComplexityMetrics = z.infer<typeof ComplexityMetricsSchema>;
+
+export const ComplexityCategoryRemovalSchema = z.object({
+  category: z.string(),
+  current: z.union([z.number(), z.string()]),
+  estimated: z.union([z.number(), z.string()]),
+  changePercent: z.number(),
+  unit: z.string(),
+});
+
+export type ComplexityCategoryRemoval = z.infer<
+  typeof ComplexityCategoryRemovalSchema
+>;
+
+export const StatePlumbingFlowSchema = z.object({
+  description: z.string(),
+  steps: z.array(z.string()),
+  canBeEliminated: z.boolean(),
+  canBeConsolidated: z.boolean(),
+});
+
+export type StatePlumbingFlow = z.infer<typeof StatePlumbingFlowSchema>;
+
+export const SimplificationAnalysisSchema = z.object({
+  complexity: ComplexityMetricsSchema,
+  categoryRemovals: z.array(ComplexityCategoryRemovalSchema),
+  statePlumbingFlows: z.array(StatePlumbingFlowSchema),
+  flowStats: z.object({
+    canBeEliminated: z.number(),
+    canBeConsolidated: z.number(),
+    shouldRemain: z.number(),
+  }),
+  newFeltDBCode: z.number(),
+  newConcepts: z.array(z.string()),
+  netEstimatedReduction: z.number(),
+  estimatedAfterLOC: z.object({
+    low: z.number(),
+    high: z.number(),
+  }),
+});
+
+export type SimplificationAnalysis = z.infer<typeof SimplificationAnalysisSchema>;
+
+// =============================================================================
 // Conversion Plan
 // =============================================================================
 
@@ -247,6 +302,7 @@ export const ConversionPlanSchema = z.object({
   dataAnalysis: DataAnalysisSchema,
   externalServices: z.array(ExternalServiceSchema),
   uiChanges: z.array(UiChangeSchema),
+  simplification: SimplificationAnalysisSchema.optional(),
   summary: z.string(),
   warnings: z.array(z.string()).optional(),
   manualDecisions: z
