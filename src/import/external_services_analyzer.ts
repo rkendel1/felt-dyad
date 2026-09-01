@@ -107,7 +107,7 @@ export async function analyzeExternalServices(
     });
   }
 
-  if (deps.mongodb || deps["mongodb"]) {
+  if (deps.mongodb) {
     services.push({
       name: "MongoDB",
       type: "DATABASE",
