@@ -401,7 +401,8 @@
     const selectedItem = overlays.find((item) => item.el === state.element);
 
     // If clicking on the currently highlighted component, deselect it
-    if (selectedItem && (highlightedElement === state.element || !isProMode)) {
+    // Multi-component selection is now available to all users
+    if (selectedItem && highlightedElement === state.element) {
       if (state.element.contentEditable === "true") {
         return;
       }
@@ -436,7 +437,8 @@
 
     highlightedElement = state.element;
 
-    if (selectedItem && isProMode) {
+    // Green highlight is now available to all users
+    if (selectedItem) {
       css(selectedItem.overlay, {
         border: `3px solid #00ff00`,
         background: "rgba(0, 255, 0, 0.05)",
@@ -444,7 +446,7 @@
     }
 
     if (!selectedItem) {
-      updateOverlay(state.element, true, isProMode);
+      updateOverlay(state.element, true, true);
       requestAnimationFrame(updateAllOverlayPositions);
     }
 

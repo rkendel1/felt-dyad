@@ -66,9 +66,7 @@ import { cn } from "@/lib/utils";
 import { normalizePath } from "../../../shared/normalizePath";
 import { showError } from "@/lib/toast";
 import type { DeviceMode } from "@/lib/schemas";
-import { AnnotatorOnlyForPro } from "./AnnotatorOnlyForPro";
 import { useAttachments } from "@/hooks/useAttachments";
-import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
 import { Annotator } from "@/pro/ui/components/Annotator/Annotator";
 import { VisualEditingToolbar } from "./VisualEditingToolbar";
 
@@ -181,8 +179,8 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   const { routes: availableRoutes } = useParseRouter(selectedAppId);
   const { restartApp } = useRunApp();
   const { settings, updateSettings } = useSettings();
-  const { userBudget } = useUserBudgetInfo();
-  const isProMode = !!userBudget;
+  // All features are now available to all users - Pro mode always enabled
+  const isProMode = true;
 
   // Navigation state
   const [isComponentSelectorInitialized, setIsComponentSelectorInitialized] =
@@ -1080,17 +1078,14 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
                     : { width: `${deviceWidthConfig[deviceMode]}px` }
                 }
               >
-                {userBudget ? (
+                {
+                  // Annotator is now available to all users
                   <Annotator
                     screenshotUrl={screenshotDataUrl}
                     onSubmit={addAttachments}
                     handleAnnotatorClick={handleAnnotatorClick}
                   />
-                ) : (
-                  <AnnotatorOnlyForPro
-                    onGoBack={() => setAnnotatorMode(false)}
-                  />
-                )}
+                }
               </div>
             ) : (
               <>
