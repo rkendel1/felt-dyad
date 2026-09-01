@@ -790,6 +790,24 @@ export function registerAppHandlers() {
       fullAppPath,
     });
 
+    // Initialize .feltdb metadata for the app
+    const feltdbMetadataPath = path.join(fullAppPath, ".feltdb", "metadata.json");
+    try {
+      const metadata = {
+        version: "1.0.0",
+        appId: app.id.toString(),
+        displayName: params.name,
+      };
+      await fsPromises.writeFile(
+        feltdbMetadataPath,
+        JSON.stringify(metadata, null, 2),
+      );
+      logger.info(`Initialized .feltdb metadata for app ${app.id}`);
+    } catch (err) {
+      logger.warn(`Failed to initialize .feltdb metadata: `, err);
+      // Don't fail the entire app creation if metadata initialization fails
+    }
+
     // Initialize git repo and create first commit
 
     await gitInit({ path: fullAppPath, ref: "main" });
@@ -889,6 +907,24 @@ export function registerAppHandlers() {
         startCommand: originalApp.startCommand,
       })
       .returning();
+
+    // 5. Initialize .feltdb metadata for the copied app
+    const feltdbMetadataPath = path.join(newAppPath, ".feltdb", "metadata.json");
+    try {
+      const metadata = {
+        version: "1.0.0",
+        appId: newDbApp.id.toString(),
+        displayName: newAppName,
+      };
+      await fsPromises.writeFile(
+        feltdbMetadataPath,
+        JSON.stringify(metadata, null, 2),
+      );
+      logger.info(`Initialized .feltdb metadata for copied app ${newDbApp.id}`);
+    } catch (err) {
+      logger.warn(`Failed to initialize .feltdb metadata for copied app: `, err);
+      // Don't fail the entire app copy if metadata initialization fails
+    }
 
     return { app: newDbApp };
   });
