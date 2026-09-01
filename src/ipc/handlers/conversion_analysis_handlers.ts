@@ -1,4 +1,3 @@
-import { ipcMain } from "electron";
 import { db } from "../../db";
 import { apps } from "../../db/schema";
 import { eq } from "drizzle-orm";
@@ -6,7 +5,6 @@ import { createLoggedHandler } from "./safe_handle";
 import log from "electron-log";
 import { runFullAnalysis } from "../../import";
 import { getConversionPlanStore } from "../../store/conversion_plan_store";
-import type { ConversionPlan } from "../types/conversion-analysis";
 
 const logger = log.scope("conversion_analysis_handlers");
 const handle = createLoggedHandler(logger);

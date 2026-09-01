@@ -8,7 +8,7 @@ import {
 
 export async function analyzeState(
   appPath: string,
-  framework: FrameworkType,
+  _framework: FrameworkType,
 ): Promise<StateAnalysis> {
   const srcPath = path.join(appPath, "src");
   const stateSources: StateSource[] = [];

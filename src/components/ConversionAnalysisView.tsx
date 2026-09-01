@@ -2,7 +2,6 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { ipc } from "@/ipc/types";
-import type { ConversionPlan } from "@/ipc/types";
 import { ConversionSummary } from "./ConversionSummary";
 import { ConversionDetails } from "./ConversionDetails";
 import { Alert, AlertDescription } from "@/components/ui/alert";

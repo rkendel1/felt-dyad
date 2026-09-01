@@ -18,7 +18,7 @@ export function generateConversionPlan(
   externalServices: ExternalService[],
   simplificationAnalysis: SimplificationAnalysis,
 ): ConversionPlan {
-  const uiChanges = generateUiChanges(stateAnalysis, backendAnalysis);
+  const uiChanges = generateUiChanges(stateAnalysis);
   const summary = generateSummary(
     applicationAnalysis,
     stateAnalysis,
@@ -55,7 +55,6 @@ export function generateConversionPlan(
 
 function generateUiChanges(
   stateAnalysis: StateAnalysis,
-  backendAnalysis: BackendAnalysis,
 ): UiChange[] {
   const changes: UiChange[] = [];
 

@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ConversionPlan } from "@/ipc/types";
 import { AlertTriangle, Check, Info } from "lucide-react";
+import { SimplificationSummary } from "./SimplificationSummary";
 
 export interface ConversionSummaryProps {
   plan: ConversionPlan;
@@ -72,6 +73,11 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Simplification Analysis */}
+      {plan.simplification && (
+        <SimplificationSummary simplification={plan.simplification} />
+      )}
 
       {/* Warnings */}
       {warningCount > 0 && (

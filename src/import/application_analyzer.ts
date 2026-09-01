@@ -116,7 +116,7 @@ function detectEntryPoints(appPath: string, packageJson: any): string[] {
 
 function detectRoutes(
   appPath: string,
-  framework: FrameworkType,
+  _framework: FrameworkType,
 ): Array<{ path: string; file: string; type: "page" | "api" | "layout" }> {
   const routes: Array<{
     path: string;
@@ -166,7 +166,7 @@ function detectRoutes(
 
 function detectComponents(
   appPath: string,
-  framework: FrameworkType,
+  _framework: FrameworkType,
 ): Array<{ name: string; file: string; usesState: boolean }> {
   const components: Array<{ name: string; file: string; usesState: boolean }> =
     [];

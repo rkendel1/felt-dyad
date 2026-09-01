@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ConversionPlan } from "@/ipc/types";
-import { ChevronDown, ChevronRight, Database, Zap, Layers, Globe } from "lucide-react";
+import { ChevronDown, ChevronRight, Database, Zap, Layers, Globe, TrendingDown } from "lucide-react";
+import { SimplificationDetails } from "./SimplificationDetails";
 
 export interface ConversionDetailsProps {
   plan: ConversionPlan;
@@ -12,7 +13,7 @@ export const ConversionDetails: React.FC<ConversionDetailsProps> = ({
   plan,
 }) => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(["state", "ui", "backend", "data", "external"]),
+    new Set(["state", "ui", "backend", "data", "external", "simplification"]),
   );
 
   const toggleSection = (section: string) => {
@@ -206,6 +207,32 @@ export const ConversionDetails: React.FC<ConversionDetailsProps> = ({
           </CardContent>
         )}
       </Card>
+
+      {/* Simplification Analysis */}
+      {plan.simplification && (
+        <Card>
+          <CardHeader
+            className="cursor-pointer hover:bg-muted"
+            onClick={() => toggleSection("simplification")}
+          >
+            <CardTitle className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <TrendingDown className="h-4 w-4" />
+                Complexity Reduction
+              </div>
+              {expandedSections.has("simplification") ? <ChevronDown /> : <ChevronRight />}
+            </CardTitle>
+            <CardDescription>
+              Estimated {Math.round(plan.simplification.complexity.estimatedReductionPercent)}% code reduction
+            </CardDescription>
+          </CardHeader>
+          {expandedSections.has("simplification") && (
+            <CardContent>
+              <SimplificationDetails simplification={plan.simplification} />
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* External Services */}
       <Card>
