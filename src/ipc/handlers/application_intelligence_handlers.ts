@@ -64,64 +64,65 @@ export function registerApplicationIntelligenceHandlers() {
       try {
         const validatedInput = IndexApplicationSchema.parse(input);
 
-      logger.info(`Indexing application ${validatedInput.appId}`);
+        logger.info(`Indexing application ${validatedInput.appId}`);
 
-      // TODO: Get app path from database
-      // TODO: Get framework from database
-      // For now, using placeholder values
-      const appPath = "/tmp/app";
-      const framework = "REACT";
-      const appId = `app-${validatedInput.appId}`;
+        // TODO: Get app path from database
+        // TODO: Get framework from database
+        // For now, using placeholder values
+        const appPath = "/tmp/app";
+        const framework = "REACT";
+        const appId = `app-${validatedInput.appId}`;
 
-      const indexer = new RepositoryIntelligenceIndexer(
-        appPath,
-        framework as any,
-        appId
-      );
-      const result = await indexer.index();
+        const indexer = new RepositoryIntelligenceIndexer(
+          appPath,
+          framework as any,
+          appId,
+        );
+        const result = await indexer.index();
 
-      // Store in memory
-      applicationIntelligenceStore.set(appId, {
-        application: result.application,
-        components: result.components,
-        routes: result.routes,
-        pages: result.pages,
-        features: result.features,
-        stateSources: result.stateSources,
-        collections: result.collections,
-        serverActions: result.serverActions,
-        externalServices: result.externalServices,
-        dependencies: result.dependencies,
-      });
+        // Store in memory
+        applicationIntelligenceStore.set(appId, {
+          application: result.application,
+          components: result.components,
+          routes: result.routes,
+          pages: result.pages,
+          features: result.features,
+          stateSources: result.stateSources,
+          collections: result.collections,
+          serverActions: result.serverActions,
+          externalServices: result.externalServices,
+          dependencies: result.dependencies,
+        });
 
-      const response = IndexApplicationResponseSchema.parse({
-        applicationId: appId,
-        entitiesDiscovered:
-          result.components.length +
-          result.routes.length +
-          result.pages.length +
-          result.features.length +
-          result.stateSources.length +
-          result.collections.length +
-          result.serverActions.length +
-          result.externalServices.length,
-        componentsFound: result.components.length,
-        routesFound: result.routes.length,
-        pagesFound: result.pages.length,
-        featuresInferred: result.features.length,
-        servicesFound: result.externalServices.length,
-        indexedAt: result.application.lastIndexedAt,
-      });
+        const response = IndexApplicationResponseSchema.parse({
+          applicationId: appId,
+          entitiesDiscovered:
+            result.components.length +
+            result.routes.length +
+            result.pages.length +
+            result.features.length +
+            result.stateSources.length +
+            result.collections.length +
+            result.serverActions.length +
+            result.externalServices.length,
+          componentsFound: result.components.length,
+          routesFound: result.routes.length,
+          pagesFound: result.pages.length,
+          featuresInferred: result.features.length,
+          servicesFound: result.externalServices.length,
+          indexedAt: result.application.lastIndexedAt,
+        });
 
-      logger.info(
-        `Successfully indexed application: ${JSON.stringify(response)}`
-      );
-      return response;
-    } catch (error) {
-      logger.error("Error indexing application:", error);
-      throw error;
-    }
-  });
+        logger.info(
+          `Successfully indexed application: ${JSON.stringify(response)}`,
+        );
+        return response;
+      } catch (error) {
+        logger.error("Error indexing application:", error);
+        throw error;
+      }
+    },
+  );
 
   // Get Application Intelligence
   ipcMain.handle(
@@ -134,7 +135,7 @@ export function registerApplicationIntelligenceHandlers() {
         const intelligence = applicationIntelligenceStore.get(appId);
         if (!intelligence) {
           throw new Error(
-            `No application intelligence found for app ${validatedInput.appId}`
+            `No application intelligence found for app ${validatedInput.appId}`,
           );
         }
 
@@ -156,7 +157,7 @@ export function registerApplicationIntelligenceHandlers() {
         logger.error("Error retrieving application intelligence:", error);
         throw error;
       }
-    }
+    },
   );
 
   // Get Application Context
@@ -170,7 +171,7 @@ export function registerApplicationIntelligenceHandlers() {
         const intelligence = applicationIntelligenceStore.get(appId);
         if (!intelligence) {
           throw new Error(
-            `No application intelligence found for app ${validatedInput.appId}`
+            `No application intelligence found for app ${validatedInput.appId}`,
           );
         }
 
@@ -203,7 +204,10 @@ export function registerApplicationIntelligenceHandlers() {
         }
 
         // Resolve context
-        const selectedComponent = validatedInput.selectedComponent || intelligence.components[0]?.id || "unknown";
+        const selectedComponent =
+          validatedInput.selectedComponent ||
+          intelligence.components[0]?.id ||
+          "unknown";
         const selectedType = selectedComponent.startsWith("component-")
           ? "component"
           : "unknown";
@@ -224,56 +228,62 @@ export function registerApplicationIntelligenceHandlers() {
         logger.error("Error retrieving application context:", error);
         throw error;
       }
-    }
+    },
   );
 
   // Store Decision
-  ipcMain.handle<unknown, unknown>("application-intelligence:store-decision", async (_event: Electron.IpcMainInvokeEvent, input: unknown) => {
-    try {
-      const validatedInput = StoreDecisionSchema.parse(input);
+  ipcMain.handle<unknown, unknown>(
+    "application-intelligence:store-decision",
+    async (_event: Electron.IpcMainInvokeEvent, input: unknown) => {
+      try {
+        const validatedInput = StoreDecisionSchema.parse(input);
 
-      logger.info(
-        `Storing decision for app ${validatedInput.appId}: ${validatedInput.decision.title}`
-      );
+        logger.info(
+          `Storing decision for app ${validatedInput.appId}: ${validatedInput.decision.title}`,
+        );
 
-      // TODO: Store in FeltDB
-      // For now, just log it
+        // TODO: Store in FeltDB
+        // For now, just log it
 
-      const response = StoreDecisionResponseSchema.parse({
-        id: validatedInput.decision.id,
-        success: true,
-      });
+        const response = StoreDecisionResponseSchema.parse({
+          id: validatedInput.decision.id,
+          success: true,
+        });
 
-      return response;
-    } catch (error) {
-      logger.error("Error storing decision:", error);
-      throw error;
-    }
-  });
+        return response;
+      } catch (error) {
+        logger.error("Error storing decision:", error);
+        throw error;
+      }
+    },
+  );
 
   // Record Change
-  ipcMain.handle<unknown, unknown>("application-intelligence:record-change", async (_event: Electron.IpcMainInvokeEvent, input: unknown) => {
-    try {
-      const validatedInput = RecordChangeSchema.parse(input);
+  ipcMain.handle<unknown, unknown>(
+    "application-intelligence:record-change",
+    async (_event: Electron.IpcMainInvokeEvent, input: unknown) => {
+      try {
+        const validatedInput = RecordChangeSchema.parse(input);
 
-      logger.info(
-        `Recording change for app ${validatedInput.appId}: ${validatedInput.change.request}`
-      );
+        logger.info(
+          `Recording change for app ${validatedInput.appId}: ${validatedInput.change.request}`,
+        );
 
-      // TODO: Store in FeltDB
-      // For now, just log it
+        // TODO: Store in FeltDB
+        // For now, just log it
 
-      const response = RecordChangeResponseSchema.parse({
-        id: validatedInput.change.id,
-        success: true,
-      });
+        const response = RecordChangeResponseSchema.parse({
+          id: validatedInput.change.id,
+          success: true,
+        });
 
-      return response;
-    } catch (error) {
-      logger.error("Error recording change:", error);
-      throw error;
-    }
-  });
+        return response;
+      } catch (error) {
+        logger.error("Error recording change:", error);
+        throw error;
+      }
+    },
+  );
 
   // Get Reconciliation Status
   ipcMain.handle(
@@ -286,7 +296,7 @@ export function registerApplicationIntelligenceHandlers() {
         const intelligence = applicationIntelligenceStore.get(appId);
         if (!intelligence) {
           throw new Error(
-            `No application intelligence found for app ${validatedInput.appId}`
+            `No application intelligence found for app ${validatedInput.appId}`,
           );
         }
 
@@ -296,7 +306,9 @@ export function registerApplicationIntelligenceHandlers() {
 
         // Simple heuristic: if indexed less than 1 minute ago, synchronized
         const status =
-          timeSinceIndex < 60000 ? ("synchronized" as const) : ("out_of_sync" as const);
+          timeSinceIndex < 60000
+            ? ("synchronized" as const)
+            : ("out_of_sync" as const);
 
         const response = GetReconciliationStatusResponseSchema.parse({
           status,
@@ -311,7 +323,7 @@ export function registerApplicationIntelligenceHandlers() {
         logger.error("Error retrieving reconciliation status:", error);
         throw error;
       }
-    }
+    },
   );
 
   // Reindex Application
@@ -322,7 +334,7 @@ export function registerApplicationIntelligenceHandlers() {
         const validatedInput = ReindexApplicationSchema.parse(input);
 
         logger.info(
-          `Reindexing application ${validatedInput.appId} (full: ${validatedInput.full})`
+          `Reindexing application ${validatedInput.appId} (full: ${validatedInput.full})`,
         );
 
         // TODO: Implement incremental indexing
@@ -338,7 +350,7 @@ export function registerApplicationIntelligenceHandlers() {
         const indexer = new RepositoryIntelligenceIndexer(
           appPath,
           framework as any,
-          appId
+          appId,
         );
         const result = await indexer.index();
 
@@ -367,6 +379,6 @@ export function registerApplicationIntelligenceHandlers() {
         logger.error("Error reindexing application:", error);
         throw error;
       }
-    }
+    },
   );
 }

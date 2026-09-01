@@ -41,7 +41,9 @@ export const SimplificationDetails: React.FC<SimplificationDetailsProps> = ({
               }`}
             >
               <button
-                onClick={() => setExpandedFlow(expandedFlow === idx ? null : idx)}
+                onClick={() =>
+                  setExpandedFlow(expandedFlow === idx ? null : idx)
+                }
                 className="w-full p-4 text-left flex items-start gap-3 hover:opacity-75 transition-opacity"
               >
                 <div className="flex-shrink-0 mt-1">
@@ -67,8 +69,12 @@ export const SimplificationDetails: React.FC<SimplificationDetailsProps> = ({
                   </p>
                   <p className="text-xs text-gray-600 mt-1">
                     {flow.canBeEliminated && "Can be eliminated"}
-                    {flow.canBeConsolidated && !flow.canBeEliminated && "Can be consolidated"}
-                    {!flow.canBeEliminated && !flow.canBeConsolidated && "Should remain external"}
+                    {flow.canBeConsolidated &&
+                      !flow.canBeEliminated &&
+                      "Can be consolidated"}
+                    {!flow.canBeEliminated &&
+                      !flow.canBeConsolidated &&
+                      "Should remain external"}
                   </p>
                 </div>
                 <svg
@@ -158,9 +164,7 @@ export const SimplificationDetails: React.FC<SimplificationDetailsProps> = ({
               {simplification.categoryRemovals.map((removal, idx) => (
                 <tr
                   key={idx}
-                  className={
-                    idx % 2 === 0 ? "bg-gray-50" : "bg-white"
-                  }
+                  className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"}
                 >
                   <td className="py-2 px-3 text-gray-700">
                     {removal.category}

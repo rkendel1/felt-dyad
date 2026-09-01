@@ -15,21 +15,24 @@ export const activeChatPanelTabAtom = atom<
 >("chat");
 
 // Selected component/state for display in StateInspector
-export const selectedStateAtom = atom<{
-  component?: {
-    name: string;
-    sourcePath: string;
-  };
-  collection?: {
-    name: string;
-    recordId?: string;
-  };
-  record?: {
-    id: string;
-    fields: Array<{
-      name: string;
-      type: string;
-      value?: string | number | boolean | null;
-    }>;
-  };
-} | undefined>(undefined);
+export const selectedStateAtom = atom<
+  | {
+      component?: {
+        name: string;
+        sourcePath: string;
+      };
+      collection?: {
+        name: string;
+        recordId?: string;
+      };
+      record?: {
+        id: string;
+        fields: Array<{
+          name: string;
+          type: string;
+          value?: string | number | boolean | null;
+        }>;
+      };
+    }
+  | undefined
+>(undefined);

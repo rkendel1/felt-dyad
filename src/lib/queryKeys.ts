@@ -266,7 +266,13 @@ export const queryKeys = {
       selectedComponent?: string;
       request?: string;
     }) =>
-      ["application-intelligence", appId, "context", selectedComponent, request] as const,
+      [
+        "application-intelligence",
+        appId,
+        "context",
+        selectedComponent,
+        request,
+      ] as const,
     reconciliationStatus: ({ appId }: { appId: number }) =>
       ["application-intelligence", appId, "reconciliation-status"] as const,
   },
@@ -325,9 +331,7 @@ export type AppQueryKey =
   | QueryKeyOf<(typeof queryKeys.mcp)[keyof typeof queryKeys.mcp]>
   | QueryKeyOf<(typeof queryKeys.supabase)[keyof typeof queryKeys.supabase]>
   | QueryKeyOf<(typeof queryKeys.neon)[keyof typeof queryKeys.neon]>
-  | QueryKeyOf<
-      (typeof queryKeys.appEnvVars)[keyof typeof queryKeys.appEnvVars]
-    >
+  | QueryKeyOf<(typeof queryKeys.appEnvVars)[keyof typeof queryKeys.appEnvVars]>
   | QueryKeyOf<
       (typeof queryKeys.applicationIntelligence)[keyof typeof queryKeys.applicationIntelligence]
     >;

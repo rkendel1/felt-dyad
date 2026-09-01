@@ -16,13 +16,17 @@ test.describe("Conversion Execution Workflow E2E", () => {
     expect(planStatus).toBeDefined();
 
     // Scroll to see the approval button
-    await page.locator("button:has-text(\"Approve Conversion\")").scrollIntoViewIfNeeded();
+    await page
+      .locator('button:has-text("Approve Conversion")')
+      .scrollIntoViewIfNeeded();
 
     // Click approve button
     await page.click('button:has-text("Approve Conversion")');
 
     // Verify confirmation dialog
-    const confirmText = await page.locator("text=This will modify your application");
+    const confirmText = await page.locator(
+      "text=This will modify your application",
+    );
     expect(confirmText).toBeDefined();
 
     // Click confirm button
@@ -39,9 +43,7 @@ test.describe("Conversion Execution Workflow E2E", () => {
     await page.waitForTimeout(5000);
 
     // Verify execution status is completed or executing
-    const executionStatus = await page.locator(
-      "text=Executing|Completed",
-    );
+    const executionStatus = await page.locator("text=Executing|Completed");
     expect(executionStatus).toBeDefined();
   });
 
@@ -56,9 +58,7 @@ test.describe("Conversion Execution Workflow E2E", () => {
     await page.click('button:has-text("View Conversion History")');
 
     // Find failed conversion
-    const failedConversion = await page.locator(
-      "text=Conversion Failed",
-    );
+    const failedConversion = await page.locator("text=Conversion Failed");
     expect(failedConversion).toBeDefined();
 
     // Click rollback button

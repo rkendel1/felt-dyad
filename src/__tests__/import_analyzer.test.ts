@@ -123,7 +123,9 @@ describe("Application Analyzer", () => {
 
   it("should detect components using state", async () => {
     const analysis = await analyzeApplication(tempDir);
-    const counterComponent = analysis.components.find((c) => c.name === "Counter");
+    const counterComponent = analysis.components.find(
+      (c) => c.name === "Counter",
+    );
     expect(counterComponent?.usesState).toBe(true);
   });
 });
@@ -145,7 +147,9 @@ describe("State Analyzer", () => {
 
   it("should detect localStorage usage", async () => {
     const analysis = await analyzeState(tempDir, "REACT");
-    const hasLocalStorage = analysis.sources.some((s) => s.type === "LOCALSTORAGE");
+    const hasLocalStorage = analysis.sources.some(
+      (s) => s.type === "LOCALSTORAGE",
+    );
     expect(hasLocalStorage).toBe(true);
   });
 

@@ -42,7 +42,6 @@ import { registerConversionAnalysisHandlers } from "./handlers/conversion_analys
 import { registerConversionExecutionHandlers } from "./handlers/conversion_execution_handlers";
 import { registerApplicationIntelligenceHandlers } from "./handlers/application_intelligence_handlers";
 
-
 export function registerIpcHandlers() {
   // Register all IPC handlers by category
   registerAppHandlers();

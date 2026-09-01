@@ -2,7 +2,9 @@ import { expect } from "@playwright/test";
 import { test } from "./helpers/test_helper";
 
 test.describe("FeltDB Integration", () => {
-  test("creates app with FeltDB as default runtime", async ({ electronApp }) => {
+  test("creates app with FeltDB as default runtime", async ({
+    electronApp,
+  }) => {
     const page = await electronApp.firstWindow();
 
     // Wait for the page to load

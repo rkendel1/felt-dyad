@@ -101,7 +101,9 @@ export class ConversionPlanStore {
   /**
    * Retrieve a conversion plan from FeltDB
    */
-  async getPlan(appId: number): Promise<(ConversionPlan & { id: string }) | null> {
+  async getPlan(
+    appId: number,
+  ): Promise<(ConversionPlan & { id: string }) | null> {
     if (!this.db) throw new Error("FeltDB not initialized");
 
     const conversionPlans = this.db.collection("conversion_plans");

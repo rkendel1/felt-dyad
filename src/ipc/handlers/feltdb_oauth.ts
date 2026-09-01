@@ -15,8 +15,7 @@ export const feltdbOAuthConfig = {
     process.env.FELTDB_AUTH_ENDPOINT ||
     "https://auth.feltdb.com/oauth/authorize",
   tokenEndpoint:
-    process.env.FELTDB_TOKEN_ENDPOINT ||
-    "https://auth.feltdb.com/oauth/token",
+    process.env.FELTDB_TOKEN_ENDPOINT || "https://auth.feltdb.com/oauth/token",
 };
 
 // Schema definitions
@@ -29,9 +28,7 @@ export const FeltDBOAuthCredentialSchema = z.object({
   accountName: z.string().optional(),
 });
 
-export type FeltDBOAuthCredential = z.infer<
-  typeof FeltDBOAuthCredentialSchema
->;
+export type FeltDBOAuthCredential = z.infer<typeof FeltDBOAuthCredentialSchema>;
 
 /**
  * Start OAuth flow for FeltDB authentication
@@ -48,7 +45,10 @@ export async function startFeltDBOAuthFlow(
     authUrl.searchParams.set("client_id", feltdbOAuthConfig.clientId);
     authUrl.searchParams.set("redirect_uri", feltdbOAuthConfig.redirectUri);
     authUrl.searchParams.set("response_type", "code");
-    authUrl.searchParams.set("scope", "offline_access projects:read projects:write");
+    authUrl.searchParams.set(
+      "scope",
+      "offline_access projects:read projects:write",
+    );
 
     logger.info(`Opening OAuth URL: ${authUrl.toString()}`);
 
@@ -121,9 +121,7 @@ export async function storeFeltDBCredentials(
   // 2. Store in secure credential storage (keychain/credential manager)
   // 3. Handle rotation
 
-  logger.info(
-    `Storing FeltDB credentials for account ${credential.accountId}`,
-  );
+  logger.info(`Storing FeltDB credentials for account ${credential.accountId}`);
 
   // For now, just log (actual storage would go to secure keychain)
 }
@@ -148,9 +146,7 @@ export async function revokeFeltDBCredentials(
 export async function listFeltDBProjects(
   credential: FeltDBOAuthCredential,
 ): Promise<Array<{ id: string; name: string; url: string }>> {
-  logger.info(
-    `Listing FeltDB projects for account ${credential.accountId}`,
-  );
+  logger.info(`Listing FeltDB projects for account ${credential.accountId}`);
 
   try {
     // In a real implementation, this would:

@@ -13,15 +13,6 @@
 
 import {
   ApplicationContext,
-  ComponentEntity,
-  RouteEntity,
-  PageEntity,
-  FeatureEntity,
-  StateSourceEntity,
-  CollectionEntity,
-  ServerActionEntity,
-  ExternalServiceEntity,
-  DependencyEntity,
   DecisionEntity,
   ChangeEntity,
 } from "@/ipc/types/application-intelligence";
@@ -59,7 +50,7 @@ export class ApplicationContextResolver {
     // Depth 1: Related entities (parent, state, file, feature)
     const depth1Ids = this.findDepth1(
       input.selectedEntity,
-      input.applicationDependencies
+      input.applicationDependencies,
     );
     for (const id of depth1Ids) {
       const entity = input.applicationEntities.get(id);
@@ -75,7 +66,7 @@ export class ApplicationContextResolver {
     // Depth 2: Related components, collections, mutations, services
     const depth2Ids = this.findDepth2(
       [...depth1Ids],
-      input.applicationDependencies
+      input.applicationDependencies,
     );
     for (const id of depth2Ids) {
       const entity = input.applicationEntities.get(id);
@@ -91,7 +82,7 @@ export class ApplicationContextResolver {
     // Depth 3: Relevant history
     const depth3Ids = this.findDepth3(
       [...depth2Ids],
-      input.applicationDependencies
+      input.applicationDependencies,
     );
     for (const id of depth3Ids) {
       const entity = input.applicationEntities.get(id);
@@ -105,10 +96,12 @@ export class ApplicationContextResolver {
     }
 
     // Filter decisions by relevance
-    const relevantDecisions = this.filterRelevantDecisions(
-      input.decisions,
-      [input.selectedEntity, ...depth1Ids, ...depth2Ids, ...depth3Ids]
-    );
+    const relevantDecisions = this.filterRelevantDecisions(input.decisions, [
+      input.selectedEntity,
+      ...depth1Ids,
+      ...depth2Ids,
+      ...depth3Ids,
+    ]);
 
     return {
       selected: {
@@ -129,7 +122,7 @@ export class ApplicationContextResolver {
    */
   private static findDepth1(
     entityId: string,
-    dependencies: DependencyEntity[]
+    dependencies: DependencyEntity[],
   ): string[] {
     const ids = new Set<string>();
 
@@ -149,7 +142,7 @@ export class ApplicationContextResolver {
    */
   private static findDepth2(
     depth1Ids: string[],
-    dependencies: DependencyEntity[]
+    dependencies: DependencyEntity[],
   ): string[] {
     const ids = new Set<string>();
 
@@ -171,7 +164,7 @@ export class ApplicationContextResolver {
    */
   private static findDepth3(
     depth2Ids: string[],
-    dependencies: DependencyEntity[]
+    dependencies: DependencyEntity[],
   ): string[] {
     const ids = new Set<string>();
 
@@ -193,7 +186,7 @@ export class ApplicationContextResolver {
    */
   private static filterRelevantDecisions(
     decisions: DecisionEntity[],
-    entityIds: string[]
+    entityIds: string[],
   ): DecisionEntity[] {
     return decisions.filter((decision) => {
       if (!decision.appliesTo || decision.appliesTo.length === 0) {
@@ -226,9 +219,8 @@ export class ApplicationContextResolver {
  */
 export function generateAIPrompt(
   userRequest: string,
-  context: ApplicationContext
+  context: ApplicationContext,
 ): string {
-  const selectedEntity = context.selected;
   const prompt: string[] = [
     "APPLICATION CONTEXT",
     "─────────────────────────────────────────",
@@ -285,7 +277,9 @@ export function generateAIPrompt(
   if (context.recentChanges && context.recentChanges.length > 0) {
     prompt.push("RECENT CHANGES:");
     for (const change of context.recentChanges) {
-      prompt.push(`  - ${change.request} (${new Date(change.createdAt).toLocaleDateString()})`);
+      prompt.push(
+        `  - ${change.request} (${new Date(change.createdAt).toLocaleDateString()})`,
+      );
     }
     prompt.push("");
   }

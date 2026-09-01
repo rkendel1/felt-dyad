@@ -166,7 +166,7 @@ export const CollectionEntitySchema = z.object({
       name: z.string(),
       type: z.string(),
       required: z.boolean().optional(),
-    })
+    }),
   ),
   evidence: EvidenceRecordSchema,
 });
@@ -298,7 +298,7 @@ export const ProposalEntitySchema = z.object({
       entity: z.string(),
       type: z.string(),
       risk: z.enum(["low", "medium", "high"]),
-    })
+    }),
   ),
   externalServices: z.array(z.string()),
   collectionsMutated: z.array(z.string()),

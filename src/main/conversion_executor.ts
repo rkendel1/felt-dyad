@@ -39,9 +39,7 @@ export class ConversionExecutor {
    * Validates that the plan is in PENDING_APPROVAL state
    */
   async approvePlan(plan: ConversionPlan): Promise<void> {
-    logger.info(
-      `Approving conversion plan for app ${this.appId}`,
-    );
+    logger.info(`Approving conversion plan for app ${this.appId}`);
 
     if (plan.status !== "PENDING_APPROVAL") {
       throw new Error(
@@ -60,12 +58,8 @@ export class ConversionExecutor {
   /**
    * Create a Git checkpoint before conversion
    */
-  async createCheckpoint(
-    conversionId: string,
-  ): Promise<GitCheckpoint> {
-    logger.info(
-      `Creating Git checkpoint for conversion ${conversionId}`,
-    );
+  async createCheckpoint(conversionId: string): Promise<GitCheckpoint> {
+    logger.info(`Creating Git checkpoint for conversion ${conversionId}`);
 
     const checkpoint = await this.checkpointManager.createCheckpoint(
       this.appPath,
@@ -96,9 +90,7 @@ export class ConversionExecutor {
       );
     }
 
-    logger.info(
-      `Starting execution of conversion plan for app ${this.appId}`,
-    );
+    logger.info(`Starting execution of conversion plan for app ${this.appId}`);
 
     try {
       // Create execution record
@@ -155,7 +147,8 @@ export class ConversionExecutor {
       );
       if (execution) {
         execution.status = "FAILED";
-        execution.failureReason = error instanceof Error ? error.message : String(error);
+        execution.failureReason =
+          error instanceof Error ? error.message : String(error);
         execution.completedAt = new Date();
         await this.workspaceManager.updateExecution(execution);
         await this.workspaceManager.writeLog(
@@ -184,9 +177,7 @@ export class ConversionExecutor {
         ref: checkpoint.commitSha,
       });
 
-      logger.info(
-        `Successfully rolled back to commit ${checkpoint.commitSha}`,
-      );
+      logger.info(`Successfully rolled back to commit ${checkpoint.commitSha}`);
 
       // Update execution record with rollback status
       const execution = await this.workspaceManager.findLatestExecution(

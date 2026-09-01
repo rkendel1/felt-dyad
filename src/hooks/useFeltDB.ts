@@ -68,8 +68,7 @@ export function useStartFeltDB() {
  */
 export function useFeltDBHealthCheck() {
   return useMutation({
-    mutationFn: (appId: number) =>
-      ipc.feltdb.healthCheck({ appId }),
+    mutationFn: (appId: number) => ipc.feltdb.healthCheck({ appId }),
     onError: (error) => {
       showError(error as any);
     },
@@ -83,8 +82,11 @@ export function useConnectManagedFeltDB() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: { appId: number; projectId: string; accountId: string }) =>
-      ipc.feltdb.setManagedProject(params),
+    mutationFn: (params: {
+      appId: number;
+      projectId: string;
+      accountId: string;
+    }) => ipc.feltdb.setManagedProject(params),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: feltdbKeys.status(variables.appId),
@@ -103,7 +105,8 @@ export function useConnectManagedFeltDB() {
 export function useListManagedFeltDBProjects(accountId?: string) {
   return useQuery({
     queryKey: feltdbKeys.managed(accountId || ""),
-    queryFn: () => ipc.feltdb.listManagedProjects({ accountId: accountId || "" }),
+    queryFn: () =>
+      ipc.feltdb.listManagedProjects({ accountId: accountId || "" }),
     enabled: !!accountId,
   });
 }
@@ -113,8 +116,7 @@ export function useListManagedFeltDBProjects(accountId?: string) {
  */
 export function useAuthenticateManagedFeltDB() {
   return useMutation({
-    mutationFn: (email?: string) =>
-      ipc.feltdb.authenticateManaged({ email }),
+    mutationFn: (email?: string) => ipc.feltdb.authenticateManaged({ email }),
     onError: (error) => {
       showError(error as any);
     },
@@ -128,8 +130,7 @@ export function useDisconnectManagedFeltDB() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (appId: number) =>
-      ipc.feltdb.disconnectManaged({ appId }),
+    mutationFn: (appId: number) => ipc.feltdb.disconnectManaged({ appId }),
     onSuccess: (_, appId) => {
       queryClient.invalidateQueries({ queryKey: feltdbKeys.status(appId) });
       showSuccess("Disconnected from Managed FeltDB");

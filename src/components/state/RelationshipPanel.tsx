@@ -1,11 +1,6 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  ChevronDown,
-  ChevronRight,
-  ArrowRight,
-  GitBranch,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowRight, GitBranch } from "lucide-react";
 
 interface ComponentUsage {
   name: string;
@@ -24,17 +19,17 @@ interface RelationshipPanelProps {
 
 /**
  * RelationshipPanel Component
- * 
+ *
  * Shows which components use which FeltDB collections and vice versa.
  * Displays state-UI dependency graph in a simple panel format.
- * 
+ *
  * Part of PR8: FeltDB State-First Application Studio - Feature 8
  */
 export const RelationshipPanel: React.FC<RelationshipPanelProps> = ({
   collections,
 }) => {
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   const toggleExpanded = (collectionName: string) => {

@@ -54,7 +54,6 @@ export { conversionAnalysisContracts } from "./conversion-analysis";
 export { conversionExecutionContracts } from "./conversion-execution";
 export { feltdbContracts } from "./feltdb";
 
-
 // =============================================================================
 // Client Exports
 // =============================================================================
@@ -86,7 +85,6 @@ export { freeAgentQuotaClient } from "./free_agent_quota";
 export { conversionAnalysisClient } from "./conversion-analysis";
 export { conversionExecutionClient } from "./conversion-execution";
 export { feltdbClient } from "./feltdb";
-
 
 // =============================================================================
 // Type Exports
@@ -219,7 +217,6 @@ export type {
   ListManagedProjectsParams,
   AuthenticateManagedParams,
 } from "./feltdb";
-
 
 // System types
 export type {
@@ -425,7 +422,6 @@ export const ipc = {
   supabase: supabaseClient,
   neon: neonClient,
   feltdb: feltdbClient,
-
 
   // Features
   system: systemClient,

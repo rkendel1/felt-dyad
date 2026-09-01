@@ -1,6 +1,12 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import type { ConversionPlan } from "@/ipc/types";
 import { AlertTriangle, Check, Info } from "lucide-react";
 import { SimplificationSummary } from "./SimplificationSummary";
@@ -26,17 +32,20 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
         <CardHeader>
           <CardTitle>State-First Conversion Analysis</CardTitle>
           <CardDescription>
-            Analysis of {plan.applicationAnalysis.framework || "unknown"} application
+            Analysis of {plan.applicationAnalysis.framework || "unknown"}{" "}
+            application
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">{plan.summary}</p>
-          
+
           {/* Key Metrics */}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{stateSourceCount}</div>
-              <div className="text-xs text-muted-foreground">State sources found</div>
+              <div className="text-xs text-muted-foreground">
+                State sources found
+              </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{apiRouteCount}</div>
@@ -44,11 +53,15 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{externalServiceCount}</div>
-              <div className="text-xs text-muted-foreground">External services</div>
+              <div className="text-xs text-muted-foreground">
+                External services
+              </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{uiChangeCount}</div>
-              <div className="text-xs text-muted-foreground">UI changes needed</div>
+              <div className="text-xs text-muted-foreground">
+                UI changes needed
+              </div>
             </div>
           </div>
 
@@ -61,13 +74,17 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
             {plan.applicationAnalysis.buildSystem && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Build system:</span>
-                <Badge variant="outline">{plan.applicationAnalysis.buildSystem}</Badge>
+                <Badge variant="outline">
+                  {plan.applicationAnalysis.buildSystem}
+                </Badge>
               </div>
             )}
             {plan.applicationAnalysis.packageManager && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Package manager:</span>
-                <Badge variant="outline">{plan.applicationAnalysis.packageManager}</Badge>
+                <Badge variant="outline">
+                  {plan.applicationAnalysis.packageManager}
+                </Badge>
               </div>
             )}
           </div>
@@ -91,7 +108,10 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
           <CardContent>
             <ul className="space-y-1">
               {plan.warnings?.map((warning, idx) => (
-                <li key={idx} className="text-sm text-amber-800 dark:text-amber-100">
+                <li
+                  key={idx}
+                  className="text-sm text-amber-800 dark:text-amber-100"
+                >
                   • {warning}
                 </li>
               ))}
@@ -106,13 +126,17 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-50">
               <Info className="h-4 w-4" />
-              {manualDecisionCount} {manualDecisionCount === 1 ? "Decision" : "Decisions"} Required
+              {manualDecisionCount}{" "}
+              {manualDecisionCount === 1 ? "Decision" : "Decisions"} Required
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
               {plan.manualDecisions?.map((decision, idx) => (
-                <li key={idx} className="text-sm text-blue-900 dark:text-blue-100">
+                <li
+                  key={idx}
+                  className="text-sm text-blue-900 dark:text-blue-100"
+                >
                   <div className="font-medium">{decision.item}</div>
                   <div className="text-xs text-blue-800 dark:text-blue-200">
                     {decision.reason}

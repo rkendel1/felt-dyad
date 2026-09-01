@@ -19,13 +19,13 @@ interface ChatPanelTabsProps {
 
 /**
  * ChatPanelTabs Component
- * 
+ *
  * Provides tabbed interface for chat panel:
  * - Chat: Main chat interface
  * - State: FeltDB state surface and inspector
  * - Changes: Git history and conversion report
  * - Proposals: Active proposals viewer
- * 
+ *
  * Part of PR8: FeltDB State-First Application Studio
  */
 export const ChatPanelTabs: React.FC<ChatPanelTabsProps> = ({ children }) => {

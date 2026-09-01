@@ -14,7 +14,10 @@ import type {
 } from "../src/ipc/types/conversion-analysis";
 
 describe("SimplificationAnalyzer", () => {
-  const testProjectPath = path.join(process.cwd(), ".test-project-simplification");
+  const testProjectPath = path.join(
+    process.cwd(),
+    ".test-project-simplification",
+  );
 
   beforeAll(() => {
     // Create test project structure
@@ -108,9 +111,21 @@ describe("SimplificationAnalyzer", () => {
       apiRoutes: [
         { method: "GET", path: "/api/users", file: "routes/api/users.ts" },
         { method: "POST", path: "/api/users", file: "routes/api/users.ts" },
-        { method: "GET", path: "/api/users/:id", file: "routes/api/users/[id].ts" },
-        { method: "PUT", path: "/api/users/:id", file: "routes/api/users/[id].ts" },
-        { method: "DELETE", path: "/api/users/:id", file: "routes/api/users/[id].ts" },
+        {
+          method: "GET",
+          path: "/api/users/:id",
+          file: "routes/api/users/[id].ts",
+        },
+        {
+          method: "PUT",
+          path: "/api/users/:id",
+          file: "routes/api/users/[id].ts",
+        },
+        {
+          method: "DELETE",
+          path: "/api/users/:id",
+          file: "routes/api/users/[id].ts",
+        },
       ],
       serverActions: [],
       orm: "DRIZZLE",
@@ -136,7 +151,9 @@ describe("SimplificationAnalyzer", () => {
     expect(result.complexity.currentLOC).toBeGreaterThan(0);
     expect(result.complexity.removableLOC).toBeGreaterThan(0);
     expect(result.complexity.estimatedReductionPercent).toBeGreaterThan(0);
-    expect(result.complexity.estimatedReductionPercent).toBeLessThanOrEqual(100);
+    expect(result.complexity.estimatedReductionPercent).toBeLessThanOrEqual(
+      100,
+    );
   });
 
   it("should calculate category removals", async () => {
@@ -311,9 +328,11 @@ describe("SimplificationAnalyzer", () => {
     expect(typeof result.flowStats.canBeEliminated).toBe("number");
     expect(typeof result.flowStats.canBeConsolidated).toBe("number");
     expect(typeof result.flowStats.shouldRemain).toBe("number");
-    expect(result.flowStats.canBeEliminated + result.flowStats.canBeConsolidated + result.flowStats.shouldRemain).toBe(
-      result.statePlumbingFlows.length,
-    );
+    expect(
+      result.flowStats.canBeEliminated +
+        result.flowStats.canBeConsolidated +
+        result.flowStats.shouldRemain,
+    ).toBe(result.statePlumbingFlows.length);
   });
 
   it("should calculate new FeltDB code estimate", async () => {

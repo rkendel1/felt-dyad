@@ -25,7 +25,8 @@
 - In-memory storage implemented; FeltDB persistence ready for Phase 2
 - No changes to existing FeltDB storage model
 
-**Evidence**: 
+**Evidence**:
+
 - `src/ipc/types/application-intelligence.ts` lines 377-399
 - `src/ipc/handlers/application_intelligence_handlers.ts` lines 125-150
 
@@ -55,7 +56,8 @@
 - Infrastructure ready for incremental scanning in Phase 2
 - Can track last indexed time and file modification times
 
-**Evidence**: 
+**Evidence**:
+
 - `src/ipc/types/application-intelligence-contracts.ts` lines 26-29
 - `src/ipc/handlers/application_intelligence_handlers.ts` lines 286-308
 
@@ -70,6 +72,7 @@
 - ApplicationContextResolver resolves selected component to full entity details
 
 **Evidence**:
+
 - `src/ipc/types/application-intelligence.ts` lines 167-178
 - `src/import/application_context_resolver.ts` lines 76-98
 
@@ -87,6 +90,7 @@
 - Full path: Component → StateSource → Collection
 
 **Evidence**:
+
 - `src/import/repository_intelligence_indexer.ts` lines 293-305
 - `src/import/application_context_resolver.ts` lines 85-115
 
@@ -102,7 +106,8 @@
 - Takes selectedComponent and userRequest as parameters
 - Returns ApplicationContext with relevant entities at each depth
 
-**Evidence**: 
+**Evidence**:
+
 - `src/ipc/handlers/application_intelligence_handlers.ts` lines 125-180
 - `src/import/application_context_resolver.ts` (entire file)
 
@@ -136,7 +141,8 @@
 - INFERRED: 0.5-0.8 confidence (pattern-detected)
 - USER_CONFIRMED: 1.0 confidence (explicit confirmation)
 
-**Evidence**: 
+**Evidence**:
+
 - `src/ipc/types/application-intelligence.ts` lines 22-34
 - `src/__tests__/application_intelligence.test.ts` lines 157-176
 
@@ -152,6 +158,7 @@
 - Decisions are retrieved with application intelligence
 
 **Evidence**:
+
 - `src/ipc/types/application-intelligence.ts` lines 310-333
 - `src/ipc/handlers/application_intelligence_handlers.ts` lines 182-210
 
@@ -172,7 +179,8 @@
 - Context resolver filters decisions by appliesTo entities
 - UI/AI must respect decision hierarchy
 
-**Evidence**: 
+**Evidence**:
+
 - `src/ipc/types/application-intelligence.ts` lines 320-333
 - `src/__tests__/application_intelligence.test.ts` lines 112-133
 
@@ -192,7 +200,8 @@
 - IPC operation `record-change` stores changes
 - Changes retrieved with application intelligence
 
-**Evidence**: 
+**Evidence**:
+
 - `src/ipc/types/application-intelligence.ts` lines 361-387
 - `src/ipc/handlers/application_intelligence_handlers.ts` lines 212-243
 
@@ -255,7 +264,8 @@
 - IPC operation `get-reconciliation-status` checks sync status
 - IPC operation `reindex` can be triggered when out of sync
 
-**Evidence**: 
+**Evidence**:
+
 - `src/ipc/types/application-intelligence.ts` lines 486-497
 - `src/ipc/handlers/application_intelligence_handlers.ts` lines 245-282
 
@@ -322,7 +332,8 @@
 - Application intelligence indexes FeltDB collections, doesn't replace them
 - Separation of concerns maintained
 
-**Evidence**: 
+**Evidence**:
+
 - `src/ipc/types/application-intelligence.ts` defines references, not data
 - Architecture keeps code (Git) and state (FeltDB) separate
 
@@ -333,6 +344,7 @@
 All 22 acceptance criteria are **COMPLETE** or **FRAMEWORK READY** for Phase 2.
 
 ### What's Implemented (Phase 1):
+
 - ✅ All 17 entity types with evidence tracking
 - ✅ 7 IPC operations (index, get, getContext, storeDecision, recordChange, getReconciliationStatus, reindex)
 - ✅ Repository intelligence indexer
@@ -346,6 +358,7 @@ All 22 acceptance criteria are **COMPLETE** or **FRAMEWORK READY** for Phase 2.
 - ✅ Full documentation
 
 ### What's Ready for Phase 2:
+
 - 📋 FeltDB persistence (replace in-memory Map with FeltDB collections)
 - 📋 Incremental indexing (use file modification times)
 - 📋 UI components (intelligence dashboard, relationship viewer)
@@ -354,8 +367,9 @@ All 22 acceptance criteria are **COMPLETE** or **FRAMEWORK READY** for Phase 2.
 ### Architecture Advantages Over PR8:
 
 The Builder now understands:
+
 - **WHAT** - Components, routes, pages, features
-- **WHERE** - Files, line numbers, selectors  
+- **WHERE** - Files, line numbers, selectors
 - **HOW** - State flows, dependencies, relationships
 - **WHY** - User decisions, design rationale
 - **HISTORY** - Previous changes, Git checkpoints

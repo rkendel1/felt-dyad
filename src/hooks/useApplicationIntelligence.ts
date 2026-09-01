@@ -60,7 +60,7 @@ export function useApplicationContext(
   appId: number,
   selectedComponent?: string,
   request?: string,
-  enabled = true
+  enabled = true,
 ) {
   return useQuery({
     queryKey: queryKeys.applicationIntelligence.context({
@@ -105,7 +105,9 @@ export function useStoreDecision() {
     },
     onSuccess: (data: any, params: any) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.applicationIntelligence.detail({ appId: params.appId }),
+        queryKey: queryKeys.applicationIntelligence.detail({
+          appId: params.appId,
+        }),
       });
     },
   });
@@ -139,7 +141,9 @@ export function useRecordChange() {
     },
     onSuccess: (data: any, params: any) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.applicationIntelligence.detail({ appId: params.appId }),
+        queryKey: queryKeys.applicationIntelligence.detail({
+          appId: params.appId,
+        }),
       });
     },
   });
@@ -171,7 +175,9 @@ export function useReindexApplication() {
     },
     onSuccess: (data: any, params: any) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.applicationIntelligence.detail({ appId: params.appId }),
+        queryKey: queryKeys.applicationIntelligence.detail({
+          appId: params.appId,
+        }),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.applicationIntelligence.reconciliationStatus({

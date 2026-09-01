@@ -9,13 +9,13 @@ import { ipc } from "@/ipc/types";
 
 /**
  * ChangesPanel Component
- * 
+ *
  * Shows Git history and conversion reports for the application.
  * Displays:
  * - Recent commits and git branches
  * - Before/After conversion analysis from PR7
  * - Summary of changes made during conversion
- * 
+ *
  * Part of PR8: FeltDB State-First Application Studio
  */
 export const ChangesPanel: React.FC = () => {
@@ -44,7 +44,7 @@ export const ChangesPanel: React.FC = () => {
       try {
         const plan = await ipc.conversionAnalysis.getConversionPlan({ appId });
         if (!plan) return null;
-        
+
         // Mock conversion report - in production this would come from PR7
         return {
           beforeLoc: 31420,
@@ -138,7 +138,8 @@ export const ChangesPanel: React.FC = () => {
                       {(commit as any).message || "Commit"}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {(commit as any).author} · {new Date((commit as any).date).toLocaleDateString()}
+                      {(commit as any).author} ·{" "}
+                      {new Date((commit as any).date).toLocaleDateString()}
                     </div>
                   </div>
                 </div>

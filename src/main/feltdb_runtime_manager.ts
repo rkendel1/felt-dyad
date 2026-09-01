@@ -104,17 +104,12 @@ export class FeltDBRuntimeManager {
 
       // Handle process events
       process.on("error", (error) => {
-        logger.error(
-          `FeltDB process error for app ${appId}:`,
-          error.message,
-        );
+        logger.error(`FeltDB process error for app ${appId}:`, error.message);
         runtimeInfo.status = "error";
       });
 
       process.on("exit", (code) => {
-        logger.info(
-          `FeltDB process exited for app ${appId} with code ${code}`,
-        );
+        logger.info(`FeltDB process exited for app ${appId} with code ${code}`);
         runtimeInfo.status = "stopped";
         this.runtimes.delete(appId);
         if (runtimeInfo.port) {
@@ -138,9 +133,7 @@ export class FeltDBRuntimeManager {
       // Wait for health check (stub for now - assume ready after 500ms)
       await this.waitForHealthCheck(appId, port, 10);
 
-      logger.info(
-        `FeltDB runtime started for app ${appId} on port ${port}`,
-      );
+      logger.info(`FeltDB runtime started for app ${appId} on port ${port}`);
       return port;
     } catch (error) {
       logger.error(`Failed to start FeltDB for app ${appId}:`, error);
@@ -203,10 +196,7 @@ export class FeltDBRuntimeManager {
       await killProcess(runtime.process);
       logger.info(`FeltDB runtime stopped for app ${appId}`);
     } catch (error) {
-      logger.error(
-        `Error stopping FeltDB for app ${appId}:`,
-        error,
-      );
+      logger.error(`Error stopping FeltDB for app ${appId}:`, error);
       throw error;
     } finally {
       this.runtimes.delete(appId);
@@ -240,10 +230,7 @@ export class FeltDBRuntimeManager {
 
     const stops = Array.from(this.runtimes.keys()).map((appId) =>
       this.stopFeltDB(appId).catch((error) => {
-        logger.error(
-          `Error stopping FeltDB for app ${appId}:`,
-          error,
-        );
+        logger.error(`Error stopping FeltDB for app ${appId}:`, error);
       }),
     );
 

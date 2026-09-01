@@ -77,10 +77,7 @@ export function useRollbackConversion() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: {
-      conversionId: string;
-      checkpointId: string;
-    }) =>
+    mutationFn: (params: { conversionId: string; checkpointId: string }) =>
       ipc.conversionExecution.rollbackConversion({
         conversionId: params.conversionId,
         checkpointId: params.checkpointId,

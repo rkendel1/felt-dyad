@@ -84,10 +84,7 @@ export async function analyzeSimplification(
     backendAnalysis,
     dataAnalysis,
   );
-  const replaceableLOC = estimateReplaceableLOC(
-    stateAnalysis,
-    backendAnalysis,
-  );
+  const replaceableLOC = estimateReplaceableLOC(stateAnalysis, backendAnalysis);
   const unchangedLOC = currentLOC - removableLOC - replaceableLOC;
   const estimatedReductionPercent =
     ((removableLOC + replaceableLOC) / currentLOC) * 100;
@@ -105,8 +102,7 @@ export async function analyzeSimplification(
     backendAnalysis,
   );
   const flowStats = {
-    canBeEliminated: statePlumbingFlows.filter((f) => f.canBeEliminated)
-      .length,
+    canBeEliminated: statePlumbingFlows.filter((f) => f.canBeEliminated).length,
     canBeConsolidated: statePlumbingFlows.filter((f) => f.canBeConsolidated)
       .length,
     shouldRemain: statePlumbingFlows.filter(
@@ -115,10 +111,7 @@ export async function analyzeSimplification(
   };
 
   // Calculate tradeoffs
-  const newFeltDBCode = estimateNewFeltDBCode(
-    dataAnalysis,
-    stateAnalysis,
-  );
+  const newFeltDBCode = estimateNewFeltDBCode(dataAnalysis, stateAnalysis);
   const newConcepts = [
     "FeltDB schema definition",
     "Local-first state synchronization",
@@ -129,10 +122,7 @@ export async function analyzeSimplification(
   // Estimate LOC after conversion
   const estimatedAfterLOC = {
     low: Math.max(currentLOC - removableLOC - replaceableLOC, 1000),
-    high: Math.max(
-      currentLOC - (removableLOC + replaceableLOC) * 0.7,
-      1000,
-    ),
+    high: Math.max(currentLOC - (removableLOC + replaceableLOC) * 0.7, 1000),
   };
 
   return {
@@ -156,7 +146,10 @@ export async function analyzeSimplification(
 /**
  * Estimate current lines of code based on file count and framework
  */
-function estimateLOC(appAnalysis: ApplicationAnalysis, _projectPath: string): number {
+function estimateLOC(
+  appAnalysis: ApplicationAnalysis,
+  _projectPath: string,
+): number {
   // Rough heuristic: average LOC per file based on framework
   const avgLOCPerFile = appAnalysis.framework === "REACT" ? 150 : 120;
   const numFiles = appAnalysis.sourceFiles || 50;
@@ -181,8 +174,9 @@ function estimateRemovableLOC(
 
   // State sync and refresh logic (estimated 200 LOC per state source)
   removable +=
-    stateAnalysis.sources.filter((s) => s.classification === "REPLACE_WITH_FELTDB")
-      .length * 200;
+    stateAnalysis.sources.filter(
+      (s) => s.classification === "REPLACE_WITH_FELTDB",
+    ).length * 200;
 
   // Loading/error state handling (estimated 80 LOC per state source)
   removable +=
@@ -205,12 +199,13 @@ function estimateReplaceableLOC(
   let replaceable = 0;
 
   // React state management (estimated 60 LOC per store)
-  replaceable += stateAnalysis.sources.filter((s) => s.type === "REACT_STATE")
-    .length * 60;
+  replaceable +=
+    stateAnalysis.sources.filter((s) => s.type === "REACT_STATE").length * 60;
 
   // Context providers (estimated 120 LOC per context)
-  replaceable += stateAnalysis.sources.filter((s) => s.type === "REACT_CONTEXT")
-    .length * 120;
+  replaceable +=
+    stateAnalysis.sources.filter((s) => s.type === "REACT_CONTEXT").length *
+    120;
 
   // External state management (Zustand, Redux, etc.)
   const stateStores = stateAnalysis.sources.filter((s) =>
@@ -232,9 +227,7 @@ function calculateCategoryRemovals(
   const removals: ComplexityCategoryRemoval[] = [];
 
   // API routes reduction
-  const apiRouteReduction = Math.round(
-    backendAnalysis.apiRoutes.length * 0.55,
-  );
+  const apiRouteReduction = Math.round(backendAnalysis.apiRoutes.length * 0.55);
   removals.push({
     category: "API routes",
     current: backendAnalysis.apiRoutes.length,
@@ -321,7 +314,10 @@ function calculateCategoryRemovals(
   removals.push({
     category: "Database migrations",
     current: dataAnalysis.totalTables || 5,
-    estimated: Math.max((dataAnalysis.totalTables || 5) - migrationReduction, 1),
+    estimated: Math.max(
+      (dataAnalysis.totalTables || 5) - migrationReduction,
+      1,
+    ),
     changePercent: -75,
     unit: "files",
   });

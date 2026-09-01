@@ -2,13 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  ChevronDown,
-  ChevronRight,
-  Database,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Database, Eye, EyeOff } from "lucide-react";
 
 interface RecordField {
   name: string;
@@ -40,13 +34,13 @@ interface StateInspectorProps {
 
 /**
  * StateInspector Component
- * 
+ *
  * Shows what the Builder knows about a selected element:
  * - Component path
  * - State bindings
  * - FeltDB collection and record
  * - Record fields with types
- * 
+ *
  * Part of PR8: FeltDB State-First Application Studio - Feature 6
  */
 export const StateInspector: React.FC<StateInspectorProps> = ({
@@ -56,7 +50,7 @@ export const StateInspector: React.FC<StateInspectorProps> = ({
   onEditWithAI,
 }) => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(["component", "state", "record"])
+    new Set(["component", "state", "record"]),
   );
 
   const toggleSection = (section: string) => {

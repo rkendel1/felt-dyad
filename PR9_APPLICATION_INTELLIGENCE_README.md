@@ -43,22 +43,26 @@ This prevents hallucinated architecture from becoming durable "truth."
 Scans repositories and builds an intelligence index by detecting:
 
 **Code Analysis:**
+
 - Files with PascalCase names (likely components)
 - Route definitions
 - Server actions
 - Entry points and build configuration
 
 **UI Analysis:**
+
 - Component directory structure
 - Page files
 - Component hierarchy (inferred from imports)
 
 **State Analysis:**
+
 - State sources (global, component, page)
 - FeltDB collections (from schema files)
 - Collection fields
 
 **Service Detection:**
+
 - Package.json dependencies for known services:
   - Stripe (payment)
   - Auth0/Supabase Auth (authentication)
@@ -78,6 +82,7 @@ Creates bounded context for AI operations using depth-based boundaries:
 - **Depth 3**: Relevant history
 
 Generates application-aware AI prompts that include:
+
 - Selected entity details
 - Related entities at each depth
 - Relevant decisions
@@ -288,7 +293,7 @@ const { data: intelligence } = useApplicationIntelligence(appId);
 const { data: context } = useApplicationContext(
   appId,
   selectedComponent,
-  userRequest
+  userRequest,
 );
 
 // Store decision
@@ -320,6 +325,7 @@ Located in `src/__tests__/application_intelligence.test.ts`:
 ### E2E Tests
 
 TODO: Add E2E tests for:
+
 - Full indexing workflow
 - Context resolution with real components
 - Decision storage and retrieval
@@ -378,11 +384,12 @@ TODO: Add E2E tests for:
 ✅ No dependency on external graph database is introduced  
 ✅ Existing PR3/PR4 component selection remains functional  
 ✅ Existing Git workflows remain functional  
-✅ Existing FeltDB state remains the canonical application state  
+✅ Existing FeltDB state remains the canonical application state
 
 ## Implementation Summary
 
 **Files Created:**
+
 - `src/ipc/types/application-intelligence.ts` (628 lines) - Core types
 - `src/ipc/types/application-intelligence-contracts.ts` (195 lines) - IPC contracts
 - `src/import/repository_intelligence_indexer.ts` (454 lines) - Repository scanner
@@ -392,6 +399,7 @@ TODO: Add E2E tests for:
 - `src/__tests__/application_intelligence.test.ts` (252 lines) - Tests
 
 **Files Modified:**
+
 - `src/ipc/ipc_host.ts` - Registered handlers
 - `src/ipc/preload/channels.ts` - Added contract imports
 - `src/lib/queryKeys.ts` - Added application intelligence query keys

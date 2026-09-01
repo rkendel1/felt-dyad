@@ -33,11 +33,11 @@ FeltDB
 Added FeltDB-specific fields to the `apps` table:
 
 ```typescript
-feltdbRuntime: 'server' | 'browser' | 'managed'  // Application runtime
-feltdbMode: 'local' | 'managed'                   // Local vs managed mode
-feltdbProjectId: string (nullable)                // For managed mode
-feltdbAccountId: string (nullable)                // For managed mode
-feltdbStatus: 'ready' | 'initializing' | 'failed' // Current status
+feltdbRuntime: "server" | "browser" | "managed"; // Application runtime
+feltdbMode: "local" | "managed"; // Local vs managed mode
+feltdbProjectId: string(nullable); // For managed mode
+feltdbAccountId: string(nullable); // For managed mode
+feltdbStatus: "ready" | "initializing" | "failed"; // Current status
 ```
 
 All fields are nullable to maintain backward compatibility with existing Supabase/Neon projects.
@@ -73,14 +73,15 @@ Manages FeltDB server processes:
 
 ```typescript
 class FeltDBRuntimeManager {
-  startFeltDB(appId: number): Promise<number>  // Returns port
-  stopFeltDB(appId: number): Promise<void>
-  getStatus(appId: number): FeltDBRuntimeInfo
-  stopAll(): Promise<void>
+  startFeltDB(appId: number): Promise<number>; // Returns port
+  stopFeltDB(appId: number): Promise<void>;
+  getStatus(appId: number): FeltDBRuntimeInfo;
+  stopAll(): Promise<void>;
 }
 ```
 
 Features:
+
 - Per-app process management
 - Automatic port allocation (9400+)
 - Health check with retry logic
@@ -105,13 +106,13 @@ Stubbed for now - full implementation requires FeltDB OAuth endpoints.
 Type-safe React Query hooks for UI:
 
 ```typescript
-useInitializeFeltDB()        // Initialize for app
-useStartFeltDB()             // Start runtime
-useStopFeltDB()              // Stop runtime
-useFeltDBHealthCheck()       // Check health
-useFeltDBStatus()            // Get status
-useConnectManagedFeltDB()    // Connect managed account
-useDisconnectManaged()       // Disconnect managed
+useInitializeFeltDB(); // Initialize for app
+useStartFeltDB(); // Start runtime
+useStopFeltDB(); // Stop runtime
+useFeltDBHealthCheck(); // Check health
+useFeltDBStatus(); // Get status
+useConnectManagedFeltDB(); // Connect managed account
+useDisconnectManaged(); // Disconnect managed
 ```
 
 ### 7. UI Component (`src/components/FeltDBIntegration.tsx`)
@@ -123,6 +124,7 @@ Displays FeltDB status with visual indicators and actions.
 Enhanced to detect database providers in existing apps:
 
 Detects:
+
 - Supabase (`@supabase/supabase-js`)
 - Neon (`@neondatabase/serverless`)
 - Firebase (`firebase`)
@@ -146,11 +148,13 @@ Updated to identify source database and target FeltDB:
 ### 10. Tests
 
 #### Unit Tests (`src/__tests__/feltdb_handlers.test.ts`)
+
 - FeltDB configuration storage
 - Default values for new apps
 - Backward compatibility
 
 #### E2E Tests
+
 - `e2e-tests/feltdb_create_app.spec.ts` - Basic app creation
 - `e2e-tests/feltdb_integration.spec.ts` - FeltDB UI integration
 - `e2e-tests/feltdb_advanced_workflows.spec.ts` - Full workflows
@@ -177,6 +181,7 @@ When creating a new application:
 ## GitHub + FeltDB Workflow
 
 ### Import Flow
+
 1. User imports GitHub repository
 2. Import analyzer detects existing database provider (Supabase, Neon, etc.)
 3. Conversion plan identifies FeltDB as target
@@ -184,6 +189,7 @@ When creating a new application:
 5. Conversion executes against FeltDB target
 
 ### Result
+
 - Source control remains GitHub
 - Application state moves to FeltDB
 - Existing provider info used for migration planning
@@ -194,12 +200,14 @@ When creating a new application:
 ### User Experience
 
 1. **Create app with Server FeltDB**
+
    ```
    Create App
    └─ FeltDB Server (Local)
    ```
 
 2. **Switch to Managed**
+
    ```
    FeltDB Configuration
    ├─ Server (Local) ← default
@@ -218,6 +226,7 @@ When creating a new application:
 ### Storage
 
 Non-sensitive metadata persists in app:
+
 ```javascript
 {
   feltdbMode: "managed",
@@ -232,12 +241,14 @@ Credentials stored securely (future: keychain/credential manager)
 ## Future Enhancements
 
 ### Phase 2: Full OAuth Implementation
+
 - Real OAuth endpoints with FeltDB
 - Credential rotation and refresh
 - Secure credential storage (Keychain)
 - Account management UI
 
 ### Phase 3: Advanced Features
+
 - Browser WASM FeltDB support selection
 - Process monitoring and diagnostics
 - Automatic restart on failure
@@ -245,6 +256,7 @@ Credentials stored securely (future: keychain/credential manager)
 - Multi-database projects
 
 ### Phase 4: Migration Tools
+
 - Automated data migration (Supabase → FeltDB)
 - Neon data export
 - Migration validation
@@ -269,7 +281,7 @@ Credentials stored securely (future: keychain/credential manager)
 ✅ Secrets remain outside FeltDB project data  
 ✅ Connection lifecycle states survive Builder restart  
 ✅ No duplicate integration infrastructure introduced  
-✅ New integration/E2E coverage proves full flows  
+✅ New integration/E2E coverage proves full flows
 
 ## Testing
 

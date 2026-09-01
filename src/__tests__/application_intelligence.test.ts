@@ -5,7 +5,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { generateComponentId, ComponentIdSchema } from "@/ipc/types/application-intelligence";
+import {
+  generateComponentId,
+  ComponentIdSchema,
+} from "@/ipc/types/application-intelligence";
 import { RepositoryIntelligenceIndexer } from "@/import/repository_intelligence_indexer";
 import { ApplicationContextResolver } from "@/import/application_context_resolver";
 
@@ -139,7 +142,7 @@ describe("Application Intelligence - Repository Indexing", () => {
     const indexer = new RepositoryIntelligenceIndexer(
       "/tmp/app",
       "REACT",
-      "app-1"
+      "app-1",
     );
 
     expect(indexer).toBeDefined();

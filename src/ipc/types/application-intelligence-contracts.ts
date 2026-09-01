@@ -13,8 +13,6 @@ import {
   DependencyEntitySchema,
   DecisionEntitySchema,
   ChangeEntitySchema,
-  GitCheckpointEntitySchema,
-  ProposalEntitySchema,
   ApplicationContextSchema,
   ReconciliationStatusSchema,
 } from "./application-intelligence";
@@ -103,9 +101,7 @@ export const StoreDecisionResponseSchema = z.object({
   success: z.boolean(),
 });
 
-export type StoreDecisionResponse = z.infer<
-  typeof StoreDecisionResponseSchema
->;
+export type StoreDecisionResponse = z.infer<typeof StoreDecisionResponseSchema>;
 
 // Record Change
 export const RecordChangeSchema = z.object({
@@ -200,7 +196,8 @@ export const applicationIntelligenceContracts = {
 
 // Export typed client
 export const applicationIntelligenceClient = createClient(
-  applicationIntelligenceContracts
+  applicationIntelligenceContracts,
 );
 
-export type ApplicationIntelligenceClient = typeof applicationIntelligenceClient;
+export type ApplicationIntelligenceClient =
+  typeof applicationIntelligenceClient;

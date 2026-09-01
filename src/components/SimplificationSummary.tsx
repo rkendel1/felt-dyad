@@ -53,9 +53,8 @@ export const SimplificationSummary: React.FC<SimplificationSummaryProps> = ({
             Estimated After
           </p>
           <p className="text-2xl font-bold text-emerald-900 mt-1">
-            {formatLOC(
-              simplification.estimatedAfterLOC.low,
-            )}-{formatLOC(simplification.estimatedAfterLOC.high)}
+            {formatLOC(simplification.estimatedAfterLOC.low)}-
+            {formatLOC(simplification.estimatedAfterLOC.high)}
           </p>
         </div>
       </div>
@@ -116,10 +115,10 @@ export const SimplificationSummary: React.FC<SimplificationSummaryProps> = ({
           {simplification.categoryRemovals.map((removal, idx) => (
             <div key={idx} className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-700">{removal.category}</span>
-                <span className="text-xs text-gray-500">
-                  ({removal.unit})
+                <span className="text-sm text-gray-700">
+                  {removal.category}
                 </span>
+                <span className="text-xs text-gray-500">({removal.unit})</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">
@@ -166,8 +165,8 @@ export const SimplificationSummary: React.FC<SimplificationSummaryProps> = ({
           </div>
         </div>
         <p className="text-xs text-gray-600">
-          State plumbing: API request → loading state → fetch → setState →
-          cache → refetch cycle
+          State plumbing: API request → loading state → fetch → setState → cache
+          → refetch cycle
         </p>
       </div>
 
@@ -189,8 +188,8 @@ export const SimplificationSummary: React.FC<SimplificationSummaryProps> = ({
       <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
         <p className="text-xs text-gray-600">
           <span className="font-semibold">Note:</span> These are estimates based
-          on static analysis. Actual results will be measured after conversion in
-          PR6.
+          on static analysis. Actual results will be measured after conversion
+          in PR6.
         </p>
       </div>
     </div>

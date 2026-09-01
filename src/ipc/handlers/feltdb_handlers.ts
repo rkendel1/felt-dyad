@@ -42,11 +42,7 @@ export function registerFeltdbHandlers() {
   createTypedHandler(feltdbContracts.getStatus, async (_, params) => {
     const { appId } = params;
 
-    const app = await db
-      .select()
-      .from(apps)
-      .where(eq(apps.id, appId))
-      .limit(1);
+    const app = await db.select().from(apps).where(eq(apps.id, appId)).limit(1);
 
     if (app.length === 0) {
       logger.warn(`App with ID ${appId} not found`);
@@ -93,9 +89,7 @@ export function registerFeltdbHandlers() {
         .set({ feltdbStatus: "ready" })
         .where(eq(apps.id, appId));
 
-      logger.info(
-        `FeltDB runtime started for app ${appId} on port ${port}`,
-      );
+      logger.info(`FeltDB runtime started for app ${appId} on port ${port}`);
 
       return {
         status: "ready" as const,
@@ -139,11 +133,7 @@ export function registerFeltdbHandlers() {
 
     logger.info(`Checking FeltDB health for app ${appId}`);
 
-    const app = await db
-      .select()
-      .from(apps)
-      .where(eq(apps.id, appId))
-      .limit(1);
+    const app = await db.select().from(apps).where(eq(apps.id, appId)).limit(1);
 
     if (app.length === 0) {
       return {
@@ -188,48 +178,42 @@ export function registerFeltdbHandlers() {
   });
 
   // List managed FeltDB projects for an account
-  createTypedHandler(
-    feltdbContracts.listManagedProjects,
-    async (_, params) => {
-      const { accountId } = params;
+  createTypedHandler(feltdbContracts.listManagedProjects, async (_, params) => {
+    const { accountId } = params;
 
-      logger.info(`Listing managed FeltDB projects for account ${accountId}`);
+    logger.info(`Listing managed FeltDB projects for account ${accountId}`);
 
-      // In a real implementation, this would:
-      // 1. Authenticate with FeltDB API
-      // 2. Fetch projects for the account
-      // 3. Return the list
+    // In a real implementation, this would:
+    // 1. Authenticate with FeltDB API
+    // 2. Fetch projects for the account
+    // 3. Return the list
 
-      // For now, return empty list
-      return [];
-    },
-  );
+    // For now, return empty list
+    return [];
+  });
 
   // Authenticate with managed FeltDB
-  createTypedHandler(
-    feltdbContracts.authenticateManaged,
-    async () => {
-      logger.info(`Authenticating with managed FeltDB`);
+  createTypedHandler(feltdbContracts.authenticateManaged, async () => {
+    logger.info(`Authenticating with managed FeltDB`);
 
-      try {
-        // For now, return a stub account
-        // In production, this would:
-        // 1. Launch OAuth flow
-        // 2. Exchange auth code for token
-        // 3. Store credentials securely
-        // 4. Return account info
+    try {
+      // For now, return a stub account
+      // In production, this would:
+      // 1. Launch OAuth flow
+      // 2. Exchange auth code for token
+      // 3. Store credentials securely
+      // 4. Return account info
 
-        return {
-          id: `account-${Date.now()}`,
-          email: "user@example.com",
-          name: "User",
-        };
-      } catch (error) {
-        logger.error(`Failed to authenticate with FeltDB:`, error);
-        throw new Error(`Authentication failed: ${error}`);
-      }
-    },
-  );
+      return {
+        id: `account-${Date.now()}`,
+        email: "user@example.com",
+        name: "User",
+      };
+    } catch (error) {
+      logger.error(`Failed to authenticate with FeltDB:`, error);
+      throw new Error(`Authentication failed: ${error}`);
+    }
+  });
 
   // Disconnect from managed FeltDB
   createTypedHandler(feltdbContracts.disconnectManaged, async (_, params) => {
@@ -262,8 +246,11 @@ export function registerFeltdbHandlers() {
       await db
         .update(apps)
         .set({
-          feltdbRuntime:
-            runtime as "server" | "browser" | "managed" | undefined,
+          feltdbRuntime: runtime as
+            | "server"
+            | "browser"
+            | "managed"
+            | undefined,
           feltdbMode: mode as "local" | "managed" | undefined,
           feltdbStatus: "ready",
         })

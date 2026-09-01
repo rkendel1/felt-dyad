@@ -4,7 +4,11 @@ import { promises as fsPromises } from "node:fs";
 import { v4 as uuidv4 } from "uuid";
 import log from "electron-log";
 import type { GitCheckpoint } from "../types/conversion-execution";
-import { getCurrentCommitHash, gitCurrentBranch, getGitUncommittedFilesWithStatus } from "./git_utils";
+import {
+  getCurrentCommitHash,
+  gitCurrentBranch,
+  getGitUncommittedFilesWithStatus,
+} from "./git_utils";
 
 const logger = log.scope("conversion_checkpoint");
 
@@ -33,7 +37,8 @@ export class ConversionCheckpointManager {
       const uncommittedFiles = await getGitUncommittedFilesWithStatus({
         path: appPath,
       });
-      const workingTreeState = uncommittedFiles.length === 0 ? "clean" : "dirty";
+      const workingTreeState =
+        uncommittedFiles.length === 0 ? "clean" : "dirty";
 
       const checkpointId = uuidv4();
       const checkpoint: GitCheckpoint = {
@@ -84,7 +89,10 @@ export class ConversionCheckpointManager {
 
       return checkpoint;
     } catch (error) {
-      logger.error(`Failed to create checkpoint for conversion ${conversionId}:`, error);
+      logger.error(
+        `Failed to create checkpoint for conversion ${conversionId}:`,
+        error,
+      );
       throw error;
     }
   }

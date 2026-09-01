@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { ElectronApp, findLatestBuild, launch } from "electron-playwright-helpers";
+import {
+  ElectronApp,
+  findLatestBuild,
+  launch,
+} from "electron-playwright-helpers";
 import * as path from "node:path";
 
 let electronApp: ElectronApp;
@@ -26,7 +30,7 @@ test("Application Intelligence: Index an application", async () => {
   const result = await page.evaluate(async () => {
     return await (window as any).electron.ipcRenderer.invoke(
       "application-intelligence:index",
-      { appId: 1, full: true }
+      { appId: 1, full: true },
     );
   });
 
@@ -44,7 +48,7 @@ test("Application Intelligence: Get application intelligence", async () => {
   await page.evaluate(async () => {
     await (window as any).electron.ipcRenderer.invoke(
       "application-intelligence:index",
-      { appId: 1, full: true }
+      { appId: 1, full: true },
     );
   });
 
@@ -52,7 +56,7 @@ test("Application Intelligence: Get application intelligence", async () => {
   const result = await page.evaluate(async () => {
     return await (window as any).electron.ipcRenderer.invoke(
       "application-intelligence:get",
-      { appId: 1 }
+      { appId: 1 },
     );
   });
 
@@ -76,7 +80,7 @@ test("Application Intelligence: Get application context", async () => {
   await page.evaluate(async () => {
     await (window as any).electron.ipcRenderer.invoke(
       "application-intelligence:index",
-      { appId: 1, full: true }
+      { appId: 1, full: true },
     );
   });
 
@@ -88,7 +92,7 @@ test("Application Intelligence: Get application context", async () => {
         appId: 1,
         selectedComponent: "component-12345678",
         request: "Make this editable",
-      }
+      },
     );
   });
 
@@ -121,7 +125,7 @@ test("Application Intelligence: Store decision", async () => {
           createdAt: Date.now(),
           appliesTo: [],
         },
-      }
+      },
     );
   });
 
@@ -142,7 +146,8 @@ test("Application Intelligence: Record change", async () => {
           id: "change-1",
           type: "ai",
           request: "Make customer status editable",
-          description: "Added editable status field to CustomerStatus component",
+          description:
+            "Added editable status field to CustomerStatus component",
           affected: ["component-CustomerStatus", "collection-customers"],
           files: ["src/components/CustomerStatus.tsx"],
           createdAt: Date.now(),
@@ -151,7 +156,7 @@ test("Application Intelligence: Record change", async () => {
           buildPassed: true,
           testsPassed: true,
         },
-      }
+      },
     );
   });
 
@@ -167,7 +172,7 @@ test("Application Intelligence: Get reconciliation status", async () => {
   await page.evaluate(async () => {
     await (window as any).electron.ipcRenderer.invoke(
       "application-intelligence:index",
-      { appId: 1, full: true }
+      { appId: 1, full: true },
     );
   });
 
@@ -175,13 +180,13 @@ test("Application Intelligence: Get reconciliation status", async () => {
   const result = await page.evaluate(async () => {
     return await (window as any).electron.ipcRenderer.invoke(
       "application-intelligence:get-reconciliation-status",
-      { appId: 1 }
+      { appId: 1 },
     );
   });
 
   expect(result).toBeDefined();
   expect(["synchronized", "out_of_sync", "reconciling"]).toContain(
-    result.status
+    result.status,
   );
   expect(result.lastIndexedAt).toBeGreaterThan(0);
   expect(result.filesChanged).toBeGreaterThanOrEqual(0);
@@ -193,7 +198,7 @@ test("Application Intelligence: Reindex application", async () => {
   const result = await page.evaluate(async () => {
     return await (window as any).electron.ipcRenderer.invoke(
       "application-intelligence:reindex",
-      { appId: 1, full: false }
+      { appId: 1, full: false },
     );
   });
 

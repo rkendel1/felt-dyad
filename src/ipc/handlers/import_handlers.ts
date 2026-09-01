@@ -155,8 +155,10 @@ export function registerImportHandlers() {
       setImmediate(async () => {
         try {
           const { runFullAnalysis } = require("../../import");
-          const { getConversionPlanStore } = require("../../store/conversion_plan_store");
-          
+          const {
+            getConversionPlanStore,
+          } = require("../../store/conversion_plan_store");
+
           const appPath = skipCopy ? sourcePath : getDyadAppPath(appName);
           const plan = await runFullAnalysis(app.id, appPath);
           const store = await getConversionPlanStore(appPath);
