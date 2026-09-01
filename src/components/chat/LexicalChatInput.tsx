@@ -396,6 +396,7 @@ export function LexicalChatInput({
                 </div>
               }
               onPaste={onPaste}
+              data-testid="chat-input-content-editable"
             />
           }
           ErrorBoundary={LexicalErrorBoundary}

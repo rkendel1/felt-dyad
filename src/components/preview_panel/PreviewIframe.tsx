@@ -69,6 +69,7 @@ import type { DeviceMode } from "@/lib/schemas";
 import { useAttachments } from "@/hooks/useAttachments";
 import { Annotator } from "@/pro/ui/components/Annotator/Annotator";
 import { VisualEditingToolbar } from "./VisualEditingToolbar";
+import { ComponentSelectionHint } from "./ComponentSelectionHint";
 
 interface ErrorBannerProps {
   error: { message: string; source: "preview-app" | "dyad-app" } | undefined;
@@ -816,7 +817,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
                 <TooltipTrigger asChild>
                   <button
                     onClick={handleActivateComponentSelector}
-                    className={`p-1 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    className={`flex items-center gap-1 px-2 py-1 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                       isPicking
                         ? "bg-purple-500 text-white hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700"
                         : " text-purple-700 hover:bg-purple-200  dark:text-purple-300 dark:hover:bg-purple-900"
@@ -829,13 +830,16 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
                     data-testid="preview-pick-element-button"
                   >
                     <MousePointerClick size={16} />
+                    <span className="text-xs font-medium">
+                      {isPicking ? "✓ Selecting" : "Select"}
+                    </span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>
                     {isPicking
-                      ? "Deactivate component selector"
-                      : "Select component"}
+                      ? "Deactivate component selector (click again)"
+                      : "Select component to edit"}
                   </p>
                   <p>{isMac ? "⌘ + ⇧ + C" : "Ctrl + ⇧ + C"}</p>
                 </TooltipContent>
@@ -1040,6 +1044,8 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
           </div>
         </div>
       )}
+
+      <ComponentSelectionHint />
 
       <div className="relative flex-grow overflow-hidden">
         <ErrorBanner
