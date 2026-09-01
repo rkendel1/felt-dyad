@@ -16,6 +16,7 @@ import { handleDyadProReturn } from "./main/pro";
 import { IS_TEST_BUILD } from "./ipc/utils/test_utils";
 import { BackupManager } from "./backup_manager";
 import { getDatabasePath, initializeDatabase } from "./db";
+import { initializeProjectStore } from "./store";
 import { UserSettings } from "./lib/schemas";
 import { handleNeonOAuthReturn } from "./neon_admin/neon_return_handler";
 import {
@@ -88,6 +89,13 @@ export async function onReady() {
     logger.error("Error initializing backup manager", e);
   }
   initializeDatabase();
+
+  // Initialize ProjectStore (abstraction layer for persistence)
+  try {
+    await initializeProjectStore({ type: "sqlite" });
+  } catch (e) {
+    logger.error("Error initializing project store", e);
+  }
 
   // Cleanup old ai_messages_json entries to prevent database bloat
   cleanupOldAiMessagesJson();
