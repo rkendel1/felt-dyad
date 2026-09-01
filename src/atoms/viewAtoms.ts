@@ -8,3 +8,8 @@ export const selectedFileAtom = atom<{
 export const activeSettingsSectionAtom = atom<string | null>(
   "general-settings",
 );
+
+// Active tab in chat panel: "chat" | "state" | "changes" | "proposals"
+export const activeChatPanelTabAtom = atom<
+  "chat" | "state" | "changes" | "proposals"
+>("chat");

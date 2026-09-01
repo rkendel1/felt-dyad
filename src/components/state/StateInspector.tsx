@@ -6,7 +6,6 @@ import {
   ChevronDown,
   ChevronRight,
   Database,
-  FileCode,
   Eye,
   EyeOff,
 } from "lucide-react";

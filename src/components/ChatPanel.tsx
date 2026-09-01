@@ -10,6 +10,7 @@ import { ipc } from "@/ipc/types";
 import { ChatHeader } from "./chat/ChatHeader";
 import { MessagesList } from "./chat/MessagesList";
 import { ChatInput } from "./chat/ChatInput";
+import { ChatPanelTabs } from "./chat/ChatPanelTabs";
 import { VersionPane } from "./chat/VersionPane";
 import { ChatError } from "./chat/ChatError";
 import { FreeAgentQuotaBanner } from "./chat/FreeAgentQuotaBanner";
@@ -218,43 +219,45 @@ export function ChatPanel({
       />
       <div className="flex flex-1 overflow-hidden">
         {!isVersionPaneOpen && (
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex-1 relative overflow-hidden">
-              <MessagesList
-                messages={messages}
-                messagesEndRef={messagesEndRef}
-                ref={messagesContainerRef}
-                onScrollerRef={handleScrollerRef}
-                distanceFromBottomRef={distanceFromBottomRef}
-                isUserScrolling={isUserScrolling}
-              />
+          <ChatPanelTabs>
+            <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex-1 relative overflow-hidden">
+                <MessagesList
+                  messages={messages}
+                  messagesEndRef={messagesEndRef}
+                  ref={messagesContainerRef}
+                  onScrollerRef={handleScrollerRef}
+                  distanceFromBottomRef={distanceFromBottomRef}
+                  isUserScrolling={isUserScrolling}
+                />
 
-              {/* Scroll to bottom button */}
-              {showScrollButton && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
-                  <Button
-                    onClick={handleScrollButtonClick}
-                    size="icon"
-                    className="rounded-full shadow-lg hover:shadow-xl transition-all border border-border/50 backdrop-blur-sm bg-background/95 hover:bg-accent"
-                    variant="outline"
-                    title={"Scroll to bottom"}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
-                </div>
+                {/* Scroll to bottom button */}
+                {showScrollButton && (
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
+                    <Button
+                      onClick={handleScrollButtonClick}
+                      size="icon"
+                      className="rounded-full shadow-lg hover:shadow-xl transition-all border border-border/50 backdrop-blur-sm bg-background/95 hover:bg-accent"
+                      variant="outline"
+                      title={"Scroll to bottom"}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <ChatError error={error} onDismiss={() => setError(null)} />
+              {showFreeAgentQuotaBanner && (
+                <FreeAgentQuotaBanner
+                  onSwitchToBuildMode={() =>
+                    updateSettings({ selectedChatMode: "build" })
+                  }
+                />
               )}
+              <ChatInput chatId={chatId} />
             </div>
-
-            <ChatError error={error} onDismiss={() => setError(null)} />
-            {showFreeAgentQuotaBanner && (
-              <FreeAgentQuotaBanner
-                onSwitchToBuildMode={() =>
-                  updateSettings({ selectedChatMode: "build" })
-                }
-              />
-            )}
-            <ChatInput chatId={chatId} />
-          </div>
+          </ChatPanelTabs>
         )}
         <VersionPane
           isVisible={isVersionPaneOpen}
