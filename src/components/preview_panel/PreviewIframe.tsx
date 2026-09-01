@@ -182,7 +182,8 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   const { restartApp } = useRunApp();
   const { settings, updateSettings } = useSettings();
   const { userBudget } = useUserBudgetInfo();
-  const isProMode = !!userBudget;
+  // All features are now available to all users - Pro mode always enabled
+  const isProMode = true;
 
   // Navigation state
   const [isComponentSelectorInitialized, setIsComponentSelectorInitialized] =

@@ -64,9 +64,9 @@ This allows the AI to:
 - Propose modifications
 - Apply changes automatically
 
-### 5. Multi-Component Selection (Pro Feature)
+### 5. Multi-Component Selection
 
-In Pro mode, you can select multiple components at once:
+You can select multiple components at once:
 
 1. Activate component selector
 2. Click the first component
@@ -79,7 +79,8 @@ In Pro mode, you can select multiple components at once:
 #### Clear All
 A "Clear Selection" button in the chat input removes all selected components.
 
-#### Clear Individual Component (Pro Mode)
+#### Clear Individual Component
+
 Click the X button next to a component name to deselect it individually.
 
 #### Deselect by Clicking
@@ -228,9 +229,9 @@ When you send a prompt with selected components:
 
 ## Advanced Features
 
-### Pro Mode: Visual Editing
+### Visual Editing
 
-In Pro mode, selected components show:
+Selected components show:
 - **Toolbar below component**: Edit styling directly
 - **Green highlight**: Shows which component is being edited
 - **Live preview**: See changes in real-time
@@ -293,7 +294,7 @@ interface ComponentSelection {
 
 - [PR3 Investigation](./pr3-investigation/01-native-selection-audit.md) - Technical architecture
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Development guidelines
-- [Visual Editing](./VISUAL_EDITING.md) - Pro mode features
+- [Visual Editing](./VISUAL_EDITING.md) - Visual editing features
 
 ---
 
