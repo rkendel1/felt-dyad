@@ -39,6 +39,7 @@ import { registerVisualEditingHandlers } from "../pro/main/ipc/handlers/visual_e
 import { registerAgentToolHandlers } from "../pro/main/ipc/handlers/local_agent/agent_tool_handlers";
 import { registerFreeAgentQuotaHandlers } from "./handlers/free_agent_quota_handlers";
 import { registerConversionAnalysisHandlers } from "./handlers/conversion_analysis_handlers";
+import { registerConversionExecutionHandlers } from "./handlers/conversion_execution_handlers";
 
 
 export function registerIpcHandlers() {
@@ -84,4 +85,5 @@ export function registerIpcHandlers() {
   registerAgentToolHandlers();
   registerFreeAgentQuotaHandlers();
   registerConversionAnalysisHandlers();
+  registerConversionExecutionHandlers();
 }
