@@ -56,7 +56,7 @@ export function Message({ spans }: MessageConfig) {
 export const TURBO_EDITS_PROMO_MESSAGE: MessageConfig = {
   spans: [
     { type: "text", content: "Tired of waiting on AI?" },
-    { type: "link", content: " Get Dyad Pro", url: "https://dyad.sh/pro#ai" },
+    { type: "link", content: " Get FeltDB AI", url: "https://feltdb.com" },
     { type: "text", content: " for faster edits with Turbo Edits." },
   ],
 };
@@ -66,7 +66,7 @@ export const SMART_CONTEXT_PROMO_MESSAGE: MessageConfig = {
     { type: "text", content: "Save up to 3x on AI costs with " },
     {
       type: "link",
-      content: "Dyad Pro's Smart Context",
+      content: "FeltDB's Smart Context",
       url: "https://dyad.sh/pro#ai",
     },
   ],
@@ -86,12 +86,12 @@ export const REDDIT_TIP: MessageConfig = {
   spans: [
     {
       type: "text",
-      content: "Join 600+ builders in the ",
+      content: "Join the builders community on ",
     },
     {
       type: "link",
-      content: "Dyad subreddit",
-      url: "https://www.reddit.com/r/dyadbuilders/",
+      content: "FeltDB",
+      url: "https://feltdb.com",
     },
   ],
 };
@@ -120,11 +120,11 @@ export const BUILD_A_BIBLE_APP_TIP: MessageConfig = {
     {
       type: "link",
       content: "Watch",
-      url: "https://www.youtube.com/watch?v=a7OoruOkkeg&list=PL1xR2pfIiRlW7mgr9AS95OkFQBtvrSlO5",
+      url: "https://feltdb.com",
     },
     {
       type: "text",
-      content: " the creator of Dyad build a Bible app step-by-step",
+      content: " the creator of FeltDB Builder build applications step-by-step",
     },
   ],
 };

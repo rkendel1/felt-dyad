@@ -346,7 +346,7 @@ export function SetupBanner() {
                 onClick={handleDyadProSetupClick}
                 tabIndex={isNodeSetupComplete ? 0 : -1}
                 leadingIcon={
-                  <img src={logo} alt="Dyad Logo" className="w-6 h-6 mr-0.5" />
+                  <img src={logo} alt="FeltDB Builder Logo" className="w-6 h-6 mr-0.5" />
                 }
                 title="Setup Dyad Pro"
                 subtitle="Access all AI models with one plan"
