@@ -96,8 +96,8 @@ const config: ForgeConfig = {
   packagerConfig: {
     protocols: [
       {
-        name: "Dyad",
-        schemes: ["dyad"],
+        name: "FeltDB Builder",
+        schemes: ["feltdb"],
       },
     ],
     icon: "./assets/icon/logo",
@@ -151,7 +151,7 @@ const config: ForgeConfig = {
     new MakerRpm({}),
     new MakerDeb({
       options: {
-        mimeType: ["x-scheme-handler/dyad"],
+        mimeType: ["x-scheme-handler/feltdb"],
       },
     }),
     new MakerAppImage({

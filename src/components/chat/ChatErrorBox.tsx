@@ -23,10 +23,10 @@ export function ChatErrorBox({
         {error}
         <span className="ml-1">
           <ExternalLink
-            href="https://dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=free-quota-error"
+            href="https://feltdb.com"
             variant="primary"
           >
-            Access with Dyad Pro
+            Enable FeltDB AI
           </ExternalLink>
         </span>{" "}
         or switch to another model.
@@ -37,9 +37,9 @@ export function ChatErrorBox({
   // Important, this needs to come after the "free quota tier" check
   // because it also includes this URL in the error message
   //
-  // Sometimes Dyad Pro can return rate limit errors and we do not want to
-  // show the upgrade to Dyad Pro link in that case because they are
-  // already on the Dyad Pro plan.
+  // Sometimes FeltDB AI can return rate limit errors and we do not want to
+  // show the upgrade to FeltDB AI link in that case because they are
+  // already on the FeltDB AI plan.
   if (
     !isDyadProEnabled &&
     (error.includes("Resource has been exhausted") ||
@@ -51,13 +51,13 @@ export function ChatErrorBox({
         {error}
         <div className="mt-2 space-y-2 space-x-2">
           <ExternalLink
-            href="https://dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=rate-limit-error"
+            href="https://feltdb.com"
             variant="primary"
           >
-            Upgrade to Dyad Pro
+            Enable FeltDB AI
           </ExternalLink>
 
-          <ExternalLink href="https://dyad.sh/docs/help/ai-rate-limit">
+          <ExternalLink href="https://feltdb.com">
             Troubleshooting guide
           </ExternalLink>
         </div>
@@ -69,12 +69,12 @@ export function ChatErrorBox({
     return (
       <ChatInfoContainer onDismiss={onDismiss}>
         <span>
-          Looks like you don't have a valid Dyad Pro key.{" "}
+          Looks like you don't have a valid FeltDB AI key.{" "}
           <ExternalLink
-            href="https://dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=invalid-pro-key-error"
+            href="https://feltdb.com"
             variant="primary"
           >
-            Upgrade to Dyad Pro
+            Enable FeltDB AI
           </ExternalLink>{" "}
           today.
         </span>
@@ -85,9 +85,9 @@ export function ChatErrorBox({
     return (
       <ChatInfoContainer onDismiss={onDismiss}>
         <span>
-          You have used all of your Dyad AI credits this month.{" "}
+          You have used all of your FeltDB AI credits this month.{" "}
           <ExternalLink
-            href="https://academy.dyad.sh/subscription?utm_source=dyad-app&utm_medium=app&utm_campaign=exceeded-budget-error"
+            href="https://feltdb.com"
             variant="primary"
           >
             Reload or upgrade your subscription
@@ -110,14 +110,13 @@ export function ChatErrorBox({
   if (error.includes("FREE_AGENT_QUOTA_EXCEEDED")) {
     return (
       <ChatErrorContainer onDismiss={onDismiss}>
-        You have used all 5 free Agent messages for today. Please upgrade to
-        Dyad Pro for unlimited access or switch to Build mode.
+        You have used all 5 free Agent messages for today. Please enable FeltDB AI for unlimited access or switch to Build mode.
         <div className="mt-2 space-y-2 space-x-2">
           <ExternalLink
-            href="https://dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=free-agent-quota-exceeded"
+            href="https://feltdb.com"
             variant="primary"
           >
-            Upgrade to Dyad Pro
+            Enable FeltDB AI
           </ExternalLink>
         </div>
       </ChatErrorContainer>
@@ -132,13 +131,13 @@ export function ChatErrorBox({
           error.includes(AI_STREAMING_ERROR_MESSAGE_PREFIX) &&
           !error.includes("TypeError: terminated") && (
             <ExternalLink
-              href="https://dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=general-error"
+              href="https://feltdb.com"
               variant="primary"
             >
-              Upgrade to Dyad Pro
+              Enable FeltDB AI
             </ExternalLink>
           )}
-        <ExternalLink href="https://www.dyad.sh/docs/faq">
+        <ExternalLink href="https://feltdb.com">
           Read docs
         </ExternalLink>
       </div>
