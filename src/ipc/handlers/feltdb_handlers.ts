@@ -5,12 +5,10 @@ import { apps } from "../../db/schema";
 import { createTypedHandler } from "./base";
 import { createTestOnlyLoggedHandler } from "./safe_handle";
 import { feltdbContracts } from "../types/feltdb";
+import { feltdbRuntimeManager } from "../../main/feltdb_runtime_manager";
 
 const logger = log.scope("feltdb_handlers");
 const testOnlyHandle = createTestOnlyLoggedHandler(logger);
-
-// Store for tracking FeltDB runtime processes by app ID
-const feltdbProcesses = new Map<number, { pid?: number; port?: number }>();
 
 export function registerFeltdbHandlers() {
   // Initialize FeltDB for an app
@@ -79,28 +77,37 @@ export function registerFeltdbHandlers() {
 
     logger.info(`Starting FeltDB runtime for app ${appId}`);
 
-    // Update status to initializing
-    await db
-      .update(apps)
-      .set({ feltdbStatus: "initializing" })
-      .where(eq(apps.id, appId));
+    try {
+      // Update status to initializing
+      await db
+        .update(apps)
+        .set({ feltdbStatus: "initializing" })
+        .where(eq(apps.id, appId));
 
-    // In a real implementation, this would:
-    // 1. Get app path
-    // 2. Start FeltDB Node process
-    // 3. Wait for health check
-    // 4. Update status to ready
+      // Start the FeltDB runtime
+      const port = await feltdbRuntimeManager.startFeltDB(appId);
 
-    // For now, just mark as ready after a short delay
-    setTimeout(async () => {
+      // Update status to ready
       await db
         .update(apps)
         .set({ feltdbStatus: "ready" })
         .where(eq(apps.id, appId));
-      logger.info(`FeltDB runtime ready for app ${appId}`);
-    }, 1000);
 
-    logger.info(`FeltDB runtime start initiated for app ${appId}`);
+      logger.info(
+        `FeltDB runtime started for app ${appId} on port ${port}`,
+      );
+
+      return {
+        status: "ready" as const,
+      };
+    } catch (error) {
+      logger.error(`Failed to start FeltDB for app ${appId}:`, error);
+      await db
+        .update(apps)
+        .set({ feltdbStatus: "failed" })
+        .where(eq(apps.id, appId));
+      throw new Error(`Failed to start FeltDB: ${error}`);
+    }
   });
 
   // Stop local FeltDB runtime
@@ -109,21 +116,20 @@ export function registerFeltdbHandlers() {
 
     logger.info(`Stopping FeltDB runtime for app ${appId}`);
 
-    // In a real implementation, this would:
-    // 1. Get the process from feltdbProcesses
-    // 2. Kill the process
-    // 3. Update status
+    try {
+      // Stop the FeltDB runtime
+      await feltdbRuntimeManager.stopFeltDB(appId);
 
-    const process = feltdbProcesses.get(appId);
-    if (process?.pid) {
-      try {
-        // Process termination would go here
-        feltdbProcesses.delete(appId);
-        logger.info(`FeltDB runtime stopped for app ${appId}`);
-      } catch (error) {
-        logger.error(`Failed to stop FeltDB runtime for app ${appId}:`, error);
-        throw new Error(`Failed to stop FeltDB runtime: ${error}`);
-      }
+      // Update status
+      await db
+        .update(apps)
+        .set({ feltdbStatus: "ready" })
+        .where(eq(apps.id, appId));
+
+      logger.info(`FeltDB runtime stopped for app ${appId}`);
+    } catch (error) {
+      logger.error(`Failed to stop FeltDB for app ${appId}:`, error);
+      throw new Error(`Failed to stop FeltDB: ${error}`);
     }
   });
 

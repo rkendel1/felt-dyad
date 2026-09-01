@@ -121,10 +121,20 @@ function generateSummary(
   const netSimplification = simplificationAnalysis.netEstimatedReduction;
   const flowsEliminated = simplificationAnalysis.flowStats.canBeEliminated;
 
+  // Detect existing database providers
+  const databaseServices = externalServices.filter(
+    (s) => s.type === "DATABASE",
+  );
+  const sourceProvider =
+    databaseServices.length > 0
+      ? databaseServices.map((s) => s.name).join(" + ")
+      : "multiple state sources";
+
   return `I analyzed your ${applicationAnalysis.framework} application and created a FeltDB conversion plan.
 
 Your app currently stores state across:
 - ${stateAnalysis.sources.map((s) => s.type).join(", ")}
+${databaseServices.length > 0 ? `\nDetected database provider: ${sourceProvider}` : ""}
 
 I found ${stateAnalysis.sources.length} state flows that can move to FeltDB.
 
@@ -146,6 +156,8 @@ Estimated Simplification:
 - Net estimated reduction: ~${netSimplification} LOC
 
 These are estimates based on static analysis. Actual results will be measured after conversion.
+
+Your application will be converted to use FeltDB as the primary state and database runtime.
 
 Nothing has been changed yet. Review the conversion plan to see exactly what will change.`;
 }
