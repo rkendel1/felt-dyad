@@ -24,6 +24,8 @@ export const queryKeys = {
       ["apps", "detail", appId] as const,
     search: ({ query }: { query: string }) =>
       ["apps", "search", query] as const,
+    conversionPlan: ({ appId }: { appId: number }) =>
+      ["apps", "conversion-plan", appId] as const,
   },
 
   // ─────────────────────────────────────────────────────────────────────────────
