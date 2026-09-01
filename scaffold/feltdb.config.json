@@ -1,0 +1,13 @@
+{
+  "namespace": "{{APP_NAMESPACE}}",
+  "runtime": "node",
+  "storage": "file",
+  "distributed": true,
+  "application": {
+    "lifecycle": "managed"
+  },
+  "agents": {
+    "enabled": false
+  },
+  "capabilities": {}
+}

@@ -378,9 +378,7 @@ function ConnectedGitHubConnector({
             <a
               onClick={(e) => {
                 e.preventDefault();
-                ipc.system.openExternalUrl(
-                  "https://www.dyad.sh/docs/integrations/github#troubleshooting",
-                );
+                ipc.system.openExternalUrl("https://feltdb.com");
               }}
               className="cursor-pointer text-blue-600 hover:underline dark:text-blue-400"
               target="_blank"

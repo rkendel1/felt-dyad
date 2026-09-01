@@ -28,6 +28,7 @@ export const FeltDBProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
   mode: FeltDBModeSchema,
+  url: z.string().optional(),
 });
 
 export type FeltDBProject = z.infer<typeof FeltDBProjectSchema>;
@@ -79,6 +80,9 @@ export type ListManagedProjectsParams = z.infer<
 >;
 
 export const AuthenticateManagedParamsSchema = z.object({
+  apiUrl: z.string().url(),
+  accessToken: z.string().min(1),
+  accountId: z.string().min(1),
   email: z.string().optional(),
 });
 
@@ -148,6 +152,12 @@ export const feltdbContracts = {
     channel: "feltdb:authenticate-managed",
     input: AuthenticateManagedParamsSchema,
     output: FeltDBAccountSchema,
+  }),
+
+  getManagedAccount: defineContract({
+    channel: "feltdb:get-managed-account",
+    input: z.void(),
+    output: FeltDBAccountSchema.optional(),
   }),
 
   // Disconnect from managed FeltDB

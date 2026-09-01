@@ -34,7 +34,7 @@ function getKeyButtonText({
   isDyad: boolean;
 }) {
   if (isDyad) {
-    return isConfigured ? "Manage FeltDB AI" : "Setup FeltDB AI";
+    return isConfigured ? "Manage AI access" : "Setup AI access";
   }
   return isConfigured ? "Manage API Keys" : "Setup API Key";
 }

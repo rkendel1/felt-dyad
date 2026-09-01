@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { FeltDBProjectStore } from "../store/feltdb_project_store";
-import { CreateAppInput, CreateChatInput, CreateMessageInput } from "../store";
+import { CreateAppInput } from "../store";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -63,6 +63,27 @@ describe("FeltDBProjectStore", () => {
 
       expect(updated.name).toBe("Updated");
       expect(updated.githubOrg).toBe("myorg");
+    });
+
+    it("should persist FeltDB app configuration", async () => {
+      const created = await store.createApp({
+        name: "FeltDB App",
+        path: "/tmp/feltdb-app",
+        feltdbRuntime: "managed",
+        feltdbMode: "managed",
+        feltdbProjectId: "project-1",
+        feltdbAccountId: "account-1",
+        feltdbStatus: "ready",
+      });
+
+      const retrieved = await store.getApp(created.id);
+      expect(retrieved).toMatchObject({
+        feltdbRuntime: "managed",
+        feltdbMode: "managed",
+        feltdbProjectId: "project-1",
+        feltdbAccountId: "account-1",
+        feltdbStatus: "ready",
+      });
     });
 
     it("should list apps", async () => {
@@ -129,7 +150,7 @@ describe("FeltDBProjectStore", () => {
     it("should list messages in order", async () => {
       const chat = await store.createChat({ appId });
 
-      const msg1 = await store.createMessage({
+      await store.createMessage({
         chatId: chat.id,
         role: "user",
         content: "First",
@@ -137,7 +158,7 @@ describe("FeltDBProjectStore", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const msg2 = await store.createMessage({
+      await store.createMessage({
         chatId: chat.id,
         role: "assistant",
         content: "Second",
@@ -170,6 +191,41 @@ describe("FeltDBProjectStore", () => {
 
       messages = await store.listMessages(chat.id);
       expect(messages.length).toBe(0);
+    });
+
+    it("should delete a chat's messages when deleting the chat", async () => {
+      const chat = await store.createChat({ appId });
+      await store.createMessage({
+        chatId: chat.id,
+        role: "user",
+        content: "Delete with chat",
+      });
+
+      await store.deleteChat(chat.id);
+
+      expect(await store.getChat(chat.id)).toBeNull();
+      expect(await store.listMessages(chat.id)).toEqual([]);
+    });
+
+    it("should search chat titles and messages", async () => {
+      const chat = await store.createChat({ appId, title: "Release plan" });
+      await store.createMessage({
+        chatId: chat.id,
+        role: "user",
+        content: "Discuss the migration timeline",
+      });
+
+      const titleResults = await store.searchChats(appId, "release");
+      const messageResults = await store.searchChats(appId, "migration");
+
+      expect(titleResults[0]).toMatchObject({
+        id: chat.id,
+        matchedMessageContent: null,
+      });
+      expect(messageResults[0]).toMatchObject({
+        id: chat.id,
+        matchedMessageContent: "Discuss the migration timeline",
+      });
     });
   });
 

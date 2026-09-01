@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "node:fs/promises";
 import { createFeltDB } from "@feltdb/core";
 import type {
   IProjectStore,
@@ -6,6 +7,7 @@ import type {
   CreateAppInput,
   Chat,
   CreateChatInput,
+  ChatSearchResult,
   Message,
   CreateMessageInput,
   Prompt,
@@ -26,6 +28,7 @@ import type {
  */
 export class FeltDBProjectStore implements IProjectStore {
   private db: ReturnType<typeof createFeltDB> | null = null;
+  private initialization: Promise<void> | null = null;
   private projectPath: string;
   // ID mappings: numeric ID -> FeltDB ID
   private appIdMap: Map<number, string> = new Map();
@@ -46,42 +49,19 @@ export class FeltDBProjectStore implements IProjectStore {
    * Initialize FeltDB
    */
   async initialize(): Promise<void> {
+    if (this.initialization) {
+      await this.initialization;
+      return;
+    }
     if (this.db) {
       return; // Already initialized
     }
-
-    const dbPath = path.join(this.projectPath, ".feltdb");
-    this.db = createFeltDB({
-      namespace: "builder",
-      path: dbPath,
-    });
-
-    // Ensure collections exist and load existing data
-    await this.ensureCollectionsInitialized();
-    await this.loadIdMappings();
-  }
-
-  /**
-   * Ensure all collections are initialized
-   */
-  private async ensureCollectionsInitialized(): Promise<void> {
-    if (!this.db) throw new Error("FeltDB not initialized");
-
-    // Access all collections to trigger initialization
-    const apps = this.db.collection("apps");
-    const chats = this.db.collection("chats");
-    const messages = this.db.collection("messages");
-    const prompts = this.db.collection("prompts");
-    const projectState = this.db.collection("project_state");
-
-    // Verify they're initialized by calling all() on each
-    await Promise.all([
-      apps.all(),
-      chats.all(),
-      messages.all(),
-      prompts.all(),
-      projectState.all(),
-    ]);
+    this.initialization ??= (async () => {
+      const dbPath = path.join(this.projectPath, ".feltdb");
+      this.db = createFeltDB({ namespace: "builder", path: dbPath });
+      await this.loadIdMappings();
+    })();
+    await this.initialization;
   }
 
   /**
@@ -95,12 +75,15 @@ export class FeltDBProjectStore implements IProjectStore {
     const messages = this.db.collection("messages");
     const prompts = this.db.collection("prompts");
 
-    const [appDocs, chatDocs, msgDocs, promptDocs] = await Promise.all([
-      apps.all(),
-      chats.all(),
-      messages.all(),
-      prompts.all(),
-    ]);
+    const projectState = this.db.collection("project_state");
+    const [appDocs, chatDocs, msgDocs, promptDocs, stateDocs] =
+      await Promise.all([
+        apps.all(),
+        chats.all(),
+        messages.all(),
+        prompts.all(),
+        projectState.all(),
+      ]);
 
     // Load app IDs
     for (const doc of appDocs) {
@@ -145,16 +128,52 @@ export class FeltDBProjectStore implements IProjectStore {
         this.nextPromptId = Math.max(this.nextPromptId, numId + 1);
       }
     }
+
+    // Older builds used generated document IDs for project state. Migrate them
+    // once so state reads and writes are direct key lookups thereafter.
+    for (const doc of stateDocs as any[]) {
+      if (!doc.stateKey || doc.id === doc.stateKey) continue;
+      if (!(await projectState.get(doc.stateKey))) {
+        const { id: _legacyId, ...state } = doc;
+        await projectState.insert(state, doc.stateKey);
+      }
+      await projectState.delete(doc.id);
+    }
   }
 
   /**
    * Close the store
    */
   async close(): Promise<void> {
-    if (this.db) {
-      // FeltDB handles cleanup internally
-      this.db = null;
-    }
+    const db = this.db;
+    this.db = null;
+    this.initialization = null;
+    this.appIdMap.clear();
+    this.chatIdMap.clear();
+    this.messageIdMap.clear();
+    this.promptIdMap.clear();
+    this.nextAppId = 1;
+    this.nextChatId = 1;
+    this.nextMessageId = 1;
+    this.nextPromptId = 1;
+    await db?.close();
+  }
+
+  async reset(): Promise<void> {
+    await this.close();
+    await fs.rm(path.join(this.projectPath, ".feltdb"), {
+      recursive: true,
+      force: true,
+    });
+    this.appIdMap.clear();
+    this.chatIdMap.clear();
+    this.messageIdMap.clear();
+    this.promptIdMap.clear();
+    this.nextAppId = 1;
+    this.nextChatId = 1;
+    this.nextMessageId = 1;
+    this.nextPromptId = 1;
+    await this.initialize();
   }
 
   // ==================== App Operations ====================
@@ -170,31 +189,36 @@ export class FeltDBProjectStore implements IProjectStore {
       numeric_id: numId,
       name: input.name,
       path: input.path,
-      githubOrg: input.githubOrg,
-      githubRepo: input.githubRepo,
-      githubBranch: input.githubBranch,
-      supabaseProjectId: input.supabaseProjectId,
-      supabaseParentProjectId: input.supabaseParentProjectId,
-      supabaseOrganizationSlug: input.supabaseOrganizationSlug,
-      neonProjectId: input.neonProjectId,
-      neonDevelopmentBranchId: input.neonDevelopmentBranchId,
-      neonPreviewBranchId: input.neonPreviewBranchId,
-      vercelProjectId: input.vercelProjectId,
-      vercelProjectName: input.vercelProjectName,
-      vercelTeamId: input.vercelTeamId,
-      vercelDeploymentUrl: input.vercelDeploymentUrl,
-      installCommand: input.installCommand,
-      startCommand: input.startCommand,
-      chatContext: input.chatContext,
+      githubOrg: input.githubOrg ?? null,
+      githubRepo: input.githubRepo ?? null,
+      githubBranch: input.githubBranch ?? null,
+      supabaseProjectId: input.supabaseProjectId ?? null,
+      supabaseParentProjectId: input.supabaseParentProjectId ?? null,
+      supabaseOrganizationSlug: input.supabaseOrganizationSlug ?? null,
+      neonProjectId: input.neonProjectId ?? null,
+      neonDevelopmentBranchId: input.neonDevelopmentBranchId ?? null,
+      neonPreviewBranchId: input.neonPreviewBranchId ?? null,
+      vercelProjectId: input.vercelProjectId ?? null,
+      vercelProjectName: input.vercelProjectName ?? null,
+      vercelTeamId: input.vercelTeamId ?? null,
+      vercelDeploymentUrl: input.vercelDeploymentUrl ?? null,
+      installCommand: input.installCommand ?? null,
+      startCommand: input.startCommand ?? null,
+      chatContext: input.chatContext ?? null,
       isFavorite: input.isFavorite ?? false,
-      themeId: input.themeId,
+      themeId: input.themeId ?? null,
+      feltdbRuntime: input.feltdbRuntime,
+      feltdbMode: input.feltdbMode,
+      feltdbProjectId: input.feltdbProjectId ?? null,
+      feltdbAccountId: input.feltdbAccountId ?? null,
+      feltdbStatus: input.feltdbStatus ?? null,
       createdAt: now.getTime(),
       updatedAt: now.getTime(),
     };
 
     const apps = this.db.collection("apps");
     // insert() returns the actual FeltDB ID to use for get()
-    const feltId = await apps.insert(appDoc);
+    const feltId = await apps.insert(appDoc, `app:${numId}`);
     this.appIdMap.set(numId, feltId);
 
     return {
@@ -203,24 +227,29 @@ export class FeltDBProjectStore implements IProjectStore {
       path: input.path,
       createdAt: now,
       updatedAt: now,
-      githubOrg: input.githubOrg,
-      githubRepo: input.githubRepo,
-      githubBranch: input.githubBranch,
-      supabaseProjectId: input.supabaseProjectId,
-      supabaseParentProjectId: input.supabaseParentProjectId,
-      supabaseOrganizationSlug: input.supabaseOrganizationSlug,
-      neonProjectId: input.neonProjectId,
-      neonDevelopmentBranchId: input.neonDevelopmentBranchId,
-      neonPreviewBranchId: input.neonPreviewBranchId,
-      vercelProjectId: input.vercelProjectId,
-      vercelProjectName: input.vercelProjectName,
-      vercelTeamId: input.vercelTeamId,
-      vercelDeploymentUrl: input.vercelDeploymentUrl,
-      installCommand: input.installCommand,
-      startCommand: input.startCommand,
-      chatContext: input.chatContext,
+      githubOrg: input.githubOrg ?? null,
+      githubRepo: input.githubRepo ?? null,
+      githubBranch: input.githubBranch ?? null,
+      supabaseProjectId: input.supabaseProjectId ?? null,
+      supabaseParentProjectId: input.supabaseParentProjectId ?? null,
+      supabaseOrganizationSlug: input.supabaseOrganizationSlug ?? null,
+      neonProjectId: input.neonProjectId ?? null,
+      neonDevelopmentBranchId: input.neonDevelopmentBranchId ?? null,
+      neonPreviewBranchId: input.neonPreviewBranchId ?? null,
+      vercelProjectId: input.vercelProjectId ?? null,
+      vercelProjectName: input.vercelProjectName ?? null,
+      vercelTeamId: input.vercelTeamId ?? null,
+      vercelDeploymentUrl: input.vercelDeploymentUrl ?? null,
+      installCommand: input.installCommand ?? null,
+      startCommand: input.startCommand ?? null,
+      chatContext: input.chatContext ?? null,
       isFavorite: input.isFavorite ?? false,
-      themeId: input.themeId,
+      themeId: input.themeId ?? null,
+      feltdbRuntime: input.feltdbRuntime ?? null,
+      feltdbMode: input.feltdbMode ?? null,
+      feltdbProjectId: input.feltdbProjectId ?? null,
+      feltdbAccountId: input.feltdbAccountId ?? null,
+      feltdbStatus: input.feltdbStatus ?? null,
     };
   }
 
@@ -308,24 +337,29 @@ export class FeltDBProjectStore implements IProjectStore {
       path: doc.path as string,
       createdAt: new Date(doc.createdAt as number),
       updatedAt: new Date(doc.updatedAt as number),
-      githubOrg: doc.githubOrg,
-      githubRepo: doc.githubRepo,
-      githubBranch: doc.githubBranch,
-      supabaseProjectId: doc.supabaseProjectId,
-      supabaseParentProjectId: doc.supabaseParentProjectId,
-      supabaseOrganizationSlug: doc.supabaseOrganizationSlug,
-      neonProjectId: doc.neonProjectId,
-      neonDevelopmentBranchId: doc.neonDevelopmentBranchId,
-      neonPreviewBranchId: doc.neonPreviewBranchId,
-      vercelProjectId: doc.vercelProjectId,
-      vercelProjectName: doc.vercelProjectName,
-      vercelTeamId: doc.vercelTeamId,
-      vercelDeploymentUrl: doc.vercelDeploymentUrl,
-      installCommand: doc.installCommand,
-      startCommand: doc.startCommand,
-      chatContext: doc.chatContext,
+      githubOrg: doc.githubOrg ?? null,
+      githubRepo: doc.githubRepo ?? null,
+      githubBranch: doc.githubBranch ?? null,
+      supabaseProjectId: doc.supabaseProjectId ?? null,
+      supabaseParentProjectId: doc.supabaseParentProjectId ?? null,
+      supabaseOrganizationSlug: doc.supabaseOrganizationSlug ?? null,
+      neonProjectId: doc.neonProjectId ?? null,
+      neonDevelopmentBranchId: doc.neonDevelopmentBranchId ?? null,
+      neonPreviewBranchId: doc.neonPreviewBranchId ?? null,
+      vercelProjectId: doc.vercelProjectId ?? null,
+      vercelProjectName: doc.vercelProjectName ?? null,
+      vercelTeamId: doc.vercelTeamId ?? null,
+      vercelDeploymentUrl: doc.vercelDeploymentUrl ?? null,
+      installCommand: doc.installCommand ?? null,
+      startCommand: doc.startCommand ?? null,
+      chatContext: doc.chatContext ?? null,
       isFavorite: doc.isFavorite as boolean,
-      themeId: doc.themeId,
+      themeId: doc.themeId ?? null,
+      feltdbRuntime: doc.feltdbRuntime,
+      feltdbMode: doc.feltdbMode,
+      feltdbProjectId: doc.feltdbProjectId ?? null,
+      feltdbAccountId: doc.feltdbAccountId ?? null,
+      feltdbStatus: doc.feltdbStatus ?? null,
     };
   }
 
@@ -345,20 +379,20 @@ export class FeltDBProjectStore implements IProjectStore {
     const chatDoc = {
       numeric_id: numId,
       app_id: input.appId,
-      title: input.title,
-      initialCommitHash: input.initialCommitHash,
+      title: input.title ?? null,
+      initialCommitHash: input.initialCommitHash ?? null,
       createdAt: now.getTime(),
     };
 
     const chats = this.db.collection("chats");
-    const feltId = await chats.insert(chatDoc);
+    const feltId = await chats.insert(chatDoc, `chat:${numId}`);
     this.chatIdMap.set(numId, feltId);
 
     return {
       id: numId,
       appId: input.appId,
-      title: input.title,
-      initialCommitHash: input.initialCommitHash,
+      title: input.title ?? null,
+      initialCommitHash: input.initialCommitHash ?? null,
       createdAt: now,
     };
   }
@@ -413,6 +447,7 @@ export class FeltDBProjectStore implements IProjectStore {
     await chats.delete(feltId);
 
     this.chatIdMap.delete(chatId);
+    await this.deleteMessagesByChat(chatId);
   }
 
   async listChats(appId: number): Promise<Chat[]> {
@@ -425,12 +460,60 @@ export class FeltDBProjectStore implements IProjectStore {
     return (docs as any[]).map((doc) => this.docToChat(doc));
   }
 
+  async listAllChats(): Promise<Chat[]> {
+    await this.initialize();
+    if (!this.db) throw new Error("FeltDB not initialized");
+
+    const chats = this.db.collection("chats");
+    const docs = await chats.all();
+    return (docs as any[]).map((doc) => this.docToChat(doc));
+  }
+
+  async searchChats(appId: number, query: string): Promise<ChatSearchResult[]> {
+    const normalizedQuery = query.toLocaleLowerCase();
+    const [chats, messages] = await Promise.all([
+      this.listChats(appId),
+      this.listAllMessages(),
+    ]);
+    const messagesByChat = new Map<number, Message[]>();
+    for (const message of messages) {
+      const chatMessages = messagesByChat.get(message.chatId) ?? [];
+      chatMessages.push(message);
+      messagesByChat.set(message.chatId, chatMessages);
+    }
+    const results: ChatSearchResult[] = [];
+
+    for (const chat of chats) {
+      const titleMatches = chat.title
+        ?.toLocaleLowerCase()
+        .includes(normalizedQuery);
+      const matchingMessage = (messagesByChat.get(chat.id) ?? []).find(
+        (message) =>
+          message.content.toLocaleLowerCase().includes(normalizedQuery),
+      );
+
+      if (titleMatches || matchingMessage) {
+        results.push({
+          id: chat.id,
+          appId: chat.appId,
+          title: chat.title,
+          createdAt: chat.createdAt,
+          matchedMessageContent: matchingMessage?.content ?? null,
+        });
+      }
+    }
+
+    return results.sort(
+      (first, second) => second.createdAt.getTime() - first.createdAt.getTime(),
+    );
+  }
+
   private docToChat(doc: any): Chat {
     return {
       id: doc.numeric_id as number,
       appId: doc.app_id as number,
-      title: doc.title,
-      initialCommitHash: doc.initialCommitHash,
+      title: doc.title ?? null,
+      initialCommitHash: doc.initialCommitHash ?? null,
       createdAt: new Date(doc.createdAt as number),
     };
   }
@@ -456,12 +539,11 @@ export class FeltDBProjectStore implements IProjectStore {
       maxTokensUsed: input.maxTokensUsed,
       model: input.model,
       aiMessagesJson: input.aiMessagesJson,
-      usingFreeAgentModeQuota: input.usingFreeAgentModeQuota,
       createdAt: now.getTime(),
     };
 
     const messages = this.db.collection("messages");
-    const feltId = await messages.insert(msgDoc);
+    const feltId = await messages.insert(msgDoc, `message:${numId}`);
     this.messageIdMap.set(numId, feltId);
 
     return {
@@ -476,7 +558,6 @@ export class FeltDBProjectStore implements IProjectStore {
       maxTokensUsed: input.maxTokensUsed,
       model: input.model,
       aiMessagesJson: input.aiMessagesJson,
-      usingFreeAgentModeQuota: input.usingFreeAgentModeQuota,
       createdAt: now,
     };
   }
@@ -546,6 +627,20 @@ export class FeltDBProjectStore implements IProjectStore {
       .map((doc) => this.docToMessage(doc));
   }
 
+  async listAllMessages(): Promise<Message[]> {
+    await this.initialize();
+    if (!this.db) throw new Error("FeltDB not initialized");
+
+    const messages = this.db.collection("messages");
+    const docs = await messages.all();
+    return (docs as any[])
+      .sort(
+        (first, second) =>
+          (first.createdAt as number) - (second.createdAt as number),
+      )
+      .map((doc) => this.docToMessage(doc));
+  }
+
   async deleteMessagesByChat(chatId: number): Promise<void> {
     await this.initialize();
     if (!this.db) throw new Error("FeltDB not initialized");
@@ -574,8 +669,7 @@ export class FeltDBProjectStore implements IProjectStore {
       maxTokensUsed: doc.maxTokensUsed,
       model: doc.model,
       aiMessagesJson: doc.aiMessagesJson,
-      usingFreeAgentModeQuota: doc.usingFreeAgentModeQuota,
-      createdAt: doc.createdAt ? new Date(doc.createdAt as number) : undefined,
+      createdAt: new Date(doc.createdAt as number),
     };
   }
 
@@ -598,7 +692,7 @@ export class FeltDBProjectStore implements IProjectStore {
     };
 
     const prompts = this.db.collection("prompts");
-    const feltId = await prompts.insert(promptDoc);
+    const feltId = await prompts.insert(promptDoc, `prompt:${numId}`);
     this.promptIdMap.set(numId, feltId);
 
     return {
@@ -697,8 +791,6 @@ export class FeltDBProjectStore implements IProjectStore {
 
     const projectState = this.db.collection("project_state");
     const stateKey = `${projectId}:${key}`;
-    const docs = await projectState.find({ stateKey });
-
     const stateDoc = {
       stateKey,
       projectId,
@@ -707,13 +799,9 @@ export class FeltDBProjectStore implements IProjectStore {
       updatedAt: Date.now(),
     };
 
-    if ((docs as any[]).length > 0) {
-      // Update existing
-      await projectState.update((docs[0] as any).id, stateDoc);
-    } else {
-      // Insert new
-      await projectState.insert(stateDoc);
-    }
+    const existing = await projectState.get(stateKey);
+    if (existing) await projectState.update(stateKey, stateDoc);
+    else await projectState.insert(stateDoc, stateKey);
   }
 
   async getProjectState(projectId: number, key: string): Promise<any> {
@@ -722,11 +810,8 @@ export class FeltDBProjectStore implements IProjectStore {
 
     const projectState = this.db.collection("project_state");
     const stateKey = `${projectId}:${key}`;
-    const docs = await projectState.find({ stateKey });
-
-    if ((docs as any[]).length === 0) return null;
-
-    return (docs[0] as any).value;
+    const state = await projectState.get(stateKey);
+    return state ? (state as any).value : null;
   }
 
   async deleteProjectState(projectId: number, key: string): Promise<void> {
@@ -735,11 +820,7 @@ export class FeltDBProjectStore implements IProjectStore {
 
     const projectState = this.db.collection("project_state");
     const stateKey = `${projectId}:${key}`;
-    const docs = await projectState.find({ stateKey });
-
-    for (const doc of docs as any[]) {
-      await projectState.delete((doc as any).id);
-    }
+    await projectState.delete(stateKey);
   }
 
   async getProjectStateByKey(
@@ -751,11 +832,8 @@ export class FeltDBProjectStore implements IProjectStore {
 
     const projectState = this.db.collection("project_state");
     const stateKey = `${projectId}:${key}`;
-    const docs = await projectState.find({ stateKey });
-
-    if ((docs as any[]).length === 0) return null;
-
-    const doc = docs[0] as any;
+    const doc = (await projectState.get(stateKey)) as any;
+    if (!doc) return null;
     return {
       projectId,
       key,

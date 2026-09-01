@@ -11,7 +11,6 @@ import { ipc } from "@/ipc/types";
 import { showError, showSuccess } from "@/lib/toast";
 import { useSettings } from "@/hooks/useSettings";
 import { getEffectiveDefaultChatMode } from "@/lib/schemas";
-import { useFreeAgentQuota } from "@/hooks/useFreeAgentQuota";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -39,7 +38,6 @@ export function ChatList({ show }: { show?: boolean }) {
   const [selectedAppId] = useAtom(selectedAppIdAtom);
   const [, setIsDropdownOpen] = useAtom(dropdownOpenAtom);
   const { settings, updateSettings } = useSettings();
-  const { isQuotaExceeded } = useFreeAgentQuota();
 
   const { chats, loading, invalidateChats } = useChats(selectedAppId);
   const routerState = useRouterState();
@@ -94,10 +92,7 @@ export function ChatList({ show }: { show?: boolean }) {
 
         // Set the default chat mode for the new chat
         if (settings) {
-          const effectiveDefaultMode = getEffectiveDefaultChatMode(
-            settings,
-            !isQuotaExceeded,
-          );
+          const effectiveDefaultMode = getEffectiveDefaultChatMode(settings);
           updateSettings({ selectedChatMode: effectiveDefaultMode });
         }
 

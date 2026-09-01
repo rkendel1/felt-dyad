@@ -4,9 +4,7 @@ import type {
   ProposalResult,
   ActionProposal,
 } from "../../lib/schemas";
-import { db } from "../../db";
-import { messages, chats } from "../../db/schema";
-import { desc, eq, and } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import path from "node:path"; // Import path for basename
 // Import tag parsers
 import { processFullResponseActions } from "../processors/response_processor";
@@ -130,15 +128,10 @@ const getProposalHandler = async (
 
     try {
       // Find the latest ASSISTANT message for the chat
-      const latestAssistantMessage = await db.query.messages.findFirst({
-        where: and(eq(messages.chatId, chatId), eq(messages.role, "assistant")),
-        orderBy: [desc(messages.createdAt)],
-        columns: {
-          id: true, // Fetch the ID
-          content: true, // Fetch the content to parse
-          approvalState: true,
-        },
-      });
+      const store = getProjectStore();
+      const latestAssistantMessage = (await store.listMessages(chatId))
+        .filter((message) => message.role === "assistant")
+        .at(-1);
 
       if (
         latestAssistantMessage?.content &&
@@ -272,15 +265,12 @@ const getProposalHandler = async (
       }
 
       // Get all chat messages to calculate token usage
-      const chat = await db.query.chats.findFirst({
-        where: eq(chats.id, chatId),
-        with: {
-          app: true,
-          messages: {
-            orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-          },
-        },
-      });
+      const chatRecord = await store.getChat(chatId);
+      const app = chatRecord ? await store.getApp(chatRecord.appId) : null;
+      const chat =
+        chatRecord && app
+          ? { ...chatRecord, app, messages: await store.listMessages(chatId) }
+          : null;
 
       if (latestAssistantMessage && chat) {
         // Calculate total tokens from message history
@@ -344,18 +334,13 @@ const approveProposalHandler = async (
     );
   }
   // 1. Fetch the specific assistant message
-  const messageToApprove = await db.query.messages.findFirst({
-    where: and(
-      eq(messages.id, messageId),
-      eq(messages.chatId, chatId),
-      eq(messages.role, "assistant"),
-    ),
-    columns: {
-      content: true,
-    },
-  });
+  const messageToApprove = await getProjectStore().getMessage(messageId);
 
-  if (!messageToApprove?.content) {
+  if (
+    messageToApprove?.chatId !== chatId ||
+    messageToApprove.role !== "assistant" ||
+    !messageToApprove.content
+  ) {
     throw new Error(
       `Assistant message not found for chatId: ${chatId}, messageId: ${messageId}`,
     );
@@ -395,26 +380,20 @@ const rejectProposalHandler = async (
   );
 
   // 1. Verify the message exists and is an assistant message
-  const messageToReject = await db.query.messages.findFirst({
-    where: and(
-      eq(messages.id, messageId),
-      eq(messages.chatId, chatId),
-      eq(messages.role, "assistant"),
-    ),
-    columns: { id: true },
-  });
+  const store = getProjectStore();
+  const messageToReject = await store.getMessage(messageId);
 
-  if (!messageToReject) {
+  if (
+    messageToReject?.chatId !== chatId ||
+    messageToReject.role !== "assistant"
+  ) {
     throw new Error(
       `Assistant message not found for chatId: ${chatId}, messageId: ${messageId}`,
     );
   }
 
   // 2. Update the message's approval state to 'rejected'
-  await db
-    .update(messages)
-    .set({ approvalState: "rejected" })
-    .where(eq(messages.id, messageId));
+  await store.updateMessage(messageId, { approvalState: "rejected" });
 
   logger.log(`Message ${messageId} marked as rejected.`);
 };

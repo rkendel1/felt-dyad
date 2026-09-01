@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from "react";
 import { useSettings } from "./useSettings";
 import { useShortcut } from "./useShortcut";
-import { usePostHog } from "posthog-js/react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { ChatModeSchema } from "../lib/schemas";
 
 export function useChatModeToggle() {
   const { settings, updateSettings } = useSettings();
-  const posthog = usePostHog();
+  const posthog = useAnalytics();
 
   // Detect if user is on mac
   const isMac = useIsMac();

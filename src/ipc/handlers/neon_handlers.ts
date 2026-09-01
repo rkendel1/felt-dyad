@@ -9,9 +9,7 @@ import {
   getNeonOrganizationId,
 } from "../../neon_admin/neon_management_client";
 import { neonContracts, type NeonBranch } from "../types/neon";
-import { db } from "../../db";
-import { apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { EndpointType } from "@neondatabase/api-client";
 import { retryOnLocked } from "../utils/retryOnLocked";
 
@@ -74,14 +72,11 @@ export function registerNeonHandlers() {
       const previewBranch = previewBranchResponse.data.branch;
 
       // Store project and branch info in the app's DB row
-      await db
-        .update(apps)
-        .set({
-          neonProjectId: project.id,
-          neonDevelopmentBranchId: developmentBranch.id,
-          neonPreviewBranchId: previewBranch.id,
-        })
-        .where(eq(apps.id, appId));
+      await getProjectStore().updateApp(appId, {
+        neonProjectId: project.id,
+        neonDevelopmentBranchId: developmentBranch.id,
+        neonPreviewBranchId: previewBranch.id,
+      });
 
       logger.info(
         `Successfully created Neon project: ${project.id} and development branch: ${developmentBranch.id} for app ${appId}`,
@@ -106,17 +101,10 @@ export function registerNeonHandlers() {
 
     try {
       // Get the app from the database to find the neonProjectId and neonBranchId
-      const app = await db
-        .select()
-        .from(apps)
-        .where(eq(apps.id, appId))
-        .limit(1);
-
-      if (app.length === 0) {
+      const appData = await getProjectStore().getApp(appId);
+      if (!appData) {
         throw new Error(`App with ID ${appId} not found`);
       }
-
-      const appData = app[0];
       if (!appData.neonProjectId) {
         throw new Error(`No Neon project found for app ${appId}`);
       }

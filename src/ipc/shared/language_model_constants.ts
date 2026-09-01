@@ -299,7 +299,7 @@ export const MODEL_OPTIONS: Record<string, ModelOption[]> = {
     },
     {
       name: "turbo",
-      displayName: "Turbo (Pro)",
+      displayName: "Turbo",
       description: "Use very fast open-source frontier models",
       maxOutputTokens: 32_000,
       contextWindow: 256_000,
@@ -309,7 +309,7 @@ export const MODEL_OPTIONS: Record<string, ModelOption[]> = {
     },
     {
       name: "value",
-      displayName: "Super Value (Pro)",
+      displayName: "Super Value",
       description: "Uses the most cost-effective models available",
       maxOutputTokens: 32_000,
       contextWindow: 256_000,
@@ -512,7 +512,7 @@ export const CLOUD_PROVIDERS: Record<
     displayName: "Google Vertex AI",
     hasFreeTier: false,
     websiteUrl: "https://console.cloud.google.com/vertex-ai",
-    // Use the same gateway prefix as Google Gemini for FeltDB AI compatibility.
+    // Use the same gateway prefix as Google Gemini for managed AI compatibility.
     gatewayPrefix: "gemini/",
     secondary: true,
   },
@@ -524,7 +524,7 @@ export const CLOUD_PROVIDERS: Record<
   },
   auto: {
     displayName: "FeltDB",
-    websiteUrl: "https://academy.dyad.sh/subscription",
+    websiteUrl: "https://feltdb.com",
     gatewayPrefix: "dyad/",
   },
   azure: {

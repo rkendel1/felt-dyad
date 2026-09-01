@@ -1,15 +1,12 @@
 import { IpcMainInvokeEvent } from "electron";
 import { Vercel } from "@vercel/sdk";
 import { writeSettings, readSettings } from "../../main/settings";
-import * as schema from "../../db/schema";
-import { db } from "../../db";
-import { apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import log from "electron-log";
 import { IS_TEST_BUILD } from "../utils/test_utils";
 import * as fs from "fs";
 import * as path from "path";
-import { CreateProjectFramework } from "@vercel/sdk/models/createprojectop.js";
+import { CreateProjectFramework } from "@vercel/sdk/models/createprojectpassport.js";
 import { getDyadAppPath } from "@/paths/paths";
 import { createTypedHandler } from "./base";
 import {
@@ -299,7 +296,7 @@ async function handleCreateProject(
     logger.info(`Creating Vercel project: ${name} for app ${appId}`);
 
     // Get app details to determine the framework
-    const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+    const app = await getProjectStore().getApp(appId);
     if (!app) {
       throw new Error("App not found.");
     }
@@ -373,7 +370,7 @@ async function handleCreateProject(
         },
       });
 
-      if (deploymentData.url) {
+      if ("url" in deploymentData && deploymentData.url) {
         logger.info(`First deployment successful: ${deploymentData.url}`);
       } else {
         logger.warn("First deployment failed: No deployment URL returned");
@@ -450,7 +447,7 @@ async function handleGetVercelDeployments(
       throw new Error("Not authenticated with Vercel.");
     }
 
-    const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+    const app = await getProjectStore().getApp(appId);
     if (!app || !app.vercelProjectId) {
       throw new Error("App is not linked to a Vercel project.");
     }
@@ -483,10 +480,9 @@ async function handleGetVercelDeployments(
         logger.info(
           `Updating deployment URL for app ${appId}: ${app.vercelDeploymentUrl} -> ${newDeploymentUrl}`,
         );
-        await db
-          .update(apps)
-          .set({ vercelDeploymentUrl: newDeploymentUrl })
-          .where(eq(apps.id, appId));
+        await getProjectStore().updateApp(appId, {
+          vercelDeploymentUrl: newDeploymentUrl,
+        });
       }
     }
 
@@ -511,24 +507,19 @@ async function handleDisconnectVercelProject(
 ): Promise<void> {
   logger.log(`Disconnecting Vercel project for appId: ${appId}`);
 
-  const app = await db.query.apps.findFirst({
-    where: eq(apps.id, appId),
-  });
+  const app = await getProjectStore().getApp(appId);
 
   if (!app) {
     throw new Error("App not found");
   }
 
   // Update app in database to remove Vercel project info
-  await db
-    .update(apps)
-    .set({
-      vercelProjectId: null,
-      vercelProjectName: null,
-      vercelTeamId: null,
-      vercelDeploymentUrl: null,
-    })
-    .where(eq(apps.id, appId));
+  await getProjectStore().updateApp(appId, {
+    vercelProjectId: null,
+    vercelProjectName: null,
+    vercelTeamId: null,
+    vercelDeploymentUrl: null,
+  });
 }
 
 // --- Registration ---
@@ -584,13 +575,10 @@ export async function updateAppVercelProject({
   teamId: string;
   deploymentUrl?: string | null;
 }): Promise<void> {
-  await db
-    .update(schema.apps)
-    .set({
-      vercelProjectId: projectId,
-      vercelProjectName: projectName,
-      vercelTeamId: teamId,
-      vercelDeploymentUrl: deploymentUrl,
-    })
-    .where(eq(schema.apps.id, appId));
+  await getProjectStore().updateApp(appId, {
+    vercelProjectId: projectId,
+    vercelProjectName: projectName,
+    vercelTeamId: teamId,
+    vercelDeploymentUrl: deploymentUrl,
+  });
 }

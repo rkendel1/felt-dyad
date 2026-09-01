@@ -20,9 +20,7 @@ import {
   gitCommit,
 } from "../utils/git_utils";
 import { getDyadAppPath } from "../../paths/paths";
-import { db } from "../../db";
-import { apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import log from "electron-log";
 import { withLock } from "../utils/lock_utils";
 import { updateAppGithubRepo, ensureCleanWorkspace } from "./github_handlers";
@@ -42,7 +40,7 @@ async function handleAbortMerge(
   event: IpcMainInvokeEvent,
   { appId }: GitBranchAppIdParams,
 ): Promise<void> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -59,7 +57,7 @@ async function handleFetchFromGithub(
   if (!accessToken) {
     throw new Error("Not authenticated with GitHub.");
   }
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app || !app.githubOrg || !app.githubRepo) {
     throw new Error("App is not linked to a GitHub repo.");
   }
@@ -95,7 +93,7 @@ async function handleCreateBranch(
   ) {
     throw new Error("Invalid branch name");
   }
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -110,7 +108,7 @@ async function handleDeleteBranch(
   event: IpcMainInvokeEvent,
   { appId, branch }: GitBranchParams,
 ): Promise<void> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -124,7 +122,7 @@ async function handleSwitchBranch(
   event: IpcMainInvokeEvent,
   { appId, branch }: GitBranchParams,
 ): Promise<void> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -183,7 +181,7 @@ async function handleRenameBranch(
   event: IpcMainInvokeEvent,
   { appId, oldBranch, newBranch }: RenameGitBranchParams,
 ): Promise<void> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -221,7 +219,7 @@ async function handleMergeBranch(
   event: IpcMainInvokeEvent,
   { appId, branch }: GitBranchParams,
 ): Promise<void> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -282,7 +280,7 @@ async function handleListLocalBranches(
   event: IpcMainInvokeEvent,
   { appId }: GitBranchAppIdParams,
 ): Promise<{ branches: string[]; current: string | null }> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -295,7 +293,7 @@ async function handleListRemoteBranches(
   event: IpcMainInvokeEvent,
   { appId, remote = "origin" }: { appId: number; remote?: string },
 ): Promise<string[]> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -307,7 +305,7 @@ async function handleGetUncommittedFiles(
   event: IpcMainInvokeEvent,
   { appId }: GitBranchAppIdParams,
 ): Promise<UncommittedFile[]> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -318,7 +316,7 @@ async function handleCommitChanges(
   event: IpcMainInvokeEvent,
   { appId, message }: { appId: number; message: string },
 ): Promise<string> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 

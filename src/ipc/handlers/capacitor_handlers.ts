@@ -1,7 +1,5 @@
 import log from "electron-log";
-import { db } from "../../db";
-import { apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { getDyadAppPath } from "../../paths/paths";
 import fs from "node:fs";
 import path from "node:path";
@@ -13,9 +11,7 @@ import { capacitorContracts } from "../types/capacitor";
 const logger = log.scope("capacitor_handlers");
 
 async function getApp(appId: number) {
-  const app = await db.query.apps.findFirst({
-    where: eq(apps.id, appId),
-  });
+  const app = await getProjectStore().getApp(appId);
   if (!app) {
     throw new Error(`App with id ${appId} not found`);
   }

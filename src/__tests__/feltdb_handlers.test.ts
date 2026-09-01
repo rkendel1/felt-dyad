@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
-import { db } from "../db";
-import { initializeDatabase } from "../db";
-import { apps } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { FeltDBProjectStore } from "../store/feltdb_project_store";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 /**
  * Tests for FeltDB handlers
@@ -10,42 +10,38 @@ import { eq } from "drizzle-orm";
  */
 describe("FeltDB Handlers", () => {
   let testAppId: number;
-
-  beforeAll(() => {
-    // Initialize the database before running tests
-    initializeDatabase();
-  });
+  let testDir: string;
+  let store: FeltDBProjectStore;
 
   beforeEach(async () => {
     // Create a test app (note: when created through IPC handlers, it will have defaults)
     // But here we manually set defaults to match the IPC handler behavior
-    const [app] = await db
-      .insert(apps)
-      .values({
-        name: "test-feltdb-app",
-        path: "/tmp/test-app",
-        feltdbRuntime: "server",
-        feltdbMode: "local",
-        feltdbStatus: "ready",
-      })
-      .returning();
+    testDir = await mkdtemp(path.join(tmpdir(), "feltdb-handlers-"));
+    store = new FeltDBProjectStore(testDir);
+    await store.initialize();
+    const app = await store.createApp({
+      name: "test-feltdb-app",
+      path: "/tmp/test-app",
+      feltdbRuntime: "server",
+      feltdbMode: "local",
+      feltdbStatus: "ready",
+    });
     testAppId = app.id;
   });
 
   afterEach(async () => {
     // Clean up
     try {
-      await db.delete(apps).where(eq(apps.id, testAppId));
-    } catch (_err) {
+      await store.close();
+      await rm(testDir, { recursive: true, force: true });
+    } catch {
       // Ignore cleanup errors
     }
   });
 
   describe("App Creation", () => {
     it("should create app with FeltDB defaults", async () => {
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, testAppId),
-      });
+      const app = await store.getApp(testAppId);
 
       expect(app).toBeDefined();
       expect(app?.feltdbRuntime).toBe("server");
@@ -54,9 +50,7 @@ describe("FeltDB Handlers", () => {
     });
 
     it("should have FeltDB as the primary runtime", async () => {
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, testAppId),
-      });
+      const app = await store.getApp(testAppId);
 
       expect(app?.feltdbRuntime).toEqual("server");
       expect(app?.neonProjectId).toBeNull();
@@ -66,36 +60,26 @@ describe("FeltDB Handlers", () => {
 
   describe("FeltDB Configuration", () => {
     it("should support updating FeltDB configuration", async () => {
-      await db
-        .update(apps)
-        .set({
-          feltdbRuntime: "browser",
-          feltdbMode: "local",
-        })
-        .where(eq(apps.id, testAppId));
-
-      const updated = await db.query.apps.findFirst({
-        where: eq(apps.id, testAppId),
+      await store.updateApp(testAppId, {
+        feltdbRuntime: "browser",
+        feltdbMode: "local",
       });
+
+      const updated = await store.getApp(testAppId);
 
       expect(updated?.feltdbRuntime).toBe("browser");
       expect(updated?.feltdbMode).toBe("local");
     });
 
     it("should support managed FeltDB configuration", async () => {
-      await db
-        .update(apps)
-        .set({
-          feltdbRuntime: "managed",
-          feltdbMode: "managed",
-          feltdbProjectId: "project-123",
-          feltdbAccountId: "account-456",
-        })
-        .where(eq(apps.id, testAppId));
-
-      const updated = await db.query.apps.findFirst({
-        where: eq(apps.id, testAppId),
+      await store.updateApp(testAppId, {
+        feltdbRuntime: "managed",
+        feltdbMode: "managed",
+        feltdbProjectId: "project-123",
+        feltdbAccountId: "account-456",
       });
+
+      const updated = await store.getApp(testAppId);
 
       expect(updated?.feltdbRuntime).toBe("managed");
       expect(updated?.feltdbMode).toBe("managed");
@@ -104,51 +88,36 @@ describe("FeltDB Handlers", () => {
     });
 
     it("should track FeltDB status", async () => {
-      await db
-        .update(apps)
-        .set({ feltdbStatus: "initializing" })
-        .where(eq(apps.id, testAppId));
+      await store.updateApp(testAppId, { feltdbStatus: "initializing" });
 
-      let updated = await db.query.apps.findFirst({
-        where: eq(apps.id, testAppId),
-      });
+      let updated = await store.getApp(testAppId);
       expect(updated?.feltdbStatus).toBe("initializing");
 
-      await db
-        .update(apps)
-        .set({ feltdbStatus: "ready" })
-        .where(eq(apps.id, testAppId));
+      await store.updateApp(testAppId, { feltdbStatus: "ready" });
 
-      updated = await db.query.apps.findFirst({
-        where: eq(apps.id, testAppId),
-      });
+      updated = await store.getApp(testAppId);
       expect(updated?.feltdbStatus).toBe("ready");
     });
   });
 
   describe("Backward Compatibility", () => {
     it("should not affect existing Neon or Supabase configurations", async () => {
-      const [neonApp] = await db
-        .insert(apps)
-        .values({
-          name: "test-neon-app",
-          path: "/tmp/neon-app",
-          neonProjectId: "neon-123",
-          feltdbRuntime: "server",
-          feltdbMode: "local",
-        })
-        .returning();
-
-      const retrieved = await db.query.apps.findFirst({
-        where: eq(apps.id, neonApp.id),
+      const neonApp = await store.createApp({
+        name: "test-neon-app",
+        path: "/tmp/neon-app",
+        neonProjectId: "neon-123",
+        feltdbRuntime: "server",
+        feltdbMode: "local",
       });
+
+      const retrieved = await store.getApp(neonApp.id);
 
       expect(retrieved?.neonProjectId).toBe("neon-123");
       expect(retrieved?.feltdbRuntime).toBe("server");
       // Both can coexist
       expect(retrieved?.feltdbMode).toBe("local");
 
-      await db.delete(apps).where(eq(apps.id, neonApp.id));
+      await store.deleteApp(neonApp.id);
     });
   });
 });

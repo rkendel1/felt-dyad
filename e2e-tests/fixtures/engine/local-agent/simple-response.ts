@@ -2,13 +2,13 @@ import type { LocalAgentFixture } from "../../../../testing/fake-llm-server/loca
 
 /**
  * A simple fixture that just returns a text response without any tool calls.
- * Used for testing Basic Agent mode quota tracking.
+ * Used for testing Agent mode.
  */
 export const fixture: LocalAgentFixture = {
   description: "Simple text response for quota testing",
   turns: [
     {
-      text: "Hello! I understand your request. This is a simple response from the Basic Agent mode.",
+      text: "Hello! I understand your request. This is a simple response from Agent mode.",
     },
   ],
 };

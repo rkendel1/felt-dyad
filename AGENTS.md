@@ -97,17 +97,10 @@ When creating hooks/components that call IPC handlers:
 - Wrap writes in `useMutation`; validate inputs locally, call the IPC client, and invalidate related queries on success. Use shared utilities (e.g., toast helpers) in `onError`.
 - Synchronize TanStack Query data with any global state (like Jotai atoms) via `useEffect` only if required.
 
-## Database
+## Persistence
 
-This app uses SQLite and drizzle ORM.
-
-Generate SQL migrations by running this:
-
-```sh
-npm run db:generate
-```
-
-IMPORTANT: Do NOT generate SQL migration files by hand! This is wrong.
+FeltDB is the app's only persistence engine. Keep project data behind the
+`ProjectStore` boundary and use `FeltDBDataStore` for non-project collections.
 
 ## General guidance
 

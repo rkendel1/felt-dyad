@@ -1,6 +1,4 @@
-import { db } from "../../db";
-import { versions, apps } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
+import { FeltDBRecord, getFeltDBDataStore, getProjectStore } from "../../store";
 import { getDyadAppPath } from "../../paths/paths";
 import { neon } from "@neondatabase/serverless";
 
@@ -9,6 +7,11 @@ import { getNeonClient } from "@/neon_admin/neon_management_client";
 import { getCurrentCommitHash } from "./git_utils";
 
 const logger = log.scope("neon_timestamp_utils");
+export type StoredVersion = FeltDBRecord & {
+  appId: number;
+  commitHash: string;
+  neonDbTimestamp: string | null;
+};
 
 /**
  * Retrieves the current timestamp from a Neon database
@@ -47,9 +50,7 @@ export async function storeDbTimestampAtCurrentVersion({
     logger.info(`Storing DB timestamp for current version - app ${appId}`);
 
     // 1. Get the app to find the path
-    const app = await db.query.apps.findFirst({
-      where: eq(apps.id, appId),
-    });
+    const app = await getProjectStore().getApp(appId);
 
     if (!app) {
       throw new Error(`App with ID ${appId} not found`);
@@ -81,33 +82,25 @@ export async function storeDbTimestampAtCurrentVersion({
     logger.info(`Current timestamp from Neon: ${currentTimestamp}`);
 
     // 4. Check if a version with this commit hash already exists
-    const existingVersion = await db.query.versions.findFirst({
-      where: and(
-        eq(versions.appId, appId),
-        eq(versions.commitHash, currentCommitHash),
-      ),
-    });
+    const versionStore = getFeltDBDataStore();
+    const existingVersion = (
+      await versionStore.list<StoredVersion>("versions")
+    ).find(
+      (version) =>
+        version.appId === appId && version.commitHash === currentCommitHash,
+    );
 
     if (existingVersion) {
       // Update existing version with the new timestamp
-      await db
-        .update(versions)
-        .set({
-          neonDbTimestamp: currentTimestamp,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(versions.appId, appId),
-            eq(versions.commitHash, currentCommitHash),
-          ),
-        );
+      await versionStore.update<StoredVersion>("versions", existingVersion.id, {
+        neonDbTimestamp: currentTimestamp,
+      });
       logger.info(
         `Updated existing version record with timestamp ${currentTimestamp}`,
       );
     } else {
       // Create new version record
-      await db.insert(versions).values({
+      await versionStore.create<StoredVersion>("versions", {
         appId,
         commitHash: currentCommitHash,
         neonDbTimestamp: currentTimestamp,

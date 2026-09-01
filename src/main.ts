@@ -7,16 +7,14 @@ import started from "electron-squirrel-startup";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import log from "electron-log";
 import {
-  getSettingsFilePath,
+  initializeSettings,
   readSettings,
   writeSettings,
 } from "./main/settings";
 import { handleSupabaseOAuthReturn } from "./supabase_admin/supabase_return_handler";
-import { handleDyadProReturn } from "./main/pro";
 import { IS_TEST_BUILD } from "./ipc/utils/test_utils";
 import { BackupManager } from "./backup_manager";
-import { getDatabasePath, initializeDatabase } from "./db";
-import { initializeProjectStore } from "./store";
+import { initializeFeltDBDataStore, initializeProjectStore } from "./store";
 import { UserSettings } from "./lib/schemas";
 import { handleNeonOAuthReturn } from "./neon_admin/neon_return_handler";
 import {
@@ -30,9 +28,10 @@ import {
   stopPerformanceMonitoring,
 } from "./utils/performance_monitor";
 import { cleanupOldAiMessagesJson } from "./pro/main/ipc/handlers/local_agent/ai_messages_cleanup";
+import { shouldPromptMoveToApplications } from "./main/app_location";
 import fs from "fs";
 import { gitAddSafeDirectory } from "./ipc/utils/git_utils";
-import { getDyadAppsBaseDirectory } from "./paths/paths";
+import { getDyadAppsBaseDirectory, getUserDataPath } from "./paths/paths";
 
 log.errorHandler.startCatching();
 log.eventLogger.startLogging();
@@ -79,23 +78,22 @@ if (process.defaultApp) {
 }
 
 export async function onReady() {
+  // Initialize ProjectStore (abstraction layer for persistence)
+  // Default to FeltDB for new projects
+  try {
+    await initializeProjectStore({ dataPath: getUserDataPath() });
+    await initializeFeltDBDataStore(getUserDataPath()).initialize();
+    await initializeSettings();
+  } catch (e) {
+    logger.error("Error initializing project store", e);
+  }
   try {
     const backupManager = new BackupManager({
-      settingsFile: getSettingsFilePath(),
-      dbFile: getDatabasePath(),
+      dataDirectory: path.join(getUserDataPath(), ".feltdb"),
     });
     await backupManager.initialize();
   } catch (e) {
     logger.error("Error initializing backup manager", e);
-  }
-  initializeDatabase();
-
-  // Initialize ProjectStore (abstraction layer for persistence)
-  // Default to FeltDB for new projects
-  try {
-    await initializeProjectStore({ type: "feltdb" });
-  } catch (e) {
-    logger.error("Error initializing project store", e);
   }
 
   // Cleanup old ai_messages_json entries to prevent database bloat
@@ -171,12 +169,16 @@ export async function onFirstRunMaybe(settings: UserSettings) {
  * applications folder.
  */
 async function promptMoveToApplicationsFolder(): Promise<void> {
-  // Why not in e2e tests?
-  // There's no way to stub this dialog in time, so we just skip it
-  // in e2e testing mode.
-  if (IS_TEST_BUILD) return;
-  if (process.platform !== "darwin") return;
-  if (app.isInApplicationsFolder()) return;
+  if (
+    !shouldPromptMoveToApplications({
+      isPackaged: app.isPackaged,
+      isTestBuild: IS_TEST_BUILD,
+      platform: process.platform,
+      isInApplicationsFolder: app.isInApplicationsFolder(),
+    })
+  ) {
+    return;
+  }
   logger.log("Prompting user to move to applications folder");
 
   const { response } = await dialog.showMessageBox({
@@ -464,22 +466,6 @@ async function handleDeepLinkReturn(url: string) {
       return;
     }
     await handleSupabaseOAuthReturn({ token, refreshToken, expiresIn });
-    // Send message to renderer to trigger re-render
-    mainWindow?.webContents.send("deep-link-received", {
-      type: parsed.hostname,
-    });
-    return;
-  }
-  // dyad://dyad-pro-return?key=123&budget_reset_at=2025-05-26T16:31:13.492000Z&max_budget=100
-  if (parsed.hostname === "dyad-pro-return") {
-    const apiKey = parsed.searchParams.get("key");
-    if (!apiKey) {
-      dialog.showErrorBox("Invalid URL", "Expected key");
-      return;
-    }
-    handleDyadProReturn({
-      apiKey,
-    });
     // Send message to renderer to trigger re-render
     mainWindow?.webContents.send("deep-link-received", {
       type: parsed.hostname,

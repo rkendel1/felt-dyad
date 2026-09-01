@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { ToolDefinition, AgentContext, escapeXmlContent } from "./types";
-import { db } from "@/db";
-import { chats } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "@/store";
 import { getLogs } from "@/lib/log_store";
 import type { ConsoleEntry } from "@/ipc/types";
 
@@ -119,16 +117,13 @@ ${summary}
 
   execute: async (args, ctx: AgentContext) => {
     // Get the chat to find the appId
-    const chat = await db.query.chats.findFirst({
-      where: eq(chats.id, ctx.chatId),
-      with: { app: true },
-    });
+    const chat = await getProjectStore().getChat(ctx.chatId);
 
-    if (!chat || !chat.app) {
+    if (!chat) {
       throw new Error("Chat or app not found.");
     }
 
-    const appId = chat.app.id;
+    const appId = chat.appId;
 
     // Get logs directly from central log store (no UI coupling!)
     const allLogs = getLogs(appId);

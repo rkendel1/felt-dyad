@@ -1,8 +1,6 @@
 import { createLoggedHandler } from "./safe_handle";
 import log from "electron-log";
-import { db } from "../../db";
-import { apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { getDyadAppPath } from "../../paths/paths";
 import { spawn } from "child_process";
 import { gitCommit, gitAdd } from "../utils/git_utils";
@@ -12,9 +10,7 @@ const logger = log.scope("portal_handlers");
 const handle = createLoggedHandler(logger);
 
 async function getApp(appId: number) {
-  const app = await db.query.apps.findFirst({
-    where: eq(apps.id, appId),
-  });
+  const app = await getProjectStore().getApp(appId);
   if (!app) {
     throw new Error(`App with id ${appId} not found`);
   }

@@ -147,6 +147,14 @@ export const queryKeys = {
     all: ["templates"] as const,
   },
 
+  feltdb: {
+    account: ["feltdb", "account"] as const,
+    status: ({ appId }: { appId: number }) =>
+      ["feltdb", "status", appId] as const,
+    managedProjects: ({ accountId }: { accountId: string }) =>
+      ["feltdb", "managed-projects", accountId] as const,
+  },
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Prompts
   // ─────────────────────────────────────────────────────────────────────────────
@@ -169,20 +177,6 @@ export const queryKeys = {
     byProviders: ["language-models-by-providers"] as const,
     forProvider: ({ providerId }: { providerId: string }) =>
       ["language-models", providerId] as const,
-  },
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // User Budget
-  // ─────────────────────────────────────────────────────────────────────────────
-  userBudget: {
-    info: ["userBudgetInfo"] as const,
-  },
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Free Agent Quota
-  // ─────────────────────────────────────────────────────────────────────────────
-  freeAgentQuota: {
-    status: ["freeAgentQuotaStatus"] as const,
   },
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -315,14 +309,11 @@ export type AppQueryKey =
       (typeof queryKeys.customThemes)[keyof typeof queryKeys.customThemes]
     >
   | QueryKeyOf<(typeof queryKeys.templates)[keyof typeof queryKeys.templates]>
+  | QueryKeyOf<(typeof queryKeys.feltdb)[keyof typeof queryKeys.feltdb]>
   | QueryKeyOf<(typeof queryKeys.prompts)[keyof typeof queryKeys.prompts]>
   | QueryKeyOf<(typeof queryKeys.agentTools)[keyof typeof queryKeys.agentTools]>
   | QueryKeyOf<
       (typeof queryKeys.languageModels)[keyof typeof queryKeys.languageModels]
-    >
-  | QueryKeyOf<(typeof queryKeys.userBudget)[keyof typeof queryKeys.userBudget]>
-  | QueryKeyOf<
-      (typeof queryKeys.freeAgentQuota)[keyof typeof queryKeys.freeAgentQuota]
     >
   | QueryKeyOf<(typeof queryKeys.vercel)[keyof typeof queryKeys.vercel]>
   | QueryKeyOf<

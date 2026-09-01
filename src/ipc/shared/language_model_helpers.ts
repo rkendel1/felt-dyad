@@ -1,10 +1,5 @@
-import { db } from "@/db";
-import {
-  language_model_providers as languageModelProvidersSchema,
-  language_models as languageModelsSchema,
-} from "@/db/schema";
+import { FeltDBRecord, getFeltDBDataStore } from "@/store";
 import type { LanguageModelProvider, LanguageModel } from "@/ipc/types";
-import { eq } from "drizzle-orm";
 import {
   LOCAL_PROVIDERS,
   CLOUD_PROVIDERS,
@@ -20,17 +15,22 @@ export async function getLanguageModelProviders(): Promise<
   LanguageModelProvider[]
 > {
   // Fetch custom providers from the database
-  const customProvidersDb = await db
-    .select()
-    .from(languageModelProvidersSchema);
+  const customProvidersDb = await getFeltDBDataStore().list<
+    FeltDBRecord & {
+      providerId: string;
+      name: string;
+      apiBaseUrl: string;
+      envVarName?: string;
+    }
+  >("language_model_providers");
 
   const customProvidersMap = new Map<string, LanguageModelProvider>();
   for (const cp of customProvidersDb) {
-    customProvidersMap.set(cp.id, {
-      id: cp.id,
+    customProvidersMap.set(cp.providerId, {
+      id: cp.providerId,
       name: cp.name,
-      apiBaseUrl: cp.api_base_url,
-      envVarName: cp.env_var_name ?? undefined,
+      apiBaseUrl: cp.apiBaseUrl,
+      envVarName: cp.envVarName,
       type: "custom",
       // hasFreeTier, websiteUrl, gatewayPrefix are not in the custom DB schema
       // They will be undefined unless overridden by hardcoded values if IDs match
@@ -99,21 +99,23 @@ export async function getLanguageModels({
   let customModels: LanguageModel[] = [];
 
   try {
-    const customModelsDb = await db
-      .select({
-        id: languageModelsSchema.id,
-        displayName: languageModelsSchema.displayName,
-        apiName: languageModelsSchema.apiName,
-        description: languageModelsSchema.description,
-        maxOutputTokens: languageModelsSchema.max_output_tokens,
-        contextWindow: languageModelsSchema.context_window,
-      })
-      .from(languageModelsSchema)
-      .where(
-        isCustomProvider({ providerId })
-          ? eq(languageModelsSchema.customProviderId, providerId)
-          : eq(languageModelsSchema.builtinProviderId, providerId),
-      );
+    const customModelsDb = (
+      await getFeltDBDataStore().list<
+        FeltDBRecord & {
+          displayName: string;
+          apiName: string;
+          customProviderId?: string;
+          builtinProviderId?: string;
+          description?: string;
+          maxOutputTokens?: number;
+          contextWindow?: number;
+        }
+      >("language_models")
+    ).filter((model) =>
+      isCustomProvider({ providerId })
+        ? model.customProviderId === providerId
+        : model.builtinProviderId === providerId,
+    );
 
     customModels = customModelsDb.map((model) => ({
       ...model,

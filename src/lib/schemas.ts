@@ -199,12 +199,6 @@ export const ExperimentsSchema = z.object({
 });
 export type Experiments = z.infer<typeof ExperimentsSchema>;
 
-export const DyadProBudgetSchema = z.object({
-  budgetResetAt: z.string(),
-  maxBudget: z.number(),
-});
-export type DyadProBudget = z.infer<typeof DyadProBudgetSchema>;
-
 export const GlobPathSchema = z.object({
   globPath: z.string(),
 });
@@ -262,7 +256,6 @@ export const UserSettingsSchema = z
     // DEPRECATED.
     ////////////////////////////////
     enableProSaverMode: z.boolean().optional(),
-    dyadProBudget: DyadProBudgetSchema.optional(),
     runtimeMode: RuntimeModeSchema.optional(),
 
     ////////////////////////////////
@@ -280,7 +273,6 @@ export const UserSettingsSchema = z
     telemetryConsent: z.enum(["opted_in", "opted_out", "unset"]).optional(),
     telemetryUserId: z.string().optional(),
     hasRunBefore: z.boolean().optional(),
-    enableDyadPro: z.boolean().optional(),
     experiments: ExperimentsSchema.optional(),
     lastShownReleaseNotesVersion: z.string().optional(),
     maxChatTurnsInContext: z.number().optional(),
@@ -327,57 +319,9 @@ export const UserSettingsSchema = z
  */
 export type UserSettings = z.infer<typeof UserSettingsSchema>;
 
-export function isDyadProEnabled(settings: UserSettings): boolean {
-  return settings.enableDyadPro === true && hasDyadProKey(settings);
-}
-
-export function hasDyadProKey(settings: UserSettings): boolean {
-  return !!settings.providerSettings?.auto?.apiKey?.value;
-}
-
-/**
- * Gets the effective default chat mode based on settings, pro status, and free quota availability.
- * - If defaultChatMode is set and valid for the user's Pro status, use it
- * - If defaultChatMode is "local-agent" but user doesn't have Pro:
- *   - If free agent quota available, use "local-agent" (basic agent mode)
- *   - If quota exceeded, fall back to "build"
- * - If defaultChatMode is NOT set:
- *   - Pro users: use "local-agent"
- *   - Non-Pro users with quota: use "local-agent" (basic agent mode)
- *   - Non-Pro users without quota: use "build"
- */
-export function getEffectiveDefaultChatMode(
-  settings: UserSettings,
-  freeAgentQuotaAvailable?: boolean,
-): ChatMode {
-  const isPro = isDyadProEnabled(settings);
-
-  if (settings.defaultChatMode) {
-    // "local-agent" requires either Pro OR available free quota
-    if (settings.defaultChatMode === "local-agent") {
-      if (isPro) return "local-agent";
-      if (freeAgentQuotaAvailable) return "local-agent";
-      return "build";
-    }
-    return settings.defaultChatMode;
-  }
-
-  // No explicit default set
-  if (isPro) return "local-agent";
-  if (freeAgentQuotaAvailable) return "local-agent";
-  return "build";
-}
-
-/**
- * Determines if the current session is using Basic Agent mode (free tier with quota).
- * Basic Agent mode is when:
- * - User is NOT a Pro subscriber
- * - User is using local-agent chat mode
- */
-export function isBasicAgentMode(settings: UserSettings): boolean {
-  return (
-    !isDyadProEnabled(settings) && settings.selectedChatMode === "local-agent"
-  );
+/** Gets the configured default without subscription or quota gating. */
+export function getEffectiveDefaultChatMode(settings: UserSettings): ChatMode {
+  return settings.defaultChatMode ?? "local-agent";
 }
 
 export function isSupabaseConnected(settings: UserSettings | null): boolean {
@@ -393,7 +337,6 @@ export function isSupabaseConnected(settings: UserSettings | null): boolean {
 
 export function isTurboEditsV2Enabled(settings: UserSettings): boolean {
   return Boolean(
-    isDyadProEnabled(settings) &&
     settings.enableProLazyEditsMode === true &&
     settings.proLazyEditsMode === "v2",
   );

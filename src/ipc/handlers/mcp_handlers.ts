@@ -1,7 +1,8 @@
 import log from "electron-log";
-import { db } from "../../db";
-import { mcpServers, mcpToolConsents } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
+import {
+  FeltDBRecord,
+  getFeltDBDataStore,
+} from "../../store/feltdb_data_store";
 import { createTypedHandler } from "./base";
 
 import { resolveConsent } from "../utils/mcp_consent";
@@ -16,8 +17,15 @@ import {
 
 const logger = log.scope("mcp_handlers");
 
-// Helper to cast DB server to typed server
-function toMcpServer(dbServer: typeof mcpServers.$inferSelect): McpServer {
+type StoredMcpServer = FeltDBRecord &
+  Omit<McpServer, "id" | "createdAt" | "updatedAt">;
+type StoredMcpConsent = FeltDBRecord & {
+  serverId: number;
+  toolName: string;
+  consent: McpConsentValue;
+};
+
+function toMcpServer(dbServer: StoredMcpServer): McpServer {
   return {
     ...dbServer,
     transport: dbServer.transport as McpTransport,
@@ -27,7 +35,8 @@ function toMcpServer(dbServer: typeof mcpServers.$inferSelect): McpServer {
 export function registerMcpHandlers() {
   // CRUD for MCP servers
   createTypedHandler(mcpContracts.listServers, async () => {
-    const servers = await db.select().from(mcpServers);
+    const servers =
+      await getFeltDBDataStore().list<StoredMcpServer>("mcp_servers");
     return servers.map(toMcpServer);
   });
 
@@ -45,19 +54,19 @@ export function registerMcpHandlers() {
         ? (JSON.parse(envJson) as Record<string, string>)
         : envJson
       : null;
-    const result = await db
-      .insert(mcpServers)
-      .values({
+    const result = await getFeltDBDataStore().create<StoredMcpServer>(
+      "mcp_servers",
+      {
         name,
         transport,
-        command: command || null,
+        command: command ?? undefined,
         args: parsedArgs,
         envJson: parsedEnvJson,
-        url: url || null,
+        url: url ?? undefined,
         enabled: !!enabled,
-      })
-      .returning();
-    return toMcpServer(result[0]);
+      },
+    );
+    return toMcpServer(result);
   });
 
   createTypedHandler(mcpContracts.updateServer, async (_, params) => {
@@ -81,23 +90,23 @@ export function registerMcpHandlers() {
     if (params.url !== undefined) update.url = params.url;
     if (params.enabled !== undefined) update.enabled = !!params.enabled;
 
-    const result = await db
-      .update(mcpServers)
-      .set(update)
-      .where(eq(mcpServers.id, params.id))
-      .returning();
+    const result = await getFeltDBDataStore().update<StoredMcpServer>(
+      "mcp_servers",
+      params.id,
+      update,
+    );
     // If server config changed, dispose cached client to be recreated on next use
     try {
       mcpManager.dispose(params.id);
     } catch {}
-    return toMcpServer(result[0]);
+    return toMcpServer(result);
   });
 
   createTypedHandler(mcpContracts.deleteServer, async (_, id) => {
     try {
       mcpManager.dispose(id);
     } catch {}
-    await db.delete(mcpServers).where(eq(mcpServers.id, id));
+    await getFeltDBDataStore().delete("mcp_servers", id);
     return { success: true };
   });
 
@@ -124,7 +133,8 @@ export function registerMcpHandlers() {
 
   // Consents
   createTypedHandler(mcpContracts.getToolConsents, async () => {
-    const consents = await db.select().from(mcpToolConsents);
+    const consents =
+      await getFeltDBDataStore().list<StoredMcpConsent>("mcp_tool_consents");
     return consents.map((c) => ({
       ...c,
       consent: c.consent as McpConsentValue,
@@ -132,42 +142,35 @@ export function registerMcpHandlers() {
   });
 
   createTypedHandler(mcpContracts.setToolConsent, async (_, params) => {
-    const existing = await db
-      .select()
-      .from(mcpToolConsents)
-      .where(
-        and(
-          eq(mcpToolConsents.serverId, params.serverId),
-          eq(mcpToolConsents.toolName, params.toolName),
-        ),
+    const store = getFeltDBDataStore();
+    const existing = (
+      await store.list<StoredMcpConsent>("mcp_tool_consents")
+    ).find(
+      (consent) =>
+        consent.serverId === params.serverId &&
+        consent.toolName === params.toolName,
+    );
+    if (existing) {
+      const result = await store.update<StoredMcpConsent>(
+        "mcp_tool_consents",
+        existing.id,
+        {
+          consent: params.consent,
+        },
       );
-    if (existing.length > 0) {
-      const result = await db
-        .update(mcpToolConsents)
-        .set({ consent: params.consent })
-        .where(
-          and(
-            eq(mcpToolConsents.serverId, params.serverId),
-            eq(mcpToolConsents.toolName, params.toolName),
-          ),
-        )
-        .returning();
       return {
-        ...result[0],
-        consent: result[0].consent as McpConsentValue,
+        ...result,
+        consent: result.consent as McpConsentValue,
       };
     } else {
-      const result = await db
-        .insert(mcpToolConsents)
-        .values({
-          serverId: params.serverId,
-          toolName: params.toolName,
-          consent: params.consent,
-        })
-        .returning();
+      const result = await store.create<StoredMcpConsent>("mcp_tool_consents", {
+        serverId: params.serverId,
+        toolName: params.toolName,
+        consent: params.consent,
+      });
       return {
-        ...result[0],
-        consent: result[0].consent as McpConsentValue,
+        ...result,
+        consent: result.consent as McpConsentValue,
       };
     }
   });

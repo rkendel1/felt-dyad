@@ -4,9 +4,7 @@
  */
 import * as fs from "fs";
 import * as path from "path";
-import { db } from "../../db";
-import { apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { getDyadAppPath } from "../../paths/paths";
 import {
   ENV_FILE_NAME,
@@ -20,9 +18,7 @@ export function registerAppEnvVarsHandlers() {
   // Handler to get app environment variables
   createTypedHandler(miscContracts.getAppEnvVars, async (_, { appId }) => {
     try {
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, appId),
-      });
+      const app = await getProjectStore().getApp(appId);
 
       if (!app) {
         throw new Error("App not found");
@@ -55,9 +51,7 @@ export function registerAppEnvVarsHandlers() {
     miscContracts.setAppEnvVars,
     async (_, { appId, envVars }) => {
       try {
-        const app = await db.query.apps.findFirst({
-          where: eq(apps.id, appId),
-        });
+        const app = await getProjectStore().getApp(appId);
 
         if (!app) {
           throw new Error("App not found");

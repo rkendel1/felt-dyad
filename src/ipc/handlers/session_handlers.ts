@@ -9,7 +9,7 @@ export const registerSessionHandlers = () => {
     const defaultAppSession = session.defaultSession;
 
     await defaultAppSession.clearStorageData({
-      storages: ["cookies", "localstorage"],
+      storages: ["cookies"],
     });
     console.info(`[IPC] All session data cleared for default session`);
 

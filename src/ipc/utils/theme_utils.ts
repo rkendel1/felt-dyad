@@ -1,7 +1,5 @@
 import log from "electron-log";
-import { db } from "../../db";
-import { customThemes } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { FeltDBRecord, getFeltDBDataStore } from "../../store";
 import { themesData, type Theme } from "../../shared/themes";
 
 const logger = log.scope("theme_utils");
@@ -51,9 +49,11 @@ export async function getThemePromptById(
       return "";
     }
 
-    const customTheme = await db.query.customThemes.findFirst({
-      where: eq(customThemes.id, numericId),
-    });
+    const customTheme = await getFeltDBDataStore().get<
+      FeltDBRecord & {
+        prompt: string;
+      }
+    >("custom_themes", numericId);
 
     if (!customTheme) {
       logger.warn(`Custom theme not found: ${themeId}`);

@@ -27,9 +27,6 @@
     "ts:workers": "npx tsc -p workers/tsc/tsconfig.json --noEmit --incremental",
     "lint": "npx oxlint --fix",
     "lint:fix": "npx oxlint --fix --fix-suggestions --fix-dangerously",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
     "fmt:check": "npx oxfmt --check",
     "fmt": "npx oxfmt",
     "presubmit": "npm run fmt:check && npm run lint",
@@ -88,13 +85,11 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vscode/ripgrep": "^1.17.0",
     "ai": "^6.0.14",
-    "better-sqlite3": "^12.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
-    "drizzle-orm": "^0.41.0",
     "dugite": "^3.0.0",
     "electron-log": "^5.4.3",
     "electron-playwright-helpers": "^2.1.0",
@@ -117,7 +112,6 @@
     "monaco-editor": "^0.52.2",
     "openai": "^4.91.1",
     "perfect-freehand": "^1.2.2",
-    "posthog-js": "^1.236.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-konva": "^19.2.1",
@@ -152,7 +146,6 @@
     "@electron/fuses": "^1.8.0",
     "@playwright/test": "^1.52.0",
     "@testing-library/react": "^16.3.0",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/fs-extra": "^11.0.4",
     "@types/glob": "^8.1.0",
     "@types/kill-port": "^2.0.3",
@@ -165,7 +158,6 @@
     "@vitest/ui": "^3.1.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "cross-env": "^7.0.3",
-    "drizzle-kit": "^0.30.6",
     "electron": "40.0.0",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.31.0",
@@ -187,5 +179,5 @@
   "engines": {
     "node": ">=20"
   },
-  "productName": "dyad"
+  "productName": "FeltDB Builder"
 }

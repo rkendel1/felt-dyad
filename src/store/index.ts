@@ -3,6 +3,7 @@ export type {
   ProjectStoreConfig,
   App,
   Chat,
+  ChatSearchResult,
   Message,
   Prompt,
   ProjectState,
@@ -20,5 +21,10 @@ export {
   setProjectStore,
 } from "./project_store";
 
-export { SqliteProjectStore } from "./sqlite_project_store";
 export { FeltDBProjectStore } from "./feltdb_project_store";
+export {
+  FeltDBDataStore,
+  type FeltDBRecord,
+  getFeltDBDataStore,
+  initializeFeltDBDataStore,
+} from "./feltdb_data_store";

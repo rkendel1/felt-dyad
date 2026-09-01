@@ -11,9 +11,7 @@ import path from "path";
 import fs from "fs";
 import { runShellCommand } from "../utils/runShellCommand";
 import { extractCodebase } from "../../utils/codebase";
-import { db } from "../../db";
-import { chats, apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { getDyadAppPath } from "../../paths/paths";
 import { LargeLanguageModel } from "@/lib/schemas";
 import { validateChatContext } from "../utils/context_paths_utils";
@@ -64,9 +62,7 @@ async function getSystemDebugInfo({
     console.error("Failed to read package.json:", err);
   }
 
-  // Get telemetry info from settings
   const settings = readSettings();
-  const telemetryId = settings.telemetryUserId || "unknown";
 
   // Get logs from electron-log
   let logs = "";
@@ -105,11 +101,11 @@ async function getSystemDebugInfo({
     nodeVersion,
     pnpmVersion,
     nodePath,
-    telemetryId,
+    telemetryId: "disabled",
     selectedLanguageModel:
       serializeModelForDebug(settings.selectedModel) || "unknown",
-    telemetryConsent: settings.telemetryConsent || "unknown",
-    telemetryUrl: "https://us.i.posthog.com", // Hardcoded from renderer.tsx
+    telemetryConsent: "opted_out",
+    telemetryUrl: "disabled",
     dyadVersion,
     platform: process.platform,
     architecture: arch(),
@@ -138,14 +134,8 @@ export function registerDebugHandlers() {
       });
 
       // Get chat data from database
-      const chatRecord = await db.query.chats.findFirst({
-        where: eq(chats.id, chatId),
-        with: {
-          messages: {
-            orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-          },
-        },
-      });
+      const store = getProjectStore();
+      const chatRecord = await store.getChat(chatId);
 
       if (!chatRecord) {
         throw new Error(`Chat with ID ${chatId} not found`);
@@ -155,7 +145,7 @@ export function registerDebugHandlers() {
       const chat = {
         id: chatRecord.id,
         title: chatRecord.title || "Untitled Chat",
-        messages: chatRecord.messages.map((msg) => ({
+        messages: (await store.listMessages(chatId)).map((msg) => ({
           id: msg.id,
           role: msg.role,
           content: msg.content,
@@ -164,9 +154,7 @@ export function registerDebugHandlers() {
       };
 
       // Get app data from database
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, chatRecord.appId),
-      });
+      const app = await store.getApp(chatRecord.appId);
 
       if (!app) {
         throw new Error(`App with ID ${chatRecord.appId} not found`);

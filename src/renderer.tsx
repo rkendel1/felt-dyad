@@ -2,9 +2,6 @@ import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { router } from "./router";
 import { RouterProvider } from "@tanstack/react-router";
-import { PostHogProvider } from "posthog-js/react";
-import posthog from "posthog-js";
-import { getTelemetryUserId, isTelemetryOptedIn } from "./hooks/useSettings";
 import {
   QueryCache,
   QueryClient,
@@ -60,63 +57,7 @@ const queryClient = new QueryClient({
   }),
 });
 
-const posthogClient = posthog.init(
-  "phc_5Vxx0XT8Ug3eWROhP6mm4D6D2DgIIKT232q4AKxC2ab",
-  {
-    api_host: "https://us.i.posthog.com",
-    // @ts-ignore
-    debug: import.meta.env.MODE === "development",
-    autocapture: false,
-    capture_exceptions: true,
-    capture_pageview: false,
-    before_send: (event) => {
-      if (!isTelemetryOptedIn()) {
-        console.debug("Telemetry not opted in, skipping event");
-        return null;
-      }
-      const telemetryUserId = getTelemetryUserId();
-      if (telemetryUserId) {
-        posthogClient.identify(telemetryUserId);
-      }
-
-      if (event?.properties["$ip"]) {
-        event.properties["$ip"] = null;
-      }
-
-      console.debug(
-        "Telemetry opted in - UUID:",
-        telemetryUserId,
-        "sending event",
-        event,
-      );
-      return event;
-    },
-    persistence: "localStorage",
-  },
-);
-
 function App() {
-  useEffect(() => {
-    // Subscribe to navigation state changes
-    const unsubscribe = router.subscribe("onResolved", (navigation) => {
-      // Capture the navigation event in PostHog
-      posthog.capture("navigation", {
-        toPath: navigation.toLocation.pathname,
-        fromPath: navigation.fromLocation?.pathname,
-      });
-
-      // Optionally capture as a standard pageview as well
-      posthog.capture("$pageview", {
-        path: navigation.toLocation.pathname,
-      });
-    });
-
-    // Clean up subscription when component unmounts
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
   useEffect(() => {
     const unsubscribe = ipc.events.mcp.onConsentRequest((payload) => {
       showMcpConsentToast({
@@ -189,16 +130,6 @@ function App() {
     return () => unsubscribe();
   }, [setPendingAgentConsents]);
 
-  // Forward telemetry events from main process to PostHog
-  useEffect(() => {
-    const unsubscribe = ipc.events.system.onTelemetryEvent(
-      ({ eventName, properties }) => {
-        posthog.capture(eventName, properties);
-      },
-    );
-    return () => unsubscribe();
-  }, []);
-
   // Agent problems updates - update the TanStack Query cache when the agent runs type checks
   useEffect(() => {
     const unsubscribe = ipc.events.agent.onProblemsUpdate((payload) => {
@@ -216,9 +147,7 @@ function App() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <PostHogProvider client={posthogClient}>
-        <App />
-      </PostHogProvider>
+      <App />
     </QueryClientProvider>
   </StrictMode>,
 );

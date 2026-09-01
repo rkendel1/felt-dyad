@@ -15,7 +15,6 @@ const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: "workflow-settings", label: "Workflow" },
   { id: "ai-settings", label: "AI" },
   { id: "provider-settings", label: "Model Providers" },
-  { id: "telemetry", label: "Telemetry" },
   { id: "integrations", label: "Integrations" },
   {
     id: "agent-permissions",

@@ -28,7 +28,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { GitHubConnector } from "@/components/GitHubConnector";
-import { SupabaseConnector } from "@/components/SupabaseConnector";
 import { showError, showSuccess } from "@/lib/toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
@@ -39,6 +38,7 @@ import { useCheckName } from "@/hooks/useCheckName";
 import { AppUpgrades } from "@/components/AppUpgrades";
 import { CapacitorControls } from "@/components/CapacitorControls";
 import { GithubCollaboratorManager } from "@/components/GithubCollaboratorManager";
+import { ManagedFeltDB } from "@/components/ManagedFeltDB";
 
 export default function AppDetailsPage() {
   const navigate = useNavigate();
@@ -399,7 +399,12 @@ export default function AppDetailsPage() {
               </div>
             )}
           </div>
-          {appId && <SupabaseConnector appId={appId} />}
+          {appId && (
+            <div className="rounded-md border border-gray-200 p-4 dark:border-gray-700">
+              <h3 className="mb-3 text-lg font-semibold">Connections</h3>
+              <ManagedFeltDB appId={appId} />
+            </div>
+          )}
           {appId && <CapacitorControls appId={appId} />}
           <AppUpgrades appId={appId} />
         </div>

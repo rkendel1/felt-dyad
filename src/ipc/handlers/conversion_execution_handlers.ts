@@ -1,8 +1,6 @@
 import { createLoggedHandler } from "./safe_handle";
 import log from "electron-log";
-import { db } from "../../db";
-import { apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { getDyadAppPath } from "../../paths/paths";
 import { getConversionPlanStore } from "../../store/conversion_plan_store";
 import { createConversionExecutor } from "../../main/conversion_executor";
@@ -30,9 +28,7 @@ export function registerConversionExecutionHandlers() {
         logger.info(`Approving conversion for app ${params.appId}`);
 
         // Get the app
-        const appRecord = await db.query.apps.findFirst({
-          where: eq(apps.id, params.appId),
-        });
+        const appRecord = await getProjectStore().getApp(params.appId);
 
         if (!appRecord) {
           throw new Error(`App with ID ${params.appId} not found`);
@@ -84,9 +80,7 @@ export function registerConversionExecutionHandlers() {
         logger.info(`Executing conversion for app ${params.appId}`);
 
         // Get the app
-        const appRecord = await db.query.apps.findFirst({
-          where: eq(apps.id, params.appId),
-        });
+        const appRecord = await getProjectStore().getApp(params.appId);
 
         if (!appRecord) {
           throw new Error(`App with ID ${params.appId} not found`);
@@ -151,9 +145,7 @@ export function registerConversionExecutionHandlers() {
         logger.info(`Getting conversion execution for app ${params.appId}`);
 
         // Get the app
-        const appRecord = await db.query.apps.findFirst({
-          where: eq(apps.id, params.appId),
-        });
+        const appRecord = await getProjectStore().getApp(params.appId);
 
         if (!appRecord) {
           return undefined;
@@ -195,7 +187,7 @@ export function registerConversionExecutionHandlers() {
         let appId = 0;
 
         // Find app by querying all apps and checking their workspaces
-        const allApps = await db.query.apps.findMany();
+        const allApps = await getProjectStore().listApps();
         for (const app of allApps) {
           const workspaceManager = new ConversionWorkspaceManager(app.path);
           const execution = await workspaceManager.loadExecution(

@@ -1,6 +1,4 @@
-import { db } from "../../db";
-import { messages } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { Message } from "@/ipc/types";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
@@ -36,8 +34,7 @@ export async function executeAddDependency({
   );
 
   // Save the updated message back to the database
-  await db
-    .update(messages)
-    .set({ content: updatedContent })
-    .where(eq(messages.id, message.id));
+  await getProjectStore().updateMessage(message.id, {
+    content: updatedContent,
+  });
 }

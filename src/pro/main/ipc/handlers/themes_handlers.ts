@@ -5,9 +5,11 @@ import os from "os";
 import fs from "fs";
 import { readFile, writeFile, unlink, mkdir } from "fs/promises";
 import { themesData, type Theme } from "../../../../shared/themes";
-import { db } from "../../../../db";
-import { apps, customThemes } from "../../../../db/schema";
-import { eq, sql } from "drizzle-orm";
+import {
+  FeltDBRecord,
+  getFeltDBDataStore,
+  getProjectStore,
+} from "../../../../store";
 import { streamText, TextPart, ImagePart } from "ai";
 import { readSettings } from "../../../../main/settings";
 import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
@@ -28,6 +30,11 @@ import type {
 
 const logger = log.scope("themes_handlers");
 const handle = createLoggedHandler(logger);
+type StoredCustomTheme = FeltDBRecord & {
+  name: string;
+  description?: string;
+  prompt: string;
+};
 
 // Directory for storing temporary theme images
 const THEME_IMAGES_TEMP_DIR = path.join(os.tmpdir(), "dyad-theme-images");
@@ -153,15 +160,9 @@ export function registerThemesHandlers() {
     "set-app-theme",
     async (_, params: SetAppThemeParams): Promise<void> => {
       const { appId, themeId } = params;
-      // Use raw SQL to properly set NULL when themeId is null (representing "no theme")
-      if (!themeId) {
-        await db
-          .update(apps)
-          .set({ themeId: sql`NULL` })
-          .where(eq(apps.id, appId));
-      } else {
-        await db.update(apps).set({ themeId }).where(eq(apps.id, appId));
-      }
+      await getProjectStore().updateApp(appId, {
+        themeId: themeId ?? undefined,
+      });
     },
   );
 
@@ -169,19 +170,15 @@ export function registerThemesHandlers() {
   handle(
     "get-app-theme",
     async (_, params: GetAppThemeParams): Promise<string | null> => {
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, params.appId),
-        columns: { themeId: true },
-      });
+      const app = await getProjectStore().getApp(params.appId);
       return app?.themeId ?? null;
     },
   );
 
   // Get all custom themes
   handle("get-custom-themes", async (): Promise<CustomTheme[]> => {
-    const themes = await db.query.customThemes.findMany({
-      orderBy: (themes, { desc }) => [desc(themes.createdAt)],
-    });
+    const themes =
+      await getFeltDBDataStore().list<StoredCustomTheme>("custom_themes");
 
     return themes.map((t) => ({
       id: t.id,
@@ -224,9 +221,13 @@ export function registerThemesHandlers() {
       }
 
       // Check for duplicate theme name (case-insensitive)
-      const existingTheme = await db.query.customThemes.findFirst({
-        where: sql`LOWER(${customThemes.name}) = LOWER(${trimmedName})`,
-      });
+      const themeStore = getFeltDBDataStore();
+      const existingTheme = (
+        await themeStore.list<StoredCustomTheme>("custom_themes")
+      ).find(
+        (theme) =>
+          theme.name.toLocaleLowerCase() === trimmedName.toLocaleLowerCase(),
+      );
 
       if (existingTheme) {
         throw new Error(
@@ -234,16 +235,14 @@ export function registerThemesHandlers() {
         );
       }
 
-      const result = await db
-        .insert(customThemes)
-        .values({
+      const theme = await themeStore.create<StoredCustomTheme>(
+        "custom_themes",
+        {
           name: trimmedName,
-          description: trimmedDescription || null,
+          description: trimmedDescription || undefined,
           prompt: trimmedPrompt,
-        })
-        .returning();
-
-      const theme = result[0];
+        },
+      );
       return {
         id: theme.id,
         name: theme.name,
@@ -269,9 +268,11 @@ export function registerThemesHandlers() {
       };
 
       // Get the current theme to verify it exists
-      const currentTheme = await db.query.customThemes.findFirst({
-        where: eq(customThemes.id, params.id),
-      });
+      const themeStore = getFeltDBDataStore();
+      const currentTheme = await themeStore.get<StoredCustomTheme>(
+        "custom_themes",
+        params.id,
+      );
 
       if (!currentTheme) {
         throw new Error("Theme not found");
@@ -288,9 +289,13 @@ export function registerThemesHandlers() {
         }
 
         // Check for duplicate theme name (case-insensitive), excluding current theme
-        const existingTheme = await db.query.customThemes.findFirst({
-          where: sql`LOWER(${customThemes.name}) = LOWER(${trimmedName}) AND ${customThemes.id} != ${params.id}`,
-        });
+        const existingTheme = (
+          await themeStore.list<StoredCustomTheme>("custom_themes")
+        ).find(
+          (theme) =>
+            theme.id !== params.id &&
+            theme.name.toLocaleLowerCase() === trimmedName.toLocaleLowerCase(),
+        );
 
         if (existingTheme) {
           throw new Error(
@@ -322,13 +327,11 @@ export function registerThemesHandlers() {
         updateData.prompt = trimmedPrompt;
       }
 
-      const result = await db
-        .update(customThemes)
-        .set(updateData)
-        .where(eq(customThemes.id, params.id))
-        .returning();
-
-      const theme = result[0];
+      const theme = await themeStore.update<StoredCustomTheme>(
+        "custom_themes",
+        params.id,
+        updateData,
+      );
       if (!theme) {
         throw new Error("Theme not found");
       }
@@ -348,7 +351,7 @@ export function registerThemesHandlers() {
   handle(
     "delete-custom-theme",
     async (_, params: DeleteCustomThemeParams): Promise<void> => {
-      await db.delete(customThemes).where(eq(customThemes.id, params.id));
+      await getFeltDBDataStore().delete("custom_themes", params.id);
     },
   );
 
@@ -443,12 +446,6 @@ Modern dark theme with purple accents for testing.
 
 </theme>`,
         };
-      }
-
-      if (!settings.enableDyadPro) {
-        throw new Error(
-          "FeltDB AI is required for AI theme generation. Please enable FeltDB AI in Settings.",
-        );
       }
 
       // Validate inputs - image paths are required

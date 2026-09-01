@@ -1,6 +1,4 @@
-import { db } from "../../db";
-import { apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { createLoggedHandler } from "./safe_handle";
 import log from "electron-log";
 import { runFullAnalysis } from "../../import";
@@ -15,9 +13,7 @@ export function registerConversionAnalysisHandlers() {
       logger.info(`Starting analysis for app ${params.appId}`);
 
       // Get the app to find its path
-      const appRecord = await db.query.apps.findFirst({
-        where: eq(apps.id, params.appId),
-      });
+      const appRecord = await getProjectStore().getApp(params.appId);
 
       if (!appRecord) {
         throw new Error(`App with ID ${params.appId} not found`);
@@ -50,9 +46,7 @@ export function registerConversionAnalysisHandlers() {
   handle("get-conversion-plan", async (event, params: { appId: number }) => {
     try {
       // Get the app to find its path
-      const appRecord = await db.query.apps.findFirst({
-        where: eq(apps.id, params.appId),
-      });
+      const appRecord = await getProjectStore().getApp(params.appId);
 
       if (!appRecord) {
         return undefined;

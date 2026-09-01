@@ -67,15 +67,13 @@ export function NeonConnector() {
             if (settings?.isTestMode) {
               await ipc.neon.fakeConnect();
             } else {
-              await ipc.system.openExternalUrl(
-                "https://oauth.dyad.sh/api/integrations/neon/login",
-              );
+              await ipc.system.openExternalUrl("https://console.neon.tech");
             }
           }}
           className="w-auto h-10 cursor-pointer flex items-center justify-center px-4 py-2 rounded-md border-2 transition-colors font-medium text-sm dark:bg-gray-900 dark:border-gray-700"
           data-testid="connect-neon-button"
         >
-          <span className="mr-2">Connect to</span>
+          <span className="mr-2">Open</span>
           <NeonSvg isDarkMode={isDarkMode} />
         </div>
       </div>

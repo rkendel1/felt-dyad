@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
-  BookOpenIcon,
   BugIcon,
   UploadIcon,
   ChevronLeftIcon,
@@ -24,9 +23,7 @@ import { selectedChatIdAtom } from "@/atoms/chatAtoms";
 import { ChatLogsData } from "@/ipc/types";
 import { showError } from "@/lib/toast";
 import { HelpBotDialog } from "./HelpBotDialog";
-import { useSettings } from "@/hooks/useSettings";
 import { BugScreenshotDialog } from "./BugScreenshotDialog";
-import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
 
 interface HelpDialogProps {
   isOpen: boolean;
@@ -43,9 +40,6 @@ export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
   const [isHelpBotOpen, setIsHelpBotOpen] = useState(false);
   const [isBugScreenshotOpen, setIsBugScreenshotOpen] = useState(false);
   const selectedChatId = useAtomValue(selectedChatIdAtom);
-  const { settings } = useSettings();
-  const { userBudget } = useUserBudgetInfo();
-  const isDyadProUser = settings?.providerSettings?.["auto"]?.apiKey?.value;
 
   // Function to reset all dialog state
   const resetDialogState = () => {
@@ -86,14 +80,12 @@ export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
 <!-- Screenshot of the bug -->
 
 ## System Information
-- Dyad Version: ${debugInfo.dyadVersion}
+- FeltDB Builder Version: ${debugInfo.dyadVersion}
 - Platform: ${debugInfo.platform}
 - Architecture: ${debugInfo.architecture}
 - Node Version: ${debugInfo.nodeVersion || "n/a"}
 - PNPM Version: ${debugInfo.pnpmVersion || "n/a"}
 - Node Path: ${debugInfo.nodePath || "n/a"}
-- Pro User ID: ${userBudget?.redactedUserId || "n/a"}
-- Telemetry ID: ${debugInfo.telemetryId || "n/a"}
 - Model: ${debugInfo.selectedLanguageModel || "n/a"}
 
 ## Logs
@@ -106,9 +98,6 @@ ${debugInfo.logs.slice(-3_500) || "No logs available"}
       const encodedBody = encodeURIComponent(issueBody);
       const encodedTitle = encodeURIComponent("[bug] <WRITE TITLE HERE>");
       const labels = ["bug"];
-      if (isDyadProUser) {
-        labels.push("pro");
-      }
       const githubIssueUrl = `https://github.com/dyad-sh/dyad/issues/new?title=${encodedTitle}&labels=${labels}&body=${encodedBody}`;
 
       // Open the pre-filled GitHub issue page
@@ -210,7 +199,6 @@ ${debugInfo.logs.slice(-3_500) || "No logs available"}
 <!-- Please fill in all fields in English -->
 
 Session ID: ${sessionId}
-Pro User ID: ${userBudget?.redactedUserId || "n/a"}
 
 ## Issue Description (required)
 <!-- Please describe the issue you're experiencing -->
@@ -225,9 +213,6 @@ Pro User ID: ${userBudget?.redactedUserId || "n/a"}
     const encodedBody = encodeURIComponent(issueBody);
     const encodedTitle = encodeURIComponent("[session report] <add title>");
     const labels = ["support"];
-    if (isDyadProUser) {
-      labels.push("pro");
-    }
     const githubIssueUrl = `https://github.com/dyad-sh/dyad/issues/new?title=${encodedTitle}&labels=${labels}&body=${encodedBody}`;
 
     ipc.system.openExternalUrl(githubIssueUrl);
@@ -330,7 +315,9 @@ Pro User ID: ${userBudget?.redactedUserId || "n/a"}
             <div className="border rounded-md p-3">
               <h3 className="font-medium mb-2">System Information</h3>
               <div className="text-sm bg-slate-50 dark:bg-slate-900 rounded p-2 max-h-32 overflow-y-auto">
-                <p>Dyad Version: {chatLogsData.debugInfo.dyadVersion}</p>
+                <p>
+                  FeltDB Builder Version: {chatLogsData.debugInfo.dyadVersion}
+                </p>
                 <p>Platform: {chatLogsData.debugInfo.platform}</p>
                 <p>Architecture: {chatLogsData.debugInfo.architecture}</p>
                 <p>
@@ -372,45 +359,26 @@ Pro User ID: ${userBudget?.redactedUserId || "n/a"}
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Need help with Dyad?</DialogTitle>
+          <DialogTitle>Need help with FeltDB Builder?</DialogTitle>
         </DialogHeader>
         <DialogDescription className="">
           If you need help or want to report an issue, here are some options:
         </DialogDescription>
         <div className="flex flex-col space-y-4 w-full">
-          {isDyadProUser ? (
-            <div className="flex flex-col space-y-2">
-              <Button
-                variant="default"
-                onClick={() => {
-                  setIsHelpBotOpen(true);
-                }}
-                className="w-full py-6 border-primary/50 shadow-sm shadow-primary/10 transition-all hover:shadow-md hover:shadow-primary/15"
-              >
-                <SparklesIcon className="mr-2 h-5 w-5" /> Chat with Dyad help
-                bot (Pro)
-              </Button>
-              <p className="text-sm text-muted-foreground px-2">
-                Opens an in-app help chat assistant that searches through Dyad's
-                docs.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col space-y-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  ipc.system.openExternalUrl("https://www.dyad.sh/docs");
-                }}
-                className="w-full py-6 bg-(--background-lightest)"
-              >
-                <BookOpenIcon className="mr-2 h-5 w-5" /> Open Docs
-              </Button>
-              <p className="text-sm text-muted-foreground px-2">
-                Get help with common questions and issues.
-              </p>
-            </div>
-          )}
+          <div className="flex flex-col space-y-2">
+            <Button
+              variant="default"
+              onClick={() => setIsHelpBotOpen(true)}
+              className="w-full py-6 border-primary/50 shadow-sm shadow-primary/10 transition-all hover:shadow-md hover:shadow-primary/15"
+            >
+              <SparklesIcon className="mr-2 h-5 w-5" /> Chat with FeltDB Builder
+              help bot
+            </Button>
+            <p className="text-sm text-muted-foreground px-2">
+              Opens an in-app help assistant that searches FeltDB Builder's
+              documentation.
+            </p>
+          </div>
 
           <div className="flex flex-col space-y-2">
             <Button

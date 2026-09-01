@@ -1,7 +1,5 @@
 import log from "electron-log";
-import { db } from "../../db";
-import { eq } from "drizzle-orm";
-import { apps } from "../../db/schema";
+import { getProjectStore } from "../../store";
 import {
   getSupabaseClientForOrganization,
   listSupabaseBranches,
@@ -189,14 +187,11 @@ export function registerSupabaseHandlers() {
   // Set app project - links a Dyad app to a Supabase project
   createTypedHandler(supabaseContracts.setAppProject, async (_, params) => {
     const { projectId, appId, parentProjectId, organizationSlug } = params;
-    await db
-      .update(apps)
-      .set({
-        supabaseProjectId: projectId,
-        supabaseParentProjectId: parentProjectId,
-        supabaseOrganizationSlug: organizationSlug,
-      })
-      .where(eq(apps.id, appId));
+    await getProjectStore().updateApp(appId, {
+      supabaseProjectId: projectId,
+      supabaseParentProjectId: parentProjectId,
+      supabaseOrganizationSlug: organizationSlug,
+    });
 
     logger.info(
       `Associated app ${appId} with Supabase project ${projectId} (organization: ${organizationSlug})${parentProjectId ? ` and parent project ${parentProjectId}` : ""}`,
@@ -206,14 +201,11 @@ export function registerSupabaseHandlers() {
   // Unset app project - removes the link between a Dyad app and a Supabase project
   createTypedHandler(supabaseContracts.unsetAppProject, async (_, params) => {
     const { app } = params;
-    await db
-      .update(apps)
-      .set({
-        supabaseProjectId: null,
-        supabaseParentProjectId: null,
-        supabaseOrganizationSlug: null,
-      })
-      .where(eq(apps.id, app));
+    await getProjectStore().updateApp(app, {
+      supabaseProjectId: undefined,
+      supabaseParentProjectId: undefined,
+      supabaseOrganizationSlug: undefined,
+    });
 
     logger.info(`Removed Supabase project association for app ${app}`);
   });
@@ -254,13 +246,10 @@ export function registerSupabaseHandlers() {
       );
 
       // Set the supabase project for the currently selected app
-      await db
-        .update(apps)
-        .set({
-          supabaseProjectId: fakeProjectId,
-          supabaseOrganizationSlug: fakeOrgId,
-        })
-        .where(eq(apps.id, appId));
+      await getProjectStore().updateApp(appId, {
+        supabaseProjectId: fakeProjectId,
+        supabaseOrganizationSlug: fakeOrgId,
+      });
       logger.info(
         `Set fake Supabase project ${fakeProjectId} for app ${appId} during testing.`,
       );

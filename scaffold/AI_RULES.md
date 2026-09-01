@@ -15,16 +15,25 @@
 
 **CRITICAL: This application uses FeltDB as its native persistence layer.**
 
-- Import and use `src/lib/feltdb.ts` for all database operations
-- All persistent data MUST be stored in FeltDB collections, NOT in memory
+- `feltdb.flow` is authoritative for collections, fields, indexes, capabilities, workflows, triggers, policies, and agents
+- Read and update `feltdb.flow` before implementing any feature that changes persistent state
+- If `feltdb.flow` is missing, create a valid `flow_version 1` model before writing application code
+- Import `db` from `src/lib/feltdb.ts` for runtime collection operations
+- `server.mjs` owns the Node file runtime and serves the browser client over the same-origin `/api/feltdb` endpoint; preserve this boundary
+- Never switch the client to IndexedDB unless the user explicitly requests browser-local, per-profile data
+- Collection names used by TypeScript must exactly match declarations in `feltdb.flow`
+- Never define schemas in TypeScript or create a separate collections schema object
+- Run `npm run feltdb:sync` after changing the flow when generated contracts are used
+- All persistent data MUST be stored in FeltDB collections, not localStorage or memory
 - Do NOT use SQLite, Supabase, Firebase, Neon, Prisma, Drizzle, or any other persistence provider
 - FeltDB is the only database solution for this application
-- Define your data schemas in the `collections` object in `src/lib/feltdb.ts`
-- Use `getFeltDB()` to get the database instance and perform queries
-- Example collection pattern:
+- `feltdb.config.json` owns runtime intent; `.feltdb/` is disposable runtime state and must remain ignored
+- Example runtime collection pattern:
   ```typescript
-  const todos = await db.collection("todos").find().toArray();
-  await db.collection("todos").insertOne({ id: "1", title: "My Task" });
+  import { db } from "@/lib/feltdb";
+  const todos = db.collection<Todo>("Todo");
+  const records = await todos.find({ completed: false });
+  await todos.insert({ id: "1", title: "My Task", completed: false }, "1");
   ```
 
 Available packages and libraries:

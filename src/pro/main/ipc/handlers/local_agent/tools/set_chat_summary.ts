@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { ToolDefinition, AgentContext } from "./types";
-import { db } from "@/db";
-import { chats } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { getProjectStore } from "@/store";
 
 const setChatSummarySchema = z.object({
   summary: z.string().describe("A short summary/title for the chat"),
@@ -27,10 +25,10 @@ export const setChatSummaryTool: ToolDefinition<
 
   execute: async (args, ctx: AgentContext) => {
     if (args.summary) {
-      await db
-        .update(chats)
-        .set({ title: args.summary })
-        .where(and(eq(chats.id, ctx.chatId), isNull(chats.title)));
+      const store = getProjectStore();
+      const chat = await store.getChat(ctx.chatId);
+      if (chat && !chat.title)
+        await store.updateChat(ctx.chatId, { title: args.summary });
       ctx.chatSummary = args.summary;
     }
 

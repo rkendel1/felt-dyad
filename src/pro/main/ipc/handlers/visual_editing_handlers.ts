@@ -2,9 +2,7 @@ import { ipcMain } from "electron";
 import fs from "node:fs";
 import { promises as fsPromises } from "node:fs";
 import path from "path";
-import { db } from "../../../../db";
-import { apps } from "../../../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../../../store";
 import { getDyadAppPath } from "../../../../paths/paths";
 import {
   stylesToTailwind,
@@ -31,9 +29,7 @@ export function registerVisualEditingHandlers() {
         if (changes.length === 0) return;
 
         // Get the app to find its path
-        const app = await db.query.apps.findFirst({
-          where: eq(apps.id, appId),
-        });
+        const app = await getProjectStore().getApp(appId);
 
         if (!app) {
           throw new Error(`App not found: ${appId}`);
@@ -104,9 +100,7 @@ export function registerVisualEditingHandlers() {
         }
 
         // Get the app to find its path
-        const app = await db.query.apps.findFirst({
-          where: eq(apps.id, appId),
-        });
+        const app = await getProjectStore().getApp(appId);
 
         if (!app) {
           throw new Error(`App not found: ${appId}`);

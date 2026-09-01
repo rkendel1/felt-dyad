@@ -1,6 +1,4 @@
-import { db } from "../../db";
-import { chats } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import {
   constructSystemPrompt,
   readAiRules,
@@ -35,15 +33,15 @@ export function registerTokenCountHandlers() {
   handle(
     "chat:count-tokens",
     async (event, req: TokenCountParams): Promise<TokenCountResult> => {
-      const chat = await db.query.chats.findFirst({
-        where: eq(chats.id, req.chatId),
-        with: {
-          messages: {
-            orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-          },
-          app: true,
-        },
-      });
+      const store = getProjectStore();
+      const chatRecord = await store.getChat(req.chatId);
+      const chat = chatRecord
+        ? {
+            ...chatRecord,
+            messages: await store.listMessages(req.chatId),
+            app: await store.getApp(chatRecord.appId),
+          }
+        : null;
 
       if (!chat) {
         throw new Error(`Chat not found: ${req.chatId}`);
@@ -108,7 +106,7 @@ export function registerTokenCountHandlers() {
           chatContext: validateChatContext(chat.app.chatContext),
         });
         codebaseInfo = formattedOutput;
-        if (settings.enableDyadPro && settings.enableProSmartFilesContextMode) {
+        if (settings.enableProSmartFilesContextMode) {
           codebaseTokens = estimateTokens(
             files
               // It doesn't need to be the exact format but it's just to get a token estimate

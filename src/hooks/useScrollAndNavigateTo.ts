@@ -23,7 +23,7 @@ export function useScrollAndNavigateTo(
   return useCallback(
     async (id: string) => {
       await navigate({ to });
-      const element = document.getElementById(id);
+      const element = await waitForElement(id);
       if (element) {
         element.scrollIntoView({
           behavior: options?.behavior ?? "smooth",
@@ -46,4 +46,15 @@ export function useScrollAndNavigateTo(
       setActiveSection,
     ],
   );
+}
+
+export async function waitForElement(
+  id: string,
+  attemptsRemaining = 10,
+): Promise<HTMLElement | null> {
+  const element = document.getElementById(id);
+  if (element || attemptsRemaining === 0) return element;
+
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  return waitForElement(id, attemptsRemaining - 1);
 }

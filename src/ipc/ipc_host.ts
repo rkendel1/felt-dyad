@@ -22,7 +22,6 @@ import { registerLanguageModelHandlers } from "./handlers/language_model_handler
 import { registerReleaseNoteHandlers } from "./handlers/release_note_handlers";
 import { registerImportHandlers } from "./handlers/import_handlers";
 import { registerSessionHandlers } from "./handlers/session_handlers";
-import { registerProHandlers } from "./handlers/pro_handlers";
 import { registerContextPathsHandlers } from "./handlers/context_paths_handlers";
 import { registerAppUpgradeHandlers } from "./handlers/app_upgrade_handlers";
 import { registerCapacitorHandlers } from "./handlers/capacitor_handlers";
@@ -37,7 +36,6 @@ import { registerMcpHandlers } from "./handlers/mcp_handlers";
 import { registerSecurityHandlers } from "./handlers/security_handlers";
 import { registerVisualEditingHandlers } from "../pro/main/ipc/handlers/visual_editing_handlers";
 import { registerAgentToolHandlers } from "../pro/main/ipc/handlers/local_agent/agent_tool_handlers";
-import { registerFreeAgentQuotaHandlers } from "./handlers/free_agent_quota_handlers";
 import { registerConversionAnalysisHandlers } from "./handlers/conversion_analysis_handlers";
 import { registerConversionExecutionHandlers } from "./handlers/conversion_execution_handlers";
 import { registerApplicationIntelligenceHandlers } from "./handlers/application_intelligence_handlers";
@@ -69,7 +67,6 @@ export function registerIpcHandlers() {
   registerReleaseNoteHandlers();
   registerImportHandlers();
   registerSessionHandlers();
-  registerProHandlers();
   registerContextPathsHandlers();
   registerAppUpgradeHandlers();
   registerCapacitorHandlers();
@@ -83,7 +80,6 @@ export function registerIpcHandlers() {
   registerSecurityHandlers();
   registerVisualEditingHandlers();
   registerAgentToolHandlers();
-  registerFreeAgentQuotaHandlers();
   registerConversionAnalysisHandlers();
   registerConversionExecutionHandlers();
   registerApplicationIntelligenceHandlers();

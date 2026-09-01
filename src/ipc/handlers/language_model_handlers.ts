@@ -12,17 +12,26 @@ import {
   getLanguageModels,
   getLanguageModelsByProviders,
 } from "../shared/language_model_helpers";
-import { db } from "@/db";
-import {
-  language_models,
-  language_model_providers as languageModelProvidersSchema,
-  language_models as languageModelsSchema,
-} from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { FeltDBRecord, getFeltDBDataStore } from "@/store";
 import { IpcMainInvokeEvent } from "electron";
 
 const logger = log.scope("language_model_handlers");
 const handle = createLoggedHandler(logger);
+type StoredProvider = FeltDBRecord & {
+  providerId: string;
+  name: string;
+  apiBaseUrl: string;
+  envVarName?: string;
+};
+type StoredModel = FeltDBRecord & {
+  displayName: string;
+  apiName: string;
+  builtinProviderId?: string;
+  customProviderId?: string;
+  description?: string;
+  maxOutputTokens?: number;
+  contextWindow?: number;
+};
 
 export function registerLanguageModelHandlers() {
   handle(
@@ -54,23 +63,22 @@ export function registerLanguageModelHandlers() {
       }
 
       // Check if a provider with this ID already exists
-      const existingProvider = db
-        .select()
-        .from(languageModelProvidersSchema)
-        .where(eq(languageModelProvidersSchema.id, id))
-        .get();
+      const store = getFeltDBDataStore();
+      const providerKey = CUSTOM_PROVIDER_PREFIX + id;
+      const existingProvider = (
+        await store.list<StoredProvider>("language_model_providers")
+      ).find((provider) => provider.providerId === providerKey);
 
       if (existingProvider) {
         throw new Error(`A provider with ID "${id}" already exists`);
       }
 
       // Insert the new provider
-      await db.insert(languageModelProvidersSchema).values({
-        // Make sure we will never have accidental collisions with builtin providers
-        id: CUSTOM_PROVIDER_PREFIX + id,
+      await store.create<StoredProvider>("language_model_providers", {
+        providerId: providerKey,
         name,
-        api_base_url: apiBaseUrl,
-        env_var_name: envVarName || null,
+        apiBaseUrl,
+        envVarName: envVarName || undefined,
       });
 
       // Return the newly created provider
@@ -118,14 +126,14 @@ export function registerLanguageModelHandlers() {
       }
 
       // Insert the new model
-      await db.insert(languageModelsSchema).values({
+      await getFeltDBDataStore().create<StoredModel>("language_models", {
         displayName,
         apiName,
         builtinProviderId: provider.type === "cloud" ? providerId : undefined,
         customProviderId: provider.type === "custom" ? providerId : undefined,
-        description: description || null,
-        max_output_tokens: maxOutputTokens || null,
-        context_window: contextWindow || null,
+        description: description || undefined,
+        maxOutputTokens: maxOutputTokens || undefined,
+        contextWindow: contextWindow || undefined,
       });
     },
   );
@@ -148,46 +156,27 @@ export function registerLanguageModelHandlers() {
       }
 
       // Check if the provider being edited exists
-      const existingProvider = db
-        .select()
-        .from(languageModelProvidersSchema)
-        .where(eq(languageModelProvidersSchema.id, CUSTOM_PROVIDER_PREFIX + id))
-        .get();
+      const store = getFeltDBDataStore();
+      const existingProvider = (
+        await store.list<StoredProvider>("language_model_providers")
+      ).find((provider) => provider.providerId === CUSTOM_PROVIDER_PREFIX + id);
 
       if (!existingProvider) {
         throw new Error(`Provider with ID "${id}" not found`);
       }
 
-      // Use transaction to ensure atomicity when updating provider and potentially its models
-      const result = db.transaction((tx) => {
-        // Update the provider
-        const updateResult = tx
-          .update(languageModelProvidersSchema)
-          .set({
-            id: CUSTOM_PROVIDER_PREFIX + id,
-            name,
-            api_base_url: apiBaseUrl,
-            env_var_name: envVarName || null,
-          })
-          .where(
-            eq(languageModelProvidersSchema.id, CUSTOM_PROVIDER_PREFIX + id),
-          )
-          .run();
-
-        if (updateResult.changes === 0) {
-          throw new Error(`Failed to update provider with ID "${id}"`);
-        }
-
-        return {
-          id,
+      await store.update<StoredProvider>(
+        "language_model_providers",
+        existingProvider.id,
+        {
+          providerId: CUSTOM_PROVIDER_PREFIX + id,
           name,
           apiBaseUrl,
-          envVarName,
-          type: "custom" as const,
-        };
-      });
+          envVarName: envVarName || undefined,
+        },
+      );
       logger.info(`Successfully updated provider`);
-      return result;
+      return { id, name, apiBaseUrl, envVarName, type: "custom" as const };
     },
   );
 
@@ -208,11 +197,10 @@ export function registerLanguageModelHandlers() {
         `Handling delete-custom-language-model for apiName: ${apiName}`,
       );
 
-      const existingModel = await db
-        .select()
-        .from(languageModelsSchema)
-        .where(eq(languageModelsSchema.apiName, apiName))
-        .get();
+      const store = getFeltDBDataStore();
+      const existingModel = (
+        await store.list<StoredModel>("language_models")
+      ).find((model) => model.apiName === apiName);
 
       if (!existingModel) {
         throw new Error(
@@ -220,9 +208,7 @@ export function registerLanguageModelHandlers() {
         );
       }
 
-      await db
-        .delete(languageModelsSchema)
-        .where(eq(languageModelsSchema.apiName, apiName));
+      await store.delete("language_models", existingModel.id);
     },
   );
 
@@ -251,26 +237,29 @@ export function registerLanguageModelHandlers() {
       if (provider.type === "local") {
         throw new Error("Local models cannot be deleted");
       }
-      const result = db
-        .delete(language_models)
-        .where(
-          and(
-            provider.type === "cloud"
-              ? eq(language_models.builtinProviderId, providerId)
-              : eq(language_models.customProviderId, providerId),
+      const store = getFeltDBDataStore();
+      const matchingModels = (
+        await store.list<StoredModel>("language_models")
+      ).filter(
+        (model) =>
+          model.apiName === modelApiName &&
+          (provider.type === "cloud"
+            ? model.builtinProviderId === providerId
+            : model.customProviderId === providerId),
+      );
+      await Promise.all(
+        matchingModels.map((model) =>
+          store.delete("language_models", model.id),
+        ),
+      );
 
-            eq(language_models.apiName, modelApiName),
-          ),
-        )
-        .run();
-
-      if (result.changes === 0) {
+      if (matchingModels.length === 0) {
         logger.warn(
           `No custom model found matching providerId=${providerId} and apiName=${modelApiName} for deletion.`,
         );
       } else {
         logger.info(
-          `Successfully deleted ${result.changes} custom model(s) with apiName=${modelApiName} for provider=${providerId}`,
+          `Successfully deleted ${matchingModels.length} custom model(s) with apiName=${modelApiName} for provider=${providerId}`,
         );
       }
     },
@@ -294,11 +283,13 @@ export function registerLanguageModelHandlers() {
       );
 
       // Check if the provider exists before attempting deletion
-      const existingProvider = await db
-        .select({ id: languageModelProvidersSchema.id })
-        .from(languageModelProvidersSchema)
-        .where(eq(languageModelProvidersSchema.id, providerId))
-        .get();
+      const store = getFeltDBDataStore();
+      const providerKey = providerId.startsWith(CUSTOM_PROVIDER_PREFIX)
+        ? providerId
+        : CUSTOM_PROVIDER_PREFIX + providerId;
+      const existingProvider = (
+        await store.list<StoredProvider>("language_model_providers")
+      ).find((provider) => provider.providerId === providerKey);
 
       if (!existingProvider) {
         // If the provider doesn't exist, maybe it was already deleted. Log and return.
@@ -310,35 +301,16 @@ export function registerLanguageModelHandlers() {
         return;
       }
 
-      // Use a transaction to ensure atomicity
-      db.transaction((tx) => {
-        // 1. Delete associated models
-        const deleteModelsResult = tx
-          .delete(languageModelsSchema)
-          .where(eq(languageModelsSchema.customProviderId, providerId))
-          .run();
-        logger.info(
-          `Deleted ${deleteModelsResult.changes} model(s) associated with provider ${providerId}`,
-        );
-
-        // 2. Delete the provider
-        const deleteProviderResult = tx
-          .delete(languageModelProvidersSchema)
-          .where(eq(languageModelProvidersSchema.id, providerId))
-          .run();
-
-        if (deleteProviderResult.changes === 0) {
-          // This case should ideally not happen if existingProvider check passed,
-          // but adding safety check within transaction.
-          logger.error(
-            `Failed to delete provider with ID "${providerId}" during transaction, although it was found initially. Rolling back.`,
-          );
-          throw new Error(
-            `Failed to delete provider with ID "${providerId}" which should have existed.`,
-          );
-        }
-        logger.info(`Successfully deleted provider with ID "${providerId}".`);
-      });
+      const models = (await store.list<StoredModel>("language_models")).filter(
+        (model) =>
+          model.customProviderId === providerId ||
+          model.customProviderId === providerKey,
+      );
+      await Promise.all(
+        models.map((model) => store.delete("language_models", model.id)),
+      );
+      await store.delete("language_model_providers", existingProvider.id);
+      logger.info(`Successfully deleted provider with ID "${providerId}".`);
     },
   );
 

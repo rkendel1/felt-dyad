@@ -1,6 +1,4 @@
-import { db } from "../../db";
-import { messages, apps, chats } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { getDyadAppPath } from "../../paths/paths";
 import { executeAddDependency } from "../processors/executeAddDependency";
 import { createLoggedHandler } from "./safe_handle";
@@ -17,23 +15,18 @@ export function registerDependencyHandlers() {
       { chatId, packages }: { chatId: number; packages: string[] },
     ): Promise<void> => {
       // Find the message from the database
-      const foundMessages = await db.query.messages.findMany({
-        where: eq(messages.chatId, chatId),
-      });
+      const store = getProjectStore();
+      const foundMessages = await store.listMessages(chatId);
 
       // Find the chat first
-      const chat = await db.query.chats.findFirst({
-        where: eq(chats.id, chatId),
-      });
+      const chat = await store.getChat(chatId);
 
       if (!chat) {
         throw new Error(`Chat ${chatId} not found`);
       }
 
       // Get the app using the appId from the chat
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, chat.appId),
-      });
+      const app = await store.getApp(chat.appId);
 
       if (!app) {
         throw new Error(`App for chat ${chatId} not found`);

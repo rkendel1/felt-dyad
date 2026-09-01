@@ -49,7 +49,6 @@ export { upgradeContracts } from "./upgrade";
 export { visualEditingContracts } from "./visual-editing";
 export { securityContracts } from "./security";
 export { miscContracts, miscEvents } from "./misc";
-export { freeAgentQuotaContracts } from "./free_agent_quota";
 export { conversionAnalysisContracts } from "./conversion-analysis";
 export { conversionExecutionContracts } from "./conversion-execution";
 export { feltdbContracts } from "./feltdb";
@@ -81,7 +80,6 @@ export { upgradeClient } from "./upgrade";
 export { visualEditingClient } from "./visual-editing";
 export { securityClient } from "./security";
 export { miscClient, miscEventClient } from "./misc";
-export { freeAgentQuotaClient } from "./free_agent_quota";
 export { conversionAnalysisClient } from "./conversion-analysis";
 export { conversionExecutionClient } from "./conversion-execution";
 export { feltdbClient } from "./feltdb";
@@ -224,7 +222,6 @@ export type {
   SystemDebugInfo,
   SelectNodeFolderResult,
   DoesReleaseNoteExistParams,
-  UserBudgetInfo,
   TelemetryEventPayload,
 } from "./system";
 
@@ -299,9 +296,6 @@ export type { SecurityReviewResult } from "./security";
 // Misc types
 export type { ChatLogsData, DeepLinkData, AppOutput, EnvVar } from "./misc";
 
-// Free agent quota types
-export type { FreeAgentQuotaStatus } from "./free_agent_quota";
-
 // Conversion analysis types
 export type {
   StateDependencyClassification,
@@ -350,8 +344,6 @@ export {
   AgentToolConsentRequestSchema,
 } from "./agent";
 
-export { UserBudgetInfoSchema } from "./system";
-
 // =============================================================================
 // Aggregated IPC Client
 // =============================================================================
@@ -380,7 +372,6 @@ import { upgradeClient } from "./upgrade";
 import { visualEditingClient } from "./visual-editing";
 import { securityClient } from "./security";
 import { miscClient, miscEventClient } from "./misc";
-import { freeAgentQuotaClient } from "./free_agent_quota";
 import { conversionAnalysisClient } from "./conversion-analysis";
 import { conversionExecutionClient } from "./conversion-execution";
 
@@ -438,7 +429,6 @@ export const ipc = {
   visualEditing: visualEditingClient,
   security: securityClient,
   misc: miscClient,
-  freeAgentQuota: freeAgentQuotaClient,
   conversionAnalysis: conversionAnalysisClient,
   conversionExecution: conversionExecutionClient,
 

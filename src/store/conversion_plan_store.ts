@@ -71,6 +71,7 @@ export class ConversionPlanStore {
       ui_changes: plan.uiChanges,
       warnings: plan.warnings,
       manual_decisions: plan.manualDecisions,
+      target_runtime: plan.targetRuntime,
       created_at: plan.createdAt.getTime(),
       updated_at: plan.updatedAt.getTime(),
     };
@@ -128,6 +129,7 @@ export class ConversionPlanStore {
         uiChanges: doc.ui_changes,
         warnings: doc.warnings,
         manualDecisions: doc.manual_decisions,
+        targetRuntime: doc.target_runtime,
         createdAt: new Date(doc.created_at),
         updatedAt: new Date(doc.updated_at),
       };
@@ -161,6 +163,7 @@ export class ConversionPlanStore {
         uiChanges: doc.ui_changes,
         warnings: doc.warnings,
         manualDecisions: doc.manual_decisions,
+        targetRuntime: doc.target_runtime,
         createdAt: new Date(doc.created_at),
         updatedAt: new Date(doc.updated_at),
       }));

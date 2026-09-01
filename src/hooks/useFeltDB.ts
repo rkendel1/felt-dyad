@@ -1,18 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ipc } from "@/ipc/types";
 import { showError, showSuccess } from "@/lib/toast";
-
-export const feltdbKeys = {
-  status: (appId: number) => ["feltdb-status", appId],
-  managed: (accountId: string) => ["feltdb-managed", accountId],
-};
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * Hook to get the FeltDB connection status for an app
  */
 export function useFeltDBStatus(appId: number) {
   return useQuery({
-    queryKey: feltdbKeys.status(appId),
+    queryKey: queryKeys.feltdb.status({ appId }),
     queryFn: () => ipc.feltdb.getStatus({ appId }),
     enabled: !!appId,
     refetchInterval: 5000, // Refetch every 5 seconds
@@ -33,7 +29,7 @@ export function useInitializeFeltDB() {
     }) => ipc.feltdb.initialize(params),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: feltdbKeys.status(variables.appId),
+        queryKey: queryKeys.feltdb.status({ appId: variables.appId }),
       });
       showSuccess(
         `FeltDB initialized with ${variables.runtime} runtime (${variables.mode} mode)`,
@@ -54,7 +50,9 @@ export function useStartFeltDB() {
   return useMutation({
     mutationFn: (appId: number) => ipc.feltdb.start({ appId }),
     onSuccess: (_, appId) => {
-      queryClient.invalidateQueries({ queryKey: feltdbKeys.status(appId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.feltdb.status({ appId }),
+      });
       showSuccess("FeltDB runtime started");
     },
     onError: (error) => {
@@ -89,7 +87,7 @@ export function useConnectManagedFeltDB() {
     }) => ipc.feltdb.setManagedProject(params),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: feltdbKeys.status(variables.appId),
+        queryKey: queryKeys.feltdb.status({ appId: variables.appId }),
       });
       showSuccess("Connected to Managed FeltDB");
     },
@@ -104,10 +102,17 @@ export function useConnectManagedFeltDB() {
  */
 export function useListManagedFeltDBProjects(accountId?: string) {
   return useQuery({
-    queryKey: feltdbKeys.managed(accountId || ""),
+    queryKey: queryKeys.feltdb.managedProjects({ accountId: accountId || "" }),
     queryFn: () =>
       ipc.feltdb.listManagedProjects({ accountId: accountId || "" }),
     enabled: !!accountId,
+  });
+}
+
+export function useManagedFeltDBAccount() {
+  return useQuery({
+    queryKey: queryKeys.feltdb.account,
+    queryFn: () => ipc.feltdb.getManagedAccount(),
   });
 }
 
@@ -115,8 +120,17 @@ export function useListManagedFeltDBProjects(accountId?: string) {
  * Hook to authenticate with Managed FeltDB
  */
 export function useAuthenticateManagedFeltDB() {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (email?: string) => ipc.feltdb.authenticateManaged({ email }),
+    mutationFn: (params: {
+      apiUrl: string;
+      accessToken: string;
+      accountId: string;
+      email?: string;
+    }) => ipc.feltdb.authenticateManaged(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.feltdb.account });
+    },
     onError: (error) => {
       showError(error as any);
     },
@@ -132,7 +146,9 @@ export function useDisconnectManagedFeltDB() {
   return useMutation({
     mutationFn: (appId: number) => ipc.feltdb.disconnectManaged({ appId }),
     onSuccess: (_, appId) => {
-      queryClient.invalidateQueries({ queryKey: feltdbKeys.status(appId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.feltdb.status({ appId }),
+      });
       showSuccess("Disconnected from Managed FeltDB");
     },
     onError: (error) => {

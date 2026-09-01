@@ -1,6 +1,4 @@
-import { db } from "@/db";
-import { apps } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "@/store";
 import { z } from "zod";
 import {
   AppChatContext,
@@ -23,9 +21,7 @@ export function registerContextPathsHandlers() {
     async (_, { appId }: { appId: number }): Promise<ContextPathResults> => {
       z.object({ appId: z.number() }).parse({ appId });
 
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, appId),
-      });
+      const app = await getProjectStore().getApp(appId);
 
       if (!app) {
         throw new Error("App not found");
@@ -109,7 +105,7 @@ export function registerContextPathsHandlers() {
       });
       schema.parse({ appId, chatContext });
 
-      await db.update(apps).set({ chatContext }).where(eq(apps.id, appId));
+      await getProjectStore().updateApp(appId, { chatContext });
     },
   );
 }

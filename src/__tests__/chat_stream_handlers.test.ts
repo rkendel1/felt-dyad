@@ -13,7 +13,7 @@ import {
   hasUnclosedDyadWrite,
 } from "../ipc/handlers/chat_stream_handlers";
 import fs from "node:fs";
-import { db } from "../db";
+import { getProjectStore } from "../store";
 import { cleanFullResponse } from "../ipc/utils/cleanFullResponse";
 import { gitAdd, gitRemove, gitCommit } from "../ipc/utils/git_utils";
 
@@ -66,23 +66,15 @@ vi.mock("../paths/paths", () => ({
   getUserDataPath: vi.fn().mockReturnValue("/mock/user/data/path"),
 }));
 
-// Mock db
-vi.mock("../db", () => ({
-  db: {
-    query: {
-      chats: {
-        findFirst: vi.fn(),
-      },
-      messages: {
-        findFirst: vi.fn(),
-      },
-    },
-    update: vi.fn(() => ({
-      set: vi.fn(() => ({
-        where: vi.fn().mockResolvedValue(undefined),
-      })),
-    })),
-  },
+const projectStoreMock = vi.hoisted(() => ({
+  getApp: vi.fn(),
+  getChat: vi.fn(),
+  getMessage: vi.fn(),
+  updateMessage: vi.fn(),
+}));
+
+vi.mock("../store", () => ({
+  getProjectStore: vi.fn(() => projectStoreMock),
 }));
 
 describe("getDyadAddDependencyTags", () => {
@@ -640,23 +632,21 @@ describe("processFullResponse", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock db query response
-    vi.mocked(db.query.chats.findFirst).mockResolvedValue({
+    const store = vi.mocked(getProjectStore)();
+    vi.mocked(store.getChat).mockResolvedValue({
       id: 1,
       appId: 1,
       title: "Test Chat",
       createdAt: new Date(),
-      app: {
-        id: 1,
-        name: "Mock App",
-        path: "mock-app-path",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      messages: [],
     } as any);
-
-    vi.mocked(db.query.messages.findFirst).mockResolvedValue({
+    vi.mocked(store.getApp).mockResolvedValue({
+      id: 1,
+      name: "Mock App",
+      path: "mock-app-path",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+    vi.mocked(store.getMessage).mockResolvedValue({
       id: 1,
       chatId: 1,
       role: "assistant",

@@ -1,6 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
-import { getUserDataPath } from "../paths/paths";
 import {
   UserSettingsSchema,
   type UserSettings,
@@ -8,11 +5,11 @@ import {
   VertexProviderSetting,
 } from "../lib/schemas";
 import { safeStorage } from "electron";
-import { v4 as uuidv4 } from "uuid";
 import log from "electron-log";
 import { DEFAULT_TEMPLATE_ID } from "@/shared/templates";
 import { DEFAULT_THEME_ID } from "@/shared/themes";
 import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
+import { FeltDBRecord, getFeltDBDataStore } from "@/store";
 
 const logger = log.scope("settings");
 
@@ -24,8 +21,6 @@ const DEFAULT_SETTINGS: UserSettings = {
     provider: "auto",
   },
   providerSettings: {},
-  telemetryConsent: "unset",
-  telemetryUserId: uuidv4(),
   hasRunBefore: false,
   experiments: {},
   enableProLazyEditsMode: true,
@@ -42,20 +37,17 @@ const DEFAULT_SETTINGS: UserSettings = {
   enableNativeGit: true,
 };
 
-const SETTINGS_FILE = "user-settings.json";
+type StoredSettings = FeltDBRecord & { value: UserSettings };
+let persistedSettings: UserSettings = DEFAULT_SETTINGS;
 
-export function getSettingsFilePath(): string {
-  return path.join(getUserDataPath(), SETTINGS_FILE);
+export async function initializeSettings(): Promise<void> {
+  const records = await getFeltDBDataStore().list<StoredSettings>("settings");
+  persistedSettings = records[0]?.value ?? DEFAULT_SETTINGS;
 }
 
 export function readSettings(): UserSettings {
   try {
-    const filePath = getSettingsFilePath();
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify(DEFAULT_SETTINGS, null, 2));
-      return DEFAULT_SETTINGS;
-    }
-    const rawSettings = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    const rawSettings = structuredClone(persistedSettings);
     const combinedSettings: UserSettings = {
       ...DEFAULT_SETTINGS,
       ...rawSettings,
@@ -178,7 +170,6 @@ export function readSettings(): UserSettings {
 
 export function writeSettings(settings: Partial<UserSettings>): void {
   try {
-    const filePath = getSettingsFilePath();
     const currentSettings = readSettings();
     const newSettings = { ...currentSettings, ...settings };
     if (newSettings.githubAccessToken) {
@@ -241,7 +232,22 @@ export function writeSettings(settings: Partial<UserSettings>): void {
       }
     }
     const validatedSettings = UserSettingsSchema.parse(newSettings);
-    fs.writeFileSync(filePath, JSON.stringify(validatedSettings, null, 2));
+    persistedSettings = validatedSettings;
+    const store = getFeltDBDataStore();
+    void store
+      .list<StoredSettings>("settings")
+      .then(async (records) => {
+        if (records[0]) {
+          await store.update<StoredSettings>("settings", records[0].id, {
+            value: validatedSettings,
+          });
+        } else {
+          await store.create<StoredSettings>("settings", {
+            value: validatedSettings,
+          });
+        }
+      })
+      .catch((error) => logger.error("Error persisting settings:", error));
   } catch (error) {
     logger.error("Error writing settings:", error);
   }

@@ -11,9 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSettings } from "@/hooks/useSettings";
-import { useFreeAgentQuota } from "@/hooks/useFreeAgentQuota";
 import type { ChatMode } from "@/lib/schemas";
-import { isDyadProEnabled } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { detectIsMac } from "@/hooks/useChatModeToggle";
 import { useRouterState } from "@tanstack/react-router";
@@ -39,8 +37,6 @@ export function ChatModeSelector() {
   const currentChatMessages = chatId ? (messagesById.get(chatId) ?? []) : [];
 
   const selectedMode = settings?.selectedChatMode || "build";
-  const isProEnabled = settings ? isDyadProEnabled(settings) : false;
-  const { messagesRemaining, isQuotaExceeded } = useFreeAgentQuota();
 
   const handleModeChange = (value: string) => {
     const newMode = value as ChatMode;
@@ -83,8 +79,7 @@ export function ChatModeSelector() {
       case "agent":
         return "Build (MCP)";
       case "local-agent":
-        // Show "Basic Agent" for non-Pro users, "Agent" for Pro users
-        return isProEnabled ? "Agent" : "Basic Agent";
+        return "Agent";
       default:
         return "Build";
     }
@@ -118,36 +113,17 @@ export function ChatModeSelector() {
         </TooltipContent>
       </Tooltip>
       <SelectContent align="start" onCloseAutoFocus={(e) => e.preventDefault()}>
-        {isProEnabled && (
-          <SelectItem value="local-agent">
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-1.5">
-                <span className="font-medium">Agent v2</span>
-                <NewBadge />
-              </div>
-              <span className="text-xs text-muted-foreground">
-                Better at bigger tasks and debugging
-              </span>
+        <SelectItem value="local-agent">
+          <div className="flex flex-col items-start">
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium">Agent</span>
+              <NewBadge />
             </div>
-          </SelectItem>
-        )}
-        {!isProEnabled && (
-          <SelectItem value="local-agent" disabled={isQuotaExceeded}>
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-1.5">
-                <span className="font-medium">Basic Agent</span>
-                <span className="text-xs text-muted-foreground">
-                  ({isQuotaExceeded ? "0" : messagesRemaining}/5 remaining)
-                </span>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {isQuotaExceeded
-                  ? "Daily limit reached"
-                  : "Try our AI agent for free"}
-              </span>
-            </div>
-          </SelectItem>
-        )}
+            <span className="text-xs text-muted-foreground">
+              Better at bigger tasks and debugging
+            </span>
+          </div>
+        </SelectItem>
         <SelectItem value="build">
           <div className="flex flex-col items-start">
             <span className="font-medium">Build</span>

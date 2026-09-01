@@ -7,7 +7,7 @@ import { useStreamChat } from "@/hooks/useStreamChat";
 import { useAttachments } from "@/hooks/useAttachments";
 import { AttachmentsList } from "./AttachmentsList";
 import { DragDropOverlay } from "./DragDropOverlay";
-import { usePostHog } from "posthog-js/react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { HomeSubmitOptions } from "@/pages/home";
 import { ChatInputControls } from "../ChatInputControls";
 import { LexicalChatInput } from "./LexicalChatInput";
@@ -20,7 +20,7 @@ export function HomeChatInput({
 }: {
   onSubmit: (options?: HomeSubmitOptions) => void;
 }) {
-  const posthog = usePostHog();
+  const posthog = useAnalytics();
   const [inputValue, setInputValue] = useAtom(homeChatInputValueAtom);
   const { settings } = useSettings();
   const { isStreaming } = useStreamChat({

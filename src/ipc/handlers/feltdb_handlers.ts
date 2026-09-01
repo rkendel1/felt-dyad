@@ -1,11 +1,14 @@
 import log from "electron-log";
-import { db } from "../../db";
-import { eq } from "drizzle-orm";
-import { apps } from "../../db/schema";
+import { getProjectStore } from "../../store";
 import { createTypedHandler } from "./base";
 import { createTestOnlyLoggedHandler } from "./safe_handle";
 import { feltdbContracts } from "../types/feltdb";
-import { feltdbRuntimeManager } from "../../main/feltdb_runtime_manager";
+import {
+  getFeltDBCredentials,
+  getStoredFeltDBAccount,
+  listFeltDBProjects,
+  storeFeltDBCredentials,
+} from "./feltdb_oauth";
 
 const logger = log.scope("feltdb_handlers");
 const testOnlyHandle = createTestOnlyLoggedHandler(logger);
@@ -20,21 +23,18 @@ export function registerFeltdbHandlers() {
     );
 
     // Update app with FeltDB configuration
-    await db
-      .update(apps)
-      .set({
-        feltdbRuntime: runtime,
-        feltdbMode: mode,
-        feltdbStatus: "initializing",
-      })
-      .where(eq(apps.id, appId));
+    await getProjectStore().updateApp(appId, {
+      feltdbRuntime: runtime,
+      feltdbMode: mode,
+      feltdbStatus: "ready",
+    });
 
     logger.info(`FeltDB initialized for app ${appId}`);
 
     return {
       runtime,
       mode,
-      status: "initializing" as const,
+      status: "ready" as const,
     };
   });
 
@@ -42,14 +42,12 @@ export function registerFeltdbHandlers() {
   createTypedHandler(feltdbContracts.getStatus, async (_, params) => {
     const { appId } = params;
 
-    const app = await db.select().from(apps).where(eq(apps.id, appId)).limit(1);
-
-    if (app.length === 0) {
+    const appData = await getProjectStore().getApp(appId);
+    if (!appData) {
       logger.warn(`App with ID ${appId} not found`);
       return undefined;
     }
 
-    const appData = app[0];
     if (!appData.feltdbRuntime || !appData.feltdbMode) {
       return undefined;
     }
@@ -67,60 +65,36 @@ export function registerFeltdbHandlers() {
     };
   });
 
-  // Start local FeltDB runtime
+  // Browser FeltDB is embedded in the generated app. Server FeltDB is hosted by
+  // the app's own dev process, so there is no second process to launch here.
   createTypedHandler(feltdbContracts.start, async (_, params) => {
     const { appId } = params;
 
     logger.info(`Starting FeltDB runtime for app ${appId}`);
 
     try {
-      // Update status to initializing
-      await db
-        .update(apps)
-        .set({ feltdbStatus: "initializing" })
-        .where(eq(apps.id, appId));
+      const app = await getProjectStore().getApp(appId);
+      if (!app) throw new Error(`App ${appId} not found`);
+      await getProjectStore().updateApp(appId, { feltdbStatus: "ready" });
+      logger.info(`FeltDB runtime is provided by app ${appId}`);
 
-      // Start the FeltDB runtime
-      const port = await feltdbRuntimeManager.startFeltDB(appId);
-
-      // Update status to ready
-      await db
-        .update(apps)
-        .set({ feltdbStatus: "ready" })
-        .where(eq(apps.id, appId));
-
-      logger.info(`FeltDB runtime started for app ${appId} on port ${port}`);
-
-      return {
-        status: "ready" as const,
-      };
+      return;
     } catch (error) {
       logger.error(`Failed to start FeltDB for app ${appId}:`, error);
-      await db
-        .update(apps)
-        .set({ feltdbStatus: "failed" })
-        .where(eq(apps.id, appId));
+      await getProjectStore().updateApp(appId, { feltdbStatus: "failed" });
       throw new Error(`Failed to start FeltDB: ${error}`);
     }
   });
 
-  // Stop local FeltDB runtime
+  // Kept for IPC compatibility; FeltDB shares the app lifecycle.
   createTypedHandler(feltdbContracts.stop, async (_, params) => {
     const { appId } = params;
 
     logger.info(`Stopping FeltDB runtime for app ${appId}`);
 
     try {
-      // Stop the FeltDB runtime
-      await feltdbRuntimeManager.stopFeltDB(appId);
-
-      // Update status
-      await db
-        .update(apps)
-        .set({ feltdbStatus: "ready" })
-        .where(eq(apps.id, appId));
-
-      logger.info(`FeltDB runtime stopped for app ${appId}`);
+      await getProjectStore().updateApp(appId, { feltdbStatus: "ready" });
+      logger.info(`FeltDB runtime follows app ${appId} lifecycle`);
     } catch (error) {
       logger.error(`Failed to stop FeltDB for app ${appId}:`, error);
       throw new Error(`Failed to stop FeltDB: ${error}`);
@@ -133,17 +107,19 @@ export function registerFeltdbHandlers() {
 
     logger.info(`Checking FeltDB health for app ${appId}`);
 
-    const app = await db.select().from(apps).where(eq(apps.id, appId)).limit(1);
-
-    if (app.length === 0) {
+    const appData = await getProjectStore().getApp(appId);
+    if (!appData) {
       return {
         healthy: false,
         message: "App not found",
       };
     }
 
-    const appData = app[0];
-    if (!appData.feltdbStatus || appData.feltdbStatus === "ready") {
+    if (
+      appData.feltdbRuntime &&
+      appData.feltdbMode &&
+      appData.feltdbStatus === "ready"
+    ) {
       return {
         healthy: true,
         message: "FeltDB is healthy",
@@ -164,15 +140,12 @@ export function registerFeltdbHandlers() {
       `Setting managed FeltDB project for app ${appId}: projectId=${projectId}, accountId=${accountId}`,
     );
 
-    await db
-      .update(apps)
-      .set({
-        feltdbMode: "managed",
-        feltdbProjectId: projectId,
-        feltdbAccountId: accountId,
-        feltdbStatus: "ready",
-      })
-      .where(eq(apps.id, appId));
+    await getProjectStore().updateApp(appId, {
+      feltdbMode: "managed",
+      feltdbProjectId: projectId,
+      feltdbAccountId: accountId,
+      feltdbStatus: "ready",
+    });
 
     logger.info(`Managed FeltDB project set for app ${appId}`);
   });
@@ -183,36 +156,37 @@ export function registerFeltdbHandlers() {
 
     logger.info(`Listing managed FeltDB projects for account ${accountId}`);
 
-    // In a real implementation, this would:
-    // 1. Authenticate with FeltDB API
-    // 2. Fetch projects for the account
-    // 3. Return the list
-
-    // For now, return empty list
-    return [];
+    const credential = await getFeltDBCredentials(accountId);
+    if (!credential) throw new Error("Managed FeltDB is not configured.");
+    const projects = await listFeltDBProjects(credential);
+    return projects.map((project) => ({
+      ...project,
+      mode: "managed" as const,
+    }));
   });
 
   // Authenticate with managed FeltDB
-  createTypedHandler(feltdbContracts.authenticateManaged, async () => {
+  createTypedHandler(feltdbContracts.authenticateManaged, async (_, params) => {
     logger.info(`Authenticating with managed FeltDB`);
 
     try {
-      // For now, return a stub account
-      // In production, this would:
-      // 1. Launch OAuth flow
-      // 2. Exchange auth code for token
-      // 3. Store credentials securely
-      // 4. Return account info
-
-      return {
-        id: `account-${Date.now()}`,
-        email: "user@example.com",
-        name: "User",
+      const credential = {
+        accessToken: params.accessToken,
+        accountId: params.accountId,
+        email: params.email ?? "",
+        apiUrl: params.apiUrl,
       };
+      await listFeltDBProjects(credential);
+      await storeFeltDBCredentials(credential);
+      return { id: params.accountId, email: params.email };
     } catch (error) {
       logger.error(`Failed to authenticate with FeltDB:`, error);
       throw new Error(`Authentication failed: ${error}`);
     }
+  });
+
+  createTypedHandler(feltdbContracts.getManagedAccount, async () => {
+    return (await getStoredFeltDBAccount()) ?? undefined;
   });
 
   // Disconnect from managed FeltDB
@@ -221,14 +195,11 @@ export function registerFeltdbHandlers() {
 
     logger.info(`Disconnecting managed FeltDB for app ${appId}`);
 
-    await db
-      .update(apps)
-      .set({
-        feltdbMode: "local",
-        feltdbProjectId: null,
-        feltdbAccountId: null,
-      })
-      .where(eq(apps.id, appId));
+    await getProjectStore().updateApp(appId, {
+      feltdbMode: "local",
+      feltdbProjectId: null,
+      feltdbAccountId: null,
+    });
 
     logger.info(`Managed FeltDB disconnected for app ${appId}`);
   });
@@ -243,18 +214,11 @@ export function registerFeltdbHandlers() {
         `Fake FeltDB connect for app ${appId}: runtime=${runtime}, mode=${mode}`,
       );
 
-      await db
-        .update(apps)
-        .set({
-          feltdbRuntime: runtime as
-            | "server"
-            | "browser"
-            | "managed"
-            | undefined,
-          feltdbMode: mode as "local" | "managed" | undefined,
-          feltdbStatus: "ready",
-        })
-        .where(eq(apps.id, appId));
+      await getProjectStore().updateApp(appId, {
+        feltdbRuntime: runtime as "server" | "browser" | "managed" | undefined,
+        feltdbMode: mode as "local" | "managed" | undefined,
+        feltdbStatus: "ready",
+      });
 
       logger.info(`Fake FeltDB connection established for app ${appId}`);
     },

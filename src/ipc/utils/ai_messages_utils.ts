@@ -1,8 +1,13 @@
-import { AI_MESSAGES_SDK_VERSION, AiMessagesJsonV6 } from "@/db/schema";
 import type { ModelMessage } from "ai";
 import log from "electron-log";
 
 const logger = log.scope("ai_messages_utils");
+
+export const AI_MESSAGES_SDK_VERSION = "ai@v6" as const;
+export type AiMessagesJsonV6 = {
+  messages: ModelMessage[];
+  sdkVersion: typeof AI_MESSAGES_SDK_VERSION;
+};
 
 /** Maximum size in bytes for ai_messages_json (10MB) */
 export const MAX_AI_MESSAGES_SIZE = 10_000_000;
@@ -39,7 +44,7 @@ export type DbMessageForParsing = {
   id: number;
   role: string;
   content: string;
-  aiMessagesJson: AiMessagesJsonV6 | ModelMessage[] | null;
+  aiMessagesJson?: unknown;
 };
 
 /**
@@ -51,7 +56,7 @@ export type DbMessageForParsing = {
  */
 export function parseAiMessagesJson(msg: DbMessageForParsing): ModelMessage[] {
   if (msg.aiMessagesJson) {
-    const parsed = msg.aiMessagesJson;
+    const parsed = msg.aiMessagesJson as AiMessagesJsonV6 | ModelMessage[];
 
     // Legacy shape: stored directly as a ModelMessage[]
     if (

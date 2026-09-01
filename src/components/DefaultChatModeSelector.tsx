@@ -7,22 +7,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ChatMode } from "@/lib/schemas";
-import { isDyadProEnabled, getEffectiveDefaultChatMode } from "@/lib/schemas";
-import { useFreeAgentQuota } from "@/hooks/useFreeAgentQuota";
+import { getEffectiveDefaultChatMode } from "@/lib/schemas";
 
 export function DefaultChatModeSelector() {
   const { settings, updateSettings } = useSettings();
-  const { isQuotaExceeded } = useFreeAgentQuota();
 
   if (!settings) {
     return null;
   }
 
-  const isProEnabled = isDyadProEnabled(settings);
-  const effectiveDefault = getEffectiveDefaultChatMode(
-    settings,
-    !isQuotaExceeded,
-  );
+  const effectiveDefault = getEffectiveDefaultChatMode(settings);
 
   const handleDefaultChatModeChange = (value: ChatMode) => {
     updateSettings({ defaultChatMode: value });
@@ -59,16 +53,14 @@ export function DefaultChatModeSelector() {
             <SelectValue>{getModeDisplayName(effectiveDefault)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {isProEnabled && (
-              <SelectItem value="local-agent">
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Agent</span>
-                  <span className="text-xs text-muted-foreground">
-                    Better at bigger tasks
-                  </span>
-                </div>
-              </SelectItem>
-            )}
+            <SelectItem value="local-agent">
+              <div className="flex flex-col items-start">
+                <span className="font-medium">Agent</span>
+                <span className="text-xs text-muted-foreground">
+                  Better at bigger tasks
+                </span>
+              </div>
+            </SelectItem>
             <SelectItem value="build">
               <div className="flex flex-col items-start">
                 <span className="font-medium">Build</span>

@@ -4,7 +4,6 @@ import { appsListAtom } from "@/atoms/appAtoms";
 import { useSettings } from "@/hooks/useSettings";
 import { SetupBanner } from "@/components/SetupBanner";
 import { useEffect, useRef, useState } from "react";
-import { PrivacyBanner } from "@/components/TelemetryBanner";
 import { useAppVersion } from "@/hooks/useAppVersion";
 import {
   Dialog,
@@ -17,12 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { ForceCloseDialog } from "@/components/ForceCloseDialog";
 import { ipc } from "@/ipc/types";
-import {
-  ManageDyadProButton,
-  SetupDyadProButton,
-} from "@/components/ProBanner";
-import { hasDyadProKey, getEffectiveDefaultChatMode } from "@/lib/schemas";
-import { useFreeAgentQuota } from "@/hooks/useFreeAgentQuota";
+import { getEffectiveDefaultChatMode } from "@/lib/schemas";
 import { LandingPage } from "@/components/landing/LandingPage";
 
 export default function HomePage() {
@@ -32,7 +26,6 @@ export default function HomePage() {
   const appsList = useAtomValue(appsListAtom);
   const [forceCloseDialogOpen, setForceCloseDialogOpen] = useState(false);
   const [performanceData, setPerformanceData] = useState<any>(undefined);
-  const { isQuotaExceeded } = useFreeAgentQuota();
   const appVersion = useAppVersion();
   const [releaseNotesOpen, setReleaseNotesOpen] = useState(false);
   const [releaseUrl, setReleaseUrl] = useState("");
@@ -97,36 +90,24 @@ export default function HomePage() {
   useEffect(() => {
     if (settings && !hasAppliedDefaultChatMode.current) {
       hasAppliedDefaultChatMode.current = true;
-      const effectiveDefaultMode = getEffectiveDefaultChatMode(
-        settings,
-        !isQuotaExceeded,
-      );
+      const effectiveDefaultMode = getEffectiveDefaultChatMode(settings);
       if (settings.selectedChatMode !== effectiveDefaultMode) {
         updateSettings({ selectedChatMode: effectiveDefaultMode });
       }
     }
-  }, [settings, updateSettings, isQuotaExceeded]);
+  }, [settings, updateSettings]);
 
   // Main Home Page Content - Show Landing Page
   return (
     <div className="w-full min-h-screen">
-      <div className="fixed top-16 right-8 z-50">
-        {settings && hasDyadProKey(settings) ? (
-          <ManageDyadProButton className="mt-0 w-auto h-9 px-3 text-base shadow-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800" />
-        ) : (
-          <SetupDyadProButton />
-        )}
-      </div>
       <ForceCloseDialog
         isOpen={forceCloseDialogOpen}
         onClose={() => setForceCloseDialogOpen(false)}
         performanceData={performanceData}
       />
-      <SetupBanner />
-
       <LandingPage existingApps={appsList} />
 
-      <PrivacyBanner />
+      <SetupBanner />
 
       {/* Release Notes Dialog */}
       <Dialog open={releaseNotesOpen} onOpenChange={setReleaseNotesOpen}>

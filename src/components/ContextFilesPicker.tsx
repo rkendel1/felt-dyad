@@ -115,8 +115,7 @@ export function ContextFilesPicker() {
     updateExcludePaths(newPaths);
   };
 
-  const isSmartContextEnabled =
-    settings?.enableDyadPro && settings?.enableProSmartFilesContextMode;
+  const isSmartContextEnabled = settings?.enableProSmartFilesContextMode;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -144,11 +143,13 @@ export function ContextFilesPicker() {
                   <TooltipContent className="max-w-[300px]">
                     {isSmartContextEnabled ? (
                       <p>
-                        With Smart Context, Dyad uses the most relevant files as
-                        context.
+                        With Smart Context, FeltDB Builder uses the most
+                        relevant files as context.
                       </p>
                     ) : (
-                      <p>By default, Dyad uses your whole codebase.</p>
+                      <p>
+                        By default, FeltDB Builder uses your whole codebase.
+                      </p>
                     )}
                   </TooltipContent>
                 </Tooltip>

@@ -1,10 +1,16 @@
-import { db } from "../../db";
-import { mcpToolConsents } from "../../db/schema";
-import { and, eq } from "drizzle-orm";
+import {
+  FeltDBRecord,
+  getFeltDBDataStore,
+} from "../../store/feltdb_data_store";
 import { IpcMainInvokeEvent } from "electron";
 import crypto from "node:crypto";
 
 export type Consent = "ask" | "always" | "denied";
+type StoredMcpConsent = FeltDBRecord & {
+  serverId: number;
+  toolName: string;
+  consent: Consent;
+};
 
 const pendingConsentResolvers = new Map<
   string,
@@ -34,17 +40,12 @@ export async function getStoredConsent(
   serverId: number,
   toolName: string,
 ): Promise<Consent> {
-  const rows = await db
-    .select()
-    .from(mcpToolConsents)
-    .where(
-      and(
-        eq(mcpToolConsents.serverId, serverId),
-        eq(mcpToolConsents.toolName, toolName),
-      ),
-    );
-  if (rows.length === 0) return "ask";
-  return (rows[0].consent as Consent) ?? "ask";
+  const consent = (
+    await getFeltDBDataStore().list<StoredMcpConsent>("mcp_tool_consents")
+  ).find(
+    (record) => record.serverId === serverId && record.toolName === toolName,
+  );
+  return consent?.consent ?? "ask";
 }
 
 export async function setStoredConsent(
@@ -52,27 +53,22 @@ export async function setStoredConsent(
   toolName: string,
   consent: Consent,
 ): Promise<void> {
-  const rows = await db
-    .select()
-    .from(mcpToolConsents)
-    .where(
-      and(
-        eq(mcpToolConsents.serverId, serverId),
-        eq(mcpToolConsents.toolName, toolName),
-      ),
-    );
-  if (rows.length > 0) {
-    await db
-      .update(mcpToolConsents)
-      .set({ consent })
-      .where(
-        and(
-          eq(mcpToolConsents.serverId, serverId),
-          eq(mcpToolConsents.toolName, toolName),
-        ),
-      );
+  const store = getFeltDBDataStore();
+  const existing = (
+    await store.list<StoredMcpConsent>("mcp_tool_consents")
+  ).find(
+    (record) => record.serverId === serverId && record.toolName === toolName,
+  );
+  if (existing) {
+    await store.update<StoredMcpConsent>("mcp_tool_consents", existing.id, {
+      consent,
+    });
   } else {
-    await db.insert(mcpToolConsents).values({ serverId, toolName, consent });
+    await store.create<StoredMcpConsent>("mcp_tool_consents", {
+      serverId,
+      toolName,
+      consent,
+    });
   }
 }
 

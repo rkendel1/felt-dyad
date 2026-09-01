@@ -496,8 +496,8 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="text-xs">
-                                AI_RULES.md lets Dyad know which tech stack to
-                                use for editing the app
+                                AI_RULES.md lets FeltDB Builder know which tech
+                                stack to use for editing the app
                               </p>
                             </TooltipContent>
                           </Tooltip>

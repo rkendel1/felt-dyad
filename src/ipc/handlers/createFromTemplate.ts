@@ -6,13 +6,16 @@ import { gitClone, getCurrentCommitHash } from "../utils/git_utils";
 import { readSettings } from "@/main/settings";
 import { getTemplateOrThrow } from "../utils/template_utils";
 import log from "electron-log";
+import { configureFeltDBScaffold } from "../utils/feltdb_scaffold";
 
 const logger = log.scope("createFromTemplate");
 
 export async function createFromTemplate({
   fullAppPath,
+  projectName,
 }: {
   fullAppPath: string;
+  projectName: string;
 }) {
   const settings = readSettings();
   const templateId = settings.selectedTemplateId;
@@ -22,6 +25,7 @@ export async function createFromTemplate({
       path.join(__dirname, "..", "..", "scaffold"),
       fullAppPath,
     );
+    await configureFeltDBScaffold(fullAppPath, projectName);
     return;
   }
 

@@ -1,4 +1,4 @@
-import { isDyadProEnabled, type LargeLanguageModel } from "@/lib/schemas";
+import type { LargeLanguageModel } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -25,7 +25,6 @@ import { LocalModel } from "@/ipc/types";
 import { useLanguageModelProviders } from "@/hooks/useLanguageModelProviders";
 import { useSettings } from "@/hooks/useSettings";
 import { PriceBadge } from "@/components/PriceBadge";
-import { TURBO_MODELS } from "@/ipc/shared/language_model_constants";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
@@ -115,23 +114,7 @@ export function ModelPicker() {
   // Get auto provider models (if any)
   const autoModels =
     !loading && modelsByProviders && modelsByProviders["auto"]
-      ? modelsByProviders["auto"].filter((model) => {
-          if (
-            settings &&
-            !isDyadProEnabled(settings) &&
-            ["turbo", "value"].includes(model.apiName)
-          ) {
-            return false;
-          }
-          if (
-            settings &&
-            isDyadProEnabled(settings) &&
-            model.apiName === "free"
-          ) {
-            return false;
-          }
-          return true;
-        })
+      ? modelsByProviders["auto"]
       : [];
 
   // Determine availability of local models
@@ -157,8 +140,8 @@ export function ModelPicker() {
     const provider = providers?.find((p) => p.id === providerId);
     return !(provider && provider.secondary);
   });
-  if (settings && isDyadProEnabled(settings)) {
-    primaryProviders.unshift(["auto", TURBO_MODELS]);
+  if (autoModels.length) {
+    primaryProviders.unshift(["auto", autoModels]);
   }
   const secondaryProviders = providerEntries.filter(([providerId, models]) => {
     if (models.length === 0) return false;
@@ -265,22 +248,10 @@ export function ModelPicker() {
 
             {/* Primary providers as submenus */}
             {primaryProviders.map(([providerId, models]) => {
-              models = models.filter((model) => {
-                // Don't show free models if Dyad Pro is enabled because
-                // we will use the paid models (in Dyad Pro backend) which
-                // don't have the free limitations.
-                if (
-                  isDyadProEnabled(settings) &&
-                  model.apiName.endsWith(":free")
-                ) {
-                  return false;
-                }
-                return true;
-              });
               const provider = providers?.find((p) => p.id === providerId);
               const providerDisplayName =
                 provider?.id === "auto"
-                  ? "FeltDB AI"
+                  ? "Managed AI"
                   : (provider?.name ?? providerId);
               return (
                 <DropdownMenuSub key={providerId}>
@@ -288,13 +259,6 @@ export function ModelPicker() {
                     <div className="flex flex-col items-start w-full">
                       <div className="flex items-center gap-2">
                         <span>{providerDisplayName}</span>
-                        {provider?.type === "cloud" &&
-                          !provider?.secondary &&
-                          isDyadProEnabled(settings) && (
-                            <span className="text-[10px] bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 bg-[length:200%_100%] animate-[shimmer_5s_ease-in-out_infinite] text-white px-1.5 py-0.5 rounded-full font-medium">
-                              Pro
-                            </span>
-                          )}
                         {provider?.type === "custom" && (
                           <span className="text-[10px] bg-amber-500/20 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
                             Custom

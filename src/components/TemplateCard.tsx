@@ -6,7 +6,8 @@ import { CommunityCodeConsentDialog } from "./CommunityCodeConsentDialog";
 import type { Template } from "@/shared/templates";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
-import { showWarning } from "@/lib/toast";
+// @ts-ignore Static image assets are resolved by the renderer bundler.
+import feltdbLogo from "../../assets/feltdb.png";
 
 interface TemplateCardProps {
   template: Template;
@@ -28,11 +29,6 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
     // If it's a community template and user hasn't accepted community code yet, show dialog
     if (!template.isOfficial && !settings?.acceptedCommunityCode) {
       setShowConsentDialog(true);
-      return;
-    }
-
-    if (template.requiresNeon && !settings?.neon?.accessToken) {
-      showWarning("Please connect your Neon account to use this template.");
       return;
     }
 
@@ -80,7 +76,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
       >
         <div className="relative">
           <img
-            src={template.imageUrl}
+            src={template.imageUrl || feltdbLogo}
             alt={template.title}
             className={`w-full h-52 object-cover transition-opacity duration-300 group-hover:opacity-80 ${
               isSelected ? "opacity-75" : ""

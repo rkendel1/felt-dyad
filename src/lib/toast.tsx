@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { PostHog } from "posthog-js";
+import type { AnalyticsClient } from "@/hooks/useAnalytics";
 import React from "react";
 import { CustomErrorToast } from "../components/CustomErrorToast";
 import { InputRequestToast } from "../components/InputRequestToast";
@@ -142,7 +142,7 @@ export const showExtraFilesToast = ({
 }: {
   files: string[];
   error?: string;
-  posthog: PostHog;
+  posthog: AnalyticsClient;
 }) => {
   if (error) {
     showError(

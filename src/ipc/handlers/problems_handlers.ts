@@ -1,6 +1,4 @@
-import { db } from "../../db";
-import { apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { generateProblemReport } from "../processors/tsc";
 import { getDyadAppPath } from "@/paths/paths";
 import log from "electron-log";
@@ -13,9 +11,7 @@ export function registerProblemsHandlers() {
   createTypedHandler(miscContracts.checkProblems, async (_, params) => {
     try {
       // Get the app to find its path
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, params.appId),
-      });
+      const app = await getProjectStore().getApp(params.appId);
 
       if (!app) {
         throw new Error(`App not found: ${params.appId}`);

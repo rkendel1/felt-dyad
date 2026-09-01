@@ -1,8 +1,6 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
 import { ToolDefinition, AgentContext, escapeXmlAttr } from "./types";
-import { db } from "../../../../../../db";
-import { messages } from "../../../../../../db/schema";
+import { getProjectStore } from "../../../../../../store";
 import { executeAddDependency } from "@/ipc/processors/executeAddDependency";
 
 const addDependencySchema = z.object({
@@ -27,9 +25,7 @@ export const addDependencyTool: ToolDefinition<
 
   execute: async (args, ctx: AgentContext) => {
     const message = ctx.messageId
-      ? await db.query.messages.findFirst({
-          where: eq(messages.id, ctx.messageId),
-        })
+      ? await getProjectStore().getMessage(ctx.messageId)
       : undefined;
 
     if (!message) {

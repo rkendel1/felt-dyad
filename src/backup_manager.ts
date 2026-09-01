@@ -3,15 +3,14 @@ import * as fs from "fs/promises";
 import { app } from "electron";
 import * as crypto from "crypto";
 import log from "electron-log";
-import Database from "better-sqlite3";
+import { FeltDBRecord, getFeltDBDataStore } from "./store";
 
 const logger = log.scope("backup_manager");
 
 const MAX_BACKUPS = 3;
 
 interface BackupManagerOptions {
-  settingsFile: string;
-  dbFile: string;
+  dataDirectory: string;
 }
 
 interface BackupMetadata {
@@ -34,15 +33,13 @@ interface BackupInfo extends BackupMetadata {
 
 export class BackupManager {
   private readonly maxBackups: number;
-  private readonly settingsFilePath: string;
-  private readonly dbFilePath: string;
+  private readonly dataDirectoryPath: string;
   private userDataPath!: string;
   private backupBasePath!: string;
 
   constructor(options: BackupManagerOptions) {
     this.maxBackups = MAX_BACKUPS;
-    this.settingsFilePath = options.settingsFile;
-    this.dbFilePath = options.dbFile;
+    this.dataDirectoryPath = options.dataDirectory;
   }
 
   /**
@@ -65,6 +62,7 @@ export class BackupManager {
 
     if (lastVersion === null) {
       logger.info("No previous version found, skipping backup");
+      await this.saveCurrentVersion(currentVersion);
       return;
     }
 
@@ -107,28 +105,11 @@ export class BackupManager {
       logger.debug(`Backup directory created: ${backupPath}`);
 
       // Backup settings file
-      const settingsBackupPath = path.join(
-        backupPath,
-        path.basename(this.settingsFilePath),
-      );
-      const settingsExists = await this.fileExists(this.settingsFilePath);
-
-      if (settingsExists) {
-        await fs.copyFile(this.settingsFilePath, settingsBackupPath);
-        logger.info("Settings backed up successfully");
-      } else {
-        logger.debug("Settings file not found, skipping settings backup");
-      }
-
-      // Backup SQLite database
-      const dbBackupPath = path.join(
-        backupPath,
-        path.basename(this.dbFilePath),
-      );
-      const dbExists = await this.fileExists(this.dbFilePath);
+      const dbBackupPath = path.join(backupPath, ".feltdb");
+      const dbExists = await this.fileExists(this.dataDirectoryPath);
 
       if (dbExists) {
-        await this.backupSQLiteDatabase(this.dbFilePath, dbBackupPath);
+        await fs.cp(this.dataDirectoryPath, dbBackupPath, { recursive: true });
         logger.info("Database backed up successfully");
       } else {
         logger.debug("Database file not found, skipping database backup");
@@ -140,14 +121,16 @@ export class BackupManager {
         timestamp: new Date().toISOString(),
         reason,
         files: {
-          settings: settingsExists,
+          settings: dbExists,
           database: dbExists,
         },
         checksums: {
-          settings: settingsExists
-            ? await this.getFileChecksum(settingsBackupPath)
+          settings: dbExists
+            ? await this.getDirectoryChecksum(dbBackupPath)
             : null,
-          database: dbExists ? await this.getFileChecksum(dbBackupPath) : null,
+          database: dbExists
+            ? await this.getDirectoryChecksum(dbBackupPath)
+            : null,
         },
       };
 
@@ -281,32 +264,6 @@ export class BackupManager {
   }
 
   /**
-   * Backup SQLite database safely
-   */
-  private async backupSQLiteDatabase(
-    sourcePath: string,
-    destPath: string,
-  ): Promise<void> {
-    logger.debug(`Backing up SQLite database: ${sourcePath} → ${destPath}`);
-    const sourceDb = new Database(sourcePath, {
-      readonly: true,
-      timeout: 10000,
-    });
-
-    try {
-      // This is safe even if other connections are active
-      await sourceDb.backup(destPath);
-      logger.info("Database backup completed successfully");
-    } catch (error) {
-      logger.error("Database backup failed:", error);
-      throw error;
-    } finally {
-      // Always close the temporary connection
-      sourceDb.close();
-    }
-  }
-
-  /**
    * Helper: Check if file exists
    */
   private async fileExists(filePath: string): Promise<boolean> {
@@ -321,18 +278,24 @@ export class BackupManager {
   /**
    * Helper: Calculate file checksum
    */
-  private async getFileChecksum(filePath: string): Promise<string | null> {
+  private async getDirectoryChecksum(dirPath: string): Promise<string | null> {
     try {
-      const fileBuffer = await fs.readFile(filePath);
       const hash = crypto.createHash("sha256");
-      hash.update(fileBuffer);
-      const checksum = hash.digest("hex");
-      logger.debug(
-        `Checksum calculated for ${filePath}: ${checksum.substring(0, 8)}...`,
-      );
-      return checksum;
+      const visit = async (currentPath: string): Promise<void> => {
+        const entries = await fs.readdir(currentPath, { withFileTypes: true });
+        for (const entry of entries.sort((a, b) =>
+          a.name.localeCompare(b.name),
+        )) {
+          const entryPath = path.join(currentPath, entry.name);
+          hash.update(path.relative(dirPath, entryPath));
+          if (entry.isDirectory()) await visit(entryPath);
+          else hash.update(await fs.readFile(entryPath));
+        }
+      };
+      await visit(dirPath);
+      return hash.digest("hex");
     } catch (error) {
-      logger.error(`Failed to calculate checksum for ${filePath}:`, error);
+      logger.error(`Failed to calculate checksum for ${dirPath}:`, error);
       return null;
     }
   }
@@ -367,24 +330,30 @@ export class BackupManager {
    * Helper: Get last run version
    */
   private async getLastRunVersion(): Promise<string | null> {
-    try {
-      const versionFile = path.join(this.userDataPath, ".last_version");
-      const version = await fs.readFile(versionFile, "utf8");
-      const trimmedVersion = version.trim();
-      logger.debug(`Last run version retrieved: ${trimmedVersion}`);
-      return trimmedVersion;
-    } catch {
-      logger.debug("No previous version file found");
-      return null;
-    }
+    const records = await getFeltDBDataStore().list<
+      FeltDBRecord & { key: string; value: string }
+    >("system_metadata");
+    return (
+      records.find((record) => record.key === "last_version")?.value ?? null
+    );
   }
 
   /**
    * Helper: Save current version
    */
   private async saveCurrentVersion(version: string): Promise<void> {
-    const versionFile = path.join(this.userDataPath, ".last_version");
-    await fs.writeFile(versionFile, version, "utf8");
+    const store = getFeltDBDataStore();
+    const records = await store.list<
+      FeltDBRecord & { key: string; value: string }
+    >("system_metadata");
+    const existing = records.find((record) => record.key === "last_version");
+    if (existing)
+      await store.update("system_metadata", existing.id, { value: version });
+    else
+      await store.create("system_metadata", {
+        key: "last_version",
+        value: version,
+      });
     logger.debug(`Current version saved: ${version}`);
   }
 }

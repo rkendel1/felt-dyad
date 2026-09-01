@@ -1,6 +1,4 @@
-import { db } from "../../db";
-import { chats, messages } from "../../db/schema";
-import { and, eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import fs from "node:fs";
 import { getDyadAppPath } from "../../paths/paths";
 import path from "node:path";
@@ -115,12 +113,11 @@ export async function processFullResponseActions(
   fileUploadsState.clear(chatId);
   logger.log("processFullResponseActions for chatId", chatId);
   // Get the app associated with the chat
-  const chatWithApp = await db.query.chats.findFirst({
-    where: eq(chats.id, chatId),
-    with: {
-      app: true,
-    },
-  });
+  const store = getProjectStore();
+  const chat = await store.getChat(chatId);
+  const chatWithApp = chat
+    ? { ...chat, app: await store.getApp(chat.appId) }
+    : null;
   if (!chatWithApp || !chatWithApp.app) {
     logger.error(`No app found for chat ID: ${chatId}`);
     return {};
@@ -165,15 +162,9 @@ export async function processFullResponseActions(
       ? getDyadExecuteSqlTags(fullResponse)
       : [];
 
-    const message = await db.query.messages.findFirst({
-      where: and(
-        eq(messages.id, messageId),
-        eq(messages.role, "assistant"),
-        eq(messages.chatId, chatId),
-      ),
-    });
+    const message = await store.getMessage(messageId);
 
-    if (!message) {
+    if (!message || message.role !== "assistant" || message.chatId !== chatId) {
       logger.error(`No message found for ID: ${messageId}`);
       return {};
     }
@@ -579,21 +570,13 @@ export async function processFullResponseActions(
       }
 
       // Save the commit hash to the message
-      await db
-        .update(messages)
-        .set({
-          commitHash: commitHash,
-        })
-        .where(eq(messages.id, messageId));
+      await getProjectStore().updateMessage(messageId, { commitHash });
     }
     logger.log("mark as approved: hasChanges", hasChanges);
     // Update the message to approved
-    await db
-      .update(messages)
-      .set({
-        approvalState: "approved",
-      })
-      .where(eq(messages.id, messageId));
+    await getProjectStore().updateMessage(messageId, {
+      approvalState: "approved",
+    });
 
     return {
       updatedFiles: hasChanges,
@@ -619,12 +602,9 @@ export async function processFullResponseActions(
       .join("\n")}
     `;
     if (appendedContent.length > 0) {
-      await db
-        .update(messages)
-        .set({
-          content: fullResponse + "\n\n" + appendedContent,
-        })
-        .where(eq(messages.id, messageId));
+      await getProjectStore().updateMessage(messageId, {
+        content: fullResponse + "\n\n" + appendedContent,
+      });
     }
   }
 }

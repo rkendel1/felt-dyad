@@ -1,32 +1,45 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { parseFlowSpec } from "@feltdb/core";
+import { localTemplatesData } from "@/shared/templates";
 
 describe("FeltDB Template Verification", () => {
-  const scaffoldPath = path.resolve(__dirname, "../scaffold");
+  const scaffoldPath = path.resolve(__dirname, "../../scaffold");
 
   it("should have @feltdb/core in package.json dependencies", () => {
     const packageJsonPath = path.join(scaffoldPath, "package.json");
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
-    expect(packageJson.dependencies["@feltdb/core"]).toBeDefined();
+    expect(packageJson.dependencies["@feltdb/core"]).toBe("^0.7.4");
+    expect(packageJson.scripts["feltdb:sync"]).toBe("feltdb sync");
+    expect(packageJson.scripts.dev).toBe("node server.mjs");
+    expect(packageJson.scripts.dev).not.toContain("5173");
   });
 
-  it("should have src/lib/feltdb.ts file", () => {
+  it("includes the canonical FeltDB application model", () => {
+    const flowPath = path.join(scaffoldPath, "feltdb.flow");
+    const configPath = path.join(scaffoldPath, "feltdb.config.json");
+
+    const flow = fs
+      .readFileSync(flowPath, "utf-8")
+      .replace("{{FLOW_APP_NAME}}", "GeneratedApp");
+    expect(parseFlowSpec(flow).app).toBe("GeneratedApp");
+    expect(fs.readFileSync(configPath, "utf-8")).toContain('"runtime": "node"');
+  });
+
+  it("configures the Node server runtime without defining schemas in TypeScript", () => {
     const feltdbPath = path.join(scaffoldPath, "src", "lib", "feltdb.ts");
     expect(fs.existsSync(feltdbPath)).toBe(true);
     const content = fs.readFileSync(feltdbPath, "utf-8");
-    expect(content).toContain("getFeltDB");
-    expect(content).toContain("initializeFeltDB");
-  });
-
-  it("should have .feltdb/metadata.json template", () => {
-    const metadataPath = path.join(scaffoldPath, ".feltdb", "metadata.json");
-    expect(fs.existsSync(metadataPath)).toBe(true);
-  });
-
-  it("should have .feltdb/.gitignore", () => {
-    const gitignorePath = path.join(scaffoldPath, ".feltdb", ".gitignore");
-    expect(fs.existsSync(gitignorePath)).toBe(true);
+    expect(content).toContain("createFeltDB");
+    expect(content).toContain("server: { url: applicationServerUrl }");
+    expect(content).not.toContain("export const collections");
+    const server = fs.readFileSync(
+      path.join(scaffoldPath, "server.mjs"),
+      "utf-8",
+    );
+    expect(server).toContain('path.join(root, ".feltdb", "data")');
+    expect(server).toContain('url.pathname.startsWith("/api/feltdb")');
   });
 
   it("should have FeltDB rules in AI_RULES.md", () => {
@@ -37,11 +50,11 @@ describe("FeltDB Template Verification", () => {
     expect(content).toContain("persistence");
   });
 
-  it("should initialize FeltDB in App.tsx", () => {
-    const appPath = path.join(scaffoldPath, "src", "App.tsx");
-    const content = fs.readFileSync(appPath, "utf-8");
-    expect(content).toContain("initializeFeltDB");
-    expect(content).toContain("useEffect");
+  it("keeps runtime state out of the committed scaffold", () => {
+    expect(fs.existsSync(path.join(scaffoldPath, ".feltdb"))).toBe(false);
+    expect(
+      fs.readFileSync(path.join(scaffoldPath, ".gitignore"), "utf-8"),
+    ).toContain(".feltdb/");
   });
 
   it("should not include SQLite, Supabase, Firebase, or Prisma in template", () => {
@@ -66,4 +79,12 @@ describe("FeltDB Template Verification", () => {
       expect(allDeps[dep]).toBeUndefined();
     }
   });
+});
+it("only advertises FeltDB-backed templates in the Hub", () => {
+  expect(localTemplatesData).not.toHaveLength(0);
+  for (const template of localTemplatesData) {
+    expect(template.title).toContain("FeltDB");
+    expect(template.description).toContain("FeltDB");
+    expect(template.githubUrl).toBeUndefined();
+  }
 });

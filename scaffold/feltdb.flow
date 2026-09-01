@@ -1,0 +1,6 @@
+flow_version 1
+
+app {{FLOW_APP_NAME}} {
+  // This file is the authoritative application model.
+  // Add collections, indexes, capabilities, workflows, policies, and agents here.
+}

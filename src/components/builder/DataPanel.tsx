@@ -18,7 +18,7 @@ interface DataRecord {
 
 interface DataCollection {
   name: string;
-  displayName: string;
+  displayName?: string;
   count: number;
   fields: Array<{
     name: string;
@@ -52,8 +52,10 @@ export function DataPanel({
   // Filter collections by search
   const filteredCollections = useMemo(
     () =>
-      collections.filter((col) =>
-        col.displayName.toLowerCase().includes(searchQuery.toLowerCase()),
+      collections.filter((collection) =>
+        (collection.displayName ?? collection.name)
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()),
       ),
     [collections, searchQuery],
   );
@@ -131,7 +133,7 @@ export function DataPanel({
                   </div>
                   <div className="text-left min-w-0">
                     <p className="font-medium text-sm">
-                      {collection.displayName}
+                      {collection.displayName ?? collection.name}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {collection.count} record

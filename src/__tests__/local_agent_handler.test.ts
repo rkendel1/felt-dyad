@@ -87,7 +87,6 @@ function buildTestChat(
  */
 function buildTestSettings(
   overrides: {
-    enableDyadPro?: boolean;
     hasApiKey?: boolean;
     selectedModel?: string;
   } = {},
@@ -96,10 +95,9 @@ function buildTestSettings(
     selectedModel: overrides.selectedModel ?? "gpt-4",
   };
 
-  if (overrides.enableDyadPro && overrides.hasApiKey !== false) {
+  if (overrides.hasApiKey) {
     return {
       ...baseSettings,
-      enableDyadPro: true,
       providerSettings: {
         auto: {
           apiKey: { value: "test-api-key" },
@@ -158,31 +156,25 @@ const dbOperations: {
 
 let mockChatData: ReturnType<typeof buildTestChat> | null = null;
 
-vi.mock("@/db", () => ({
-  db: {
-    query: {
-      chats: {
-        findFirst: vi.fn(async () => mockChatData),
-      },
-    },
-    update: vi.fn(() => ({
-      set: vi.fn((data: Record<string, unknown>) => ({
-        where: vi.fn((condition: any) => {
-          dbOperations.updates.push({
-            table: "messages",
-            id: condition?.id ?? 0,
-            data,
-          });
-          return Promise.resolve();
-        }),
-      })),
-    })),
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => Promise.resolve([])),
-      })),
-    })),
-  },
+vi.mock("@/store", () => ({
+  getProjectStore: () => ({
+    getChat: vi.fn(async () =>
+      mockChatData
+        ? {
+            id: mockChatData.id,
+            appId: mockChatData.appId,
+            title: mockChatData.title,
+            createdAt: mockChatData.createdAt,
+          }
+        : null,
+    ),
+    getApp: vi.fn(async () => mockChatData?.app ?? null),
+    listMessages: vi.fn(async () => mockChatData?.messages ?? []),
+    updateMessage: vi.fn(async (id: number, data: Record<string, unknown>) => {
+      dbOperations.updates.push({ table: "messages", id, data });
+    }),
+  }),
+  getFeltDBDataStore: () => ({ list: vi.fn(async () => []) }),
 }));
 
 let mockSettings: ReturnType<typeof buildTestSettings> = buildTestSettings();
@@ -276,64 +268,11 @@ describe("handleLocalAgentStream", () => {
     mockStreamResult = null;
   });
 
-  describe("Pro status validation", () => {
-    it("should send error when Dyad Pro is not enabled", async () => {
-      // Arrange
-      const { event, getMessagesByChannel } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: false });
-
-      // Act
-      await handleLocalAgentStream(
-        event,
-        { chatId: 1, prompt: "test" },
-        new AbortController(),
-        {
-          placeholderMessageId: 10,
-          systemPrompt: "You are helpful",
-          dyadRequestId,
-        },
-      );
-
-      // Assert
-      const errorMessages = getMessagesByChannel("chat:response:error");
-      expect(errorMessages).toHaveLength(1);
-      expect(errorMessages[0].args[0]).toMatchObject({
-        chatId: 1,
-        error: expect.stringContaining("Agent v2 requires Dyad Pro"),
-      });
-    });
-
-    it("should send error when API key is missing even if Pro is enabled", async () => {
-      // Arrange
-      const { event, getMessagesByChannel } = createFakeEvent();
-      mockSettings = buildTestSettings({
-        enableDyadPro: true,
-        hasApiKey: false,
-      });
-
-      // Act
-      await handleLocalAgentStream(
-        event,
-        { chatId: 1, prompt: "test" },
-        new AbortController(),
-        {
-          placeholderMessageId: 10,
-          systemPrompt: "You are helpful",
-          dyadRequestId,
-        },
-      );
-
-      // Assert
-      const errorMessages = getMessagesByChannel("chat:response:error");
-      expect(errorMessages).toHaveLength(1);
-    });
-  });
-
   describe("Chat lookup", () => {
     it("should throw error when chat is not found", async () => {
       // Arrange
       const { event } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: true });
+      mockSettings = buildTestSettings({ hasApiKey: true });
       mockChatData = null; // Chat not found
 
       // Act & Assert
@@ -354,7 +293,7 @@ describe("handleLocalAgentStream", () => {
     it("should throw error when chat has no associated app", async () => {
       // Arrange
       const { event } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: true });
+      mockSettings = buildTestSettings({ hasApiKey: true });
       mockChatData = { ...buildTestChat(), app: null } as any;
 
       // Act & Assert
@@ -377,7 +316,7 @@ describe("handleLocalAgentStream", () => {
     it("should accumulate text-delta parts and update database", async () => {
       // Arrange
       const { event, getMessagesByChannel } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: true });
+      mockSettings = buildTestSettings({ hasApiKey: true });
       mockChatData = buildTestChat({
         messages: [{ id: 1, role: "user", content: "Hello" }],
       });
@@ -426,7 +365,7 @@ describe("handleLocalAgentStream", () => {
     it("should wrap reasoning content in think tags", async () => {
       // Arrange
       const { event } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: true });
+      mockSettings = buildTestSettings({ hasApiKey: true });
       mockChatData = buildTestChat();
       mockStreamResult = createFakeStream([
         { type: "reasoning-start" },
@@ -464,7 +403,7 @@ describe("handleLocalAgentStream", () => {
     it("should close thinking block when transitioning to text", async () => {
       // Arrange
       const { event } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: true });
+      mockSettings = buildTestSettings({ hasApiKey: true });
       mockChatData = buildTestChat();
       // Simulate reasoning-delta without explicit reasoning-end before text
       mockStreamResult = createFakeStream([
@@ -506,7 +445,7 @@ describe("handleLocalAgentStream", () => {
     it("should stop processing stream chunks when abort signal is triggered", async () => {
       // Arrange
       const { event } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: true });
+      mockSettings = buildTestSettings({ hasApiKey: true });
       mockChatData = buildTestChat();
 
       const abortController = new AbortController();
@@ -554,7 +493,7 @@ describe("handleLocalAgentStream", () => {
     it("should save partial response with cancellation note when aborted", async () => {
       // Arrange
       const { event } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: true });
+      mockSettings = buildTestSettings({ hasApiKey: true });
       mockChatData = buildTestChat();
 
       const abortController = new AbortController();
@@ -596,7 +535,7 @@ describe("handleLocalAgentStream", () => {
     it("should save commit hash after successful stream", async () => {
       // Arrange
       const { event } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: true });
+      mockSettings = buildTestSettings({ hasApiKey: true });
       mockChatData = buildTestChat();
       mockStreamResult = createFakeStream([
         { type: "text-delta", text: "Done" },
@@ -625,7 +564,7 @@ describe("handleLocalAgentStream", () => {
     it("should set approval state to approved after completion", async () => {
       // Arrange
       const { event } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: true });
+      mockSettings = buildTestSettings({ hasApiKey: true });
       mockChatData = buildTestChat();
       mockStreamResult = createFakeStream([
         { type: "text-delta", text: "Done" },

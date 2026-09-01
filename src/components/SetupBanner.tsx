@@ -1,4 +1,3 @@
-import { useNavigate } from "@tanstack/react-router";
 import {
   ChevronRight,
   GiftIcon,
@@ -10,8 +9,6 @@ import {
   Settings,
   Folder,
 } from "lucide-react";
-import { providerSettingsRoute } from "@/routes/settings/providers/$provider";
-
 import SetupProviderCard from "@/components/SetupProviderCard";
 
 import { useState, useEffect, useCallback } from "react";
@@ -24,12 +21,9 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { usePostHog } from "posthog-js/react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { useLanguageModelProviders } from "@/hooks/useLanguageModelProviders";
 import { useScrollAndNavigateTo } from "@/hooks/useScrollAndNavigateTo";
-// @ts-ignore
-import logo from "../../assets/logo.svg";
-import { OnboardingBanner } from "./home/OnboardingBanner";
 import { showError } from "@/lib/toast";
 import { useSettings } from "@/hooks/useSettings";
 
@@ -40,9 +34,7 @@ type NodeInstallStep =
   | "finished-checking";
 
 export function SetupBanner() {
-  const posthog = usePostHog();
-  const navigate = useNavigate();
-  const [isOnboardingVisible, setIsOnboardingVisible] = useState(true);
+  const posthog = useAnalytics();
   const { isAnyProviderSetup, isLoading: loading } =
     useLanguageModelProviders();
   const [nodeSystemInfo, setNodeSystemInfo] = useState<NodeSystemInfo | null>(
@@ -100,26 +92,13 @@ export function SetupBanner() {
 
   const handleGoogleSetupClick = () => {
     posthog.capture("setup-flow:ai-provider-setup:google:click");
-    navigate({
-      to: providerSettingsRoute.id,
-      params: { provider: "google" },
-    });
+    settingsScrollAndNavigateTo("provider-settings");
   };
 
   const handleOpenRouterSetupClick = () => {
     posthog.capture("setup-flow:ai-provider-setup:openrouter:click");
-    navigate({
-      to: providerSettingsRoute.id,
-      params: { provider: "openrouter" },
-    });
+    settingsScrollAndNavigateTo("provider-settings");
   };
-  const handleDyadProSetupClick = () => {
-    posthog.capture("setup-flow:ai-provider-setup:dyad:click");
-    ipc.system.openExternalUrl(
-      "https://www.dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=setup-banner",
-    );
-  };
-
   const handleOtherProvidersClick = () => {
     posthog.capture("setup-flow:ai-provider-setup:other:click");
     settingsScrollAndNavigateTo("provider-settings");
@@ -177,12 +156,8 @@ export function SetupBanner() {
   return (
     <>
       <p className="text-xl font-medium text-zinc-700 dark:text-zinc-300 p-4">
-        Setup Dyad
+        Setup FeltDB Builder
       </p>
-      <OnboardingBanner
-        isVisible={isOnboardingVisible}
-        setIsVisible={setIsOnboardingVisible}
-      />
       <div className={bannerClasses}>
         <Accordion
           type="multiple"
@@ -311,9 +286,6 @@ export function SetupBanner() {
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pt-2 pb-4 bg-white dark:bg-zinc-900 border-t border-inherit">
-              <p className="text-[15px] mb-3">
-                Not sure what to do? Watch the Get Started video above ☝️
-              </p>
               <div className="flex gap-2">
                 <SetupProviderCard
                   className="flex-1"
@@ -339,23 +311,6 @@ export function SetupBanner() {
                   chip={<>Free</>}
                 />
               </div>
-
-              <SetupProviderCard
-                className="mt-2"
-                variant="dyad"
-                onClick={handleDyadProSetupClick}
-                tabIndex={isNodeSetupComplete ? 0 : -1}
-                leadingIcon={
-                  <img
-                    src={logo}
-                    alt="FeltDB Builder Logo"
-                    className="w-6 h-6 mr-0.5"
-                  />
-                }
-                title="Setup FeltDB AI"
-                subtitle="Access all AI models with one plan"
-                chip={<>Recommended</>}
-              />
 
               <div
                 className="mt-2 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors"
@@ -395,7 +350,7 @@ function NodeJsHelpCallout() {
         If you run into issues, read our{" "}
         <a
           onClick={() => {
-            ipc.system.openExternalUrl("https://www.dyad.sh/docs/help/nodejs");
+            ipc.system.openExternalUrl("https://feltdb.com");
           }}
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
         >
@@ -447,7 +402,8 @@ function NodeInstallButton({
     case "finished-checking":
       return (
         <div className="mt-3 text-sm text-red-600 dark:text-red-400">
-          Node.js not detected. Closing and re-opening Dyad usually fixes this.
+          Node.js not detected. Closing and re-opening FeltDB Builder usually
+          fixes this.
         </div>
       );
     default:
@@ -460,18 +416,18 @@ export const OpenRouterSetupBanner = ({
 }: {
   className?: string;
 }) => {
-  const posthog = usePostHog();
-  const navigate = useNavigate();
+  const posthog = useAnalytics();
+  const settingsScrollAndNavigateTo = useScrollAndNavigateTo("/settings", {
+    behavior: "smooth",
+    block: "start",
+  });
   return (
     <SetupProviderCard
       className={cn("mt-2", className)}
       variant="openrouter"
       onClick={() => {
         posthog.capture("setup-flow:ai-provider-setup:openrouter:click");
-        navigate({
-          to: providerSettingsRoute.id,
-          params: { provider: "openrouter" },
-        });
+        settingsScrollAndNavigateTo("provider-settings");
       }}
       tabIndex={0}
       leadingIcon={

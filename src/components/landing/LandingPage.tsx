@@ -7,7 +7,7 @@ import { generateCuteAppName } from "@/lib/utils";
 import { useLoadApps } from "@/hooks/useLoadApps";
 import { useStreamChat } from "@/hooks/useStreamChat";
 import { useSettings } from "@/hooks/useSettings";
-import { usePostHog } from "posthog-js/react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { showError } from "@/lib/toast";
 import {
   Sparkles,
@@ -47,7 +47,7 @@ export function LandingPage({ existingApps = [] }: LandingPageProps) {
   const { refreshApps } = useLoadApps();
   const { streamMessage } = useStreamChat({ hasChatId: false });
   const { settings } = useSettings();
-  const posthog = usePostHog();
+  const posthog = useAnalytics();
   const queryClient = useQueryClient();
 
   // Get random prompts

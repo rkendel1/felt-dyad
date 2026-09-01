@@ -15,7 +15,6 @@ import {
   ChevronsUpDown,
   ChevronsDownUp,
   SendHorizontalIcon,
-  Lock,
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
@@ -45,7 +44,7 @@ import {
 import { isPreviewOpenAtom } from "@/atoms/viewAtoms";
 import { useRunApp } from "@/hooks/useRunApp";
 import { AutoApproveSwitch } from "../AutoApproveSwitch";
-import { usePostHog } from "posthog-js/react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { CodeHighlight } from "./CodeHighlight";
 import { TokenBar } from "./TokenBar";
 import {
@@ -78,14 +77,13 @@ import { LexicalChatInput } from "./LexicalChatInput";
 import { AuxiliaryActionsMenu } from "./AuxiliaryActionsMenu";
 import { useChatModeToggle } from "@/hooks/useChatModeToggle";
 import { VisualEditingChangesDialog } from "@/components/preview_panel/VisualEditingChangesDialog";
-import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 
 const showTokenBarAtom = atom(false);
 
 export function ChatInput({ chatId }: { chatId?: number }) {
-  const posthog = usePostHog();
+  const posthog = useAnalytics();
   const [inputValue, setInputValue] = useAtom(chatInputValueAtom);
   const { settings } = useSettings();
   const appId = useAtomValue(selectedAppIdAtom);
@@ -160,8 +158,6 @@ export function ChatInput({ chatId }: { chatId?: number }) {
     !!proposal &&
     proposal.type === "code-proposal" &&
     messageId === lastMessage.id;
-
-  const { userBudget } = useUserBudgetInfo();
 
   useEffect(() => {
     if (error) {
@@ -299,11 +295,7 @@ export function ChatInput({ chatId }: { chatId?: number }) {
   return (
     <>
       {error && showError && (
-        <ChatErrorBox
-          onDismiss={dismissError}
-          error={error}
-          isDyadProEnabled={settings.enableDyadPro ?? false}
-        />
+        <ChatErrorBox onDismiss={dismissError} error={error} />
       )}
       {/* Display loading or error state for proposal */}
       {isProposalLoading && (
@@ -381,55 +373,24 @@ export function ChatInput({ chatId }: { chatId?: number }) {
               />
             )}
 
-          {userBudget ? (
-            <VisualEditingChangesDialog
-              iframeRef={
-                previewIframeRef
-                  ? { current: previewIframeRef }
-                  : { current: null }
-              }
-              onReset={() => {
-                // Exit component selection mode and visual editing
-                setSelectedComponents([]);
-                setVisualEditingSelectedComponent(null);
-                setCurrentComponentCoordinates(null);
-                setPendingVisualChanges(new Map());
-                refreshAppIframe();
-
-                // Deactivate component selector in iframe
-                if (previewIframeRef?.contentWindow) {
-                  previewIframeRef.contentWindow.postMessage(
-                    { type: "deactivate-dyad-component-selector" },
-                    "*",
-                  );
-                }
-              }}
-            />
-          ) : (
-            selectedComponents.length > 0 && (
-              <div className="border-b border-border p-3 bg-muted/30">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => {
-                          ipc.system.openExternalUrl("https://dyad.sh/pro");
-                        }}
-                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                      >
-                        <Lock size={16} />
-                        <span className="font-medium">Visual editor (Pro)</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Visual editing lets you make UI changes without AI and is
-                      a Pro-only feature
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            )
-          )}
+          <VisualEditingChangesDialog
+            iframeRef={
+              previewIframeRef
+                ? { current: previewIframeRef }
+                : { current: null }
+            }
+            onReset={() => {
+              setSelectedComponents([]);
+              setVisualEditingSelectedComponent(null);
+              setCurrentComponentCoordinates(null);
+              setPendingVisualChanges(new Map());
+              refreshAppIframe();
+              previewIframeRef?.contentWindow?.postMessage(
+                { type: "deactivate-dyad-component-selector" },
+                "*",
+              );
+            }}
+          />
 
           <SelectedComponentsDisplay />
 
@@ -588,7 +549,7 @@ function WriteCodeProperlyButton() {
 
 function RebuildButton() {
   const { restartApp } = useRunApp();
-  const posthog = usePostHog();
+  const posthog = useAnalytics();
   const selectedAppId = useAtomValue(selectedAppIdAtom);
 
   const onClick = useCallback(async () => {
@@ -607,7 +568,7 @@ function RebuildButton() {
 
 function RestartButton() {
   const { restartApp } = useRunApp();
-  const posthog = usePostHog();
+  const posthog = useAnalytics();
   const selectedAppId = useAtomValue(selectedAppIdAtom);
 
   const onClick = useCallback(async () => {
@@ -629,7 +590,7 @@ function RestartButton() {
 
 function RefreshButton() {
   const { refreshAppIframe } = useRunApp();
-  const posthog = usePostHog();
+  const posthog = useAnalytics();
 
   const onClick = useCallback(() => {
     posthog.capture("action:refresh");

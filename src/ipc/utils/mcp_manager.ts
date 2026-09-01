@@ -1,7 +1,8 @@
-import { db } from "../../db";
-import { mcpServers } from "../../db/schema";
+import {
+  FeltDBRecord,
+  getFeltDBDataStore,
+} from "../../store/feltdb_data_store";
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
-import { eq } from "drizzle-orm";
 
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -18,11 +19,15 @@ class McpManager {
   async getClient(serverId: number): Promise<MCPClient> {
     const existing = this.clients.get(serverId);
     if (existing) return existing;
-    const server = await db
-      .select()
-      .from(mcpServers)
-      .where(eq(mcpServers.id, serverId));
-    const s = server.find((x) => x.id === serverId);
+    const s = await getFeltDBDataStore().get<
+      FeltDBRecord & {
+        transport: string;
+        command?: string;
+        args?: string[];
+        envJson?: Record<string, string>;
+        url?: string;
+      }
+    >("mcp_servers", serverId);
     if (!s) throw new Error(`MCP server not found: ${serverId}`);
     let transport: StdioClientTransport | StreamableHTTPClientTransport;
     if (s.transport === "stdio") {

@@ -23,8 +23,7 @@ import { showExtraFilesToast } from "@/lib/toast";
 import { useSearch } from "@tanstack/react-router";
 import { useRunApp } from "./useRunApp";
 import { useCountTokens } from "./useCountTokens";
-import { useUserBudgetInfo } from "./useUserBudgetInfo";
-import { usePostHog } from "posthog-js/react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { useCheckProblems } from "./useCheckProblems";
 import { useSettings } from "./useSettings";
 import { useQueryClient } from "@tanstack/react-query";
@@ -54,11 +53,10 @@ export function useStreamChat({
   const setStreamCountById = useSetAtom(chatStreamCountByIdAtom);
   const { refreshVersions } = useVersions(selectedAppId);
   const { refreshAppIframe } = useRunApp();
-  const { refetchUserBudget } = useUserBudgetInfo();
   const { checkProblems } = useCheckProblems(selectedAppId);
   const { settings } = useSettings();
   const setRecentStreamChatIds = useSetAtom(recentStreamChatIdsAtom);
-  const posthog = usePostHog();
+  const posthog = useAnalytics();
   const queryClient = useQueryClient();
   let chatId: number | undefined;
 
@@ -192,13 +190,6 @@ export function useStreamChat({
               // Use queryClient directly with the chatId parameter to avoid stale closure issues
               queryClient.invalidateQueries({ queryKey: ["proposal", chatId] });
 
-              refetchUserBudget();
-
-              // Invalidate free agent quota to update the UI after message
-              queryClient.invalidateQueries({
-                queryKey: queryKeys.freeAgentQuota.status,
-              });
-
               // Keep the same as below
               setIsStreamingById((prev) => {
                 const next = new Map(prev);
@@ -268,7 +259,6 @@ export function useStreamChat({
       setIsPreviewOpen,
       checkProblems,
       selectedAppId,
-      refetchUserBudget,
       settings,
       queryClient,
     ],

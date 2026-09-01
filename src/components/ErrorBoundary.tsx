@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { LightbulbIcon } from "lucide-react";
 import { ErrorComponentProps } from "@tanstack/react-router";
-import { usePostHog } from "posthog-js/react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { ipc } from "@/ipc/types";
 
 export function ErrorBoundary({ error }: ErrorComponentProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const posthog = usePostHog();
+  const posthog = useAnalytics();
 
   useEffect(() => {
     console.error("An error occurred in the route:", error);
@@ -40,13 +40,12 @@ export function ErrorBoundary({ error }: ErrorComponentProps) {
 ${error?.stack ? `\n\`\`\`\n${error.stack.slice(0, 1000)}\n\`\`\`` : ""}
 
 ## System Information
-- Dyad Version: ${debugInfo.dyadVersion}
+- FeltDB Builder Version: ${debugInfo.dyadVersion}
 - Platform: ${debugInfo.platform}
 - Architecture: ${debugInfo.architecture}
 - Node Version: ${debugInfo.nodeVersion || "Not available"}
 - PNPM Version: ${debugInfo.pnpmVersion || "Not available"}
 - Node Path: ${debugInfo.nodePath || "Not available"}
-- Telemetry ID: ${debugInfo.telemetryId || "Not available"}
 
 ## Logs
 \`\`\`
@@ -101,8 +100,8 @@ ${debugInfo.logs.slice(-3_500) || "No logs available"}
         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md flex items-center gap-2">
           <LightbulbIcon className="h-4 w-4 text-blue-700 dark:text-blue-400 flex-shrink-0" />
           <p className="text-sm text-blue-700 dark:text-blue-400">
-            <strong>Tip:</strong> Try closing and re-opening Dyad as a temporary
-            workaround.
+            <strong>Tip:</strong> Try closing and re-opening FeltDB Builder as a
+            temporary workaround.
           </p>
         </div>
       </div>

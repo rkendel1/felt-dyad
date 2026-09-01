@@ -33,10 +33,6 @@ import supabaseLogoLight from "../../assets/supabase/supabase-logo-wordmark--lig
 // @ts-ignore
 import supabaseLogoDark from "../../assets/supabase/supabase-logo-wordmark--dark.svg";
 // @ts-ignore
-import connectSupabaseDark from "../../assets/supabase/connect-supabase-dark.svg";
-// @ts-ignore
-import connectSupabaseLight from "../../assets/supabase/connect-supabase-light.svg";
-
 import { ExternalLink, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { isSupabaseConnected } from "@/lib/schemas";
@@ -136,9 +132,7 @@ export function SupabaseConnector({ appId }: { appId: number }) {
         fakeProjectId: "fake-project-id",
       });
     } else {
-      await ipc.system.openExternalUrl(
-        "https://supabase-oauth.dyad.sh/api/connect-supabase/login",
-      );
+      await ipc.system.openExternalUrl("https://supabase.com/dashboard");
     }
   };
 
@@ -290,7 +284,7 @@ export function SupabaseConnector({ appId }: { appId: number }) {
                 className="gap-1"
               >
                 <Plus className="h-4 w-4" />
-                Add Organization
+                Open Supabase
               </Button>
             </div>
           </CardTitle>
@@ -400,13 +394,13 @@ export function SupabaseConnector({ appId }: { appId: number }) {
     <div className="flex flex-col space-y-4 p-4 border rounded-md">
       <div className="flex flex-col md:flex-row items-center justify-between">
         <h2 className="text-lg font-medium">Integrations</h2>
-        <img
+        <Button
           onClick={handleAddAccount}
-          src={isDarkMode ? connectSupabaseDark : connectSupabaseLight}
-          alt="Connect to Supabase"
-          className="w-full h-10 min-h-8 min-w-20 cursor-pointer"
           data-testid="connect-supabase-button"
-        />
+        >
+          Open Supabase
+          <ExternalLink className="ml-2 h-4 w-4" />
+        </Button>
       </div>
     </div>
   );

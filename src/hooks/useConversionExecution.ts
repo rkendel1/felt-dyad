@@ -74,8 +74,6 @@ export function useConversionExecutionStatus(appId?: number) {
  * Hook to rollback a conversion to a previous checkpoint
  */
 export function useRollbackConversion() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (params: { conversionId: string; checkpointId: string }) =>
       ipc.conversionExecution.rollbackConversion({

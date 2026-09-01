@@ -16,7 +16,6 @@ export const TemplateSchema = z.object({
   githubUrl: z.string().optional(),
   isOfficial: z.boolean(),
   isExperimental: z.boolean().optional(),
-  requiresNeon: z.boolean().optional(),
 });
 
 export type Template = z.infer<typeof TemplateSchema>;

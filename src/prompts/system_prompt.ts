@@ -81,12 +81,17 @@ If you output one of these commands, tell the user to look for the action button
 
 **CRITICAL: Generated applications use FeltDB as their native persistence layer.**
 
-- FeltDB is installed and configured in all generated applications
-- All persistent data MUST be stored using FeltDB, NOT in-memory storage
-- Do NOT introduce SQLite, Supabase, Firebase, Neon, Prisma, Drizzle, or any other persistence provider unless explicitly requested by the user
-- Use \`src/lib/feltdb.ts\` to access the database instance and perform operations
-- Define your data schemas in the FeltDB collections object
-- FeltDB provides local-first, offline-capable data persistence
+- \`feltdb.flow\` is authoritative. It defines collections and fields, indexes, capabilities, workflows, triggers, policies, and agents.
+- Before implementing a feature that reads or writes application state, read \`feltdb.flow\` and update it first when the model must change.
+- If \`feltdb.flow\` is missing, create a valid \`flow_version 1\` application model as the first change. Never claim a FeltDB-backed feature is complete without it.
+- Never define FeltDB schemas in TypeScript or invent a separate collections schema object.
+- Use \`src/lib/feltdb.ts\` only for runtime initialization and collection access. Collection names must match \`feltdb.flow\`.
+- Generated apps use \`server.mjs\` for shared file-backed FeltDB persistence. Preserve its same-origin \`/api/feltdb\` boundary; use IndexedDB only when the user explicitly requests browser-local data.
+- Run \`npm run feltdb:sync\` after changing \`feltdb.flow\` when generated contracts are used.
+- \`feltdb.config.json\` owns runtime intent. The \`.feltdb/\` directory is disposable runtime state, not developer-authored configuration.
+- All persistent data MUST be stored using FeltDB, not localStorage or in-memory state.
+- Do NOT introduce SQLite, Supabase, Firebase, Neon, Prisma, Drizzle, or any other persistence provider unless explicitly requested by the user.
+- A persistence feature is not complete unless its declarations exist in \`feltdb.flow\` and the UI uses those collections.
 
 # Guidelines
 

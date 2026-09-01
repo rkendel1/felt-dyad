@@ -1,6 +1,4 @@
-import { db } from "../../db";
-import { chats, messages } from "../../db/schema";
-import { eq, and, like, desc } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { createTypedHandler } from "./base";
 import { securityContracts } from "../types/security";
 import type { SecurityFinding } from "../types/security";
@@ -15,29 +13,23 @@ export function registerSecurityHandlers() {
 
       // Query for the most recent message with security findings
       // Use database filtering instead of loading all data into memory
-      const result = await db
-        .select({
-          content: messages.content,
-          createdAt: messages.createdAt,
-          chatId: messages.chatId,
-        })
-        .from(messages)
-        .innerJoin(chats, eq(messages.chatId, chats.id))
-        .where(
-          and(
-            eq(chats.appId, appId),
-            eq(messages.role, "assistant"),
-            like(messages.content, "%<dyad-security-finding%"),
-          ),
+      const store = getProjectStore();
+      const chatIds = new Set(
+        (await store.listChats(appId)).map((chat) => chat.id),
+      );
+      const message = (await store.listAllMessages())
+        .filter(
+          (item) =>
+            chatIds.has(item.chatId) &&
+            item.role === "assistant" &&
+            item.content.includes("<dyad-security-finding"),
         )
-        .orderBy(desc(messages.createdAt))
-        .limit(1);
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
 
-      if (result.length === 0) {
+      if (!message) {
         throw new Error("No security review found for this app");
       }
 
-      const message = result[0];
       const findings = parseSecurityFindings(message.content);
 
       if (findings.length === 0) {

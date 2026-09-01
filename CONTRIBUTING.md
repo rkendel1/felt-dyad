@@ -22,7 +22,7 @@ FeltDB Builder is an Electron app.
 npm install
 ```
 
-**Create the userData directory (required for database)**
+**Create the userData directory (required for FeltDB)**
 
 ```sh
 # Unix/macOS/Linux:
@@ -34,16 +34,6 @@ mkdir userData
 # Windows Command Prompt (run only if folder doesn't exist):
 md userData
 ```
-
-**Generate DB migrations:**
-
-If you change the DB schema (i.e. `src/db/schema.ts`), you will need to generate a DB migration.
-
-```sh
-npm run db:generate
-```
-
-> If you want to discard a DB migration, you will likely need to reset your database which you can do by deleting the file in `userData/sqlite.db`.
 
 **Run locally:**
 

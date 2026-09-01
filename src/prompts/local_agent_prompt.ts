@@ -127,6 +127,16 @@ const DEFAULT_AI_RULES = `# Tech Stack
 - ALWAYS try to use the shadcn/ui library.
 - Tailwind CSS: always use Tailwind CSS for styling components. Utilize Tailwind classes extensively for layout, spacing, colors, and other design aspects.
 
+## FeltDB application model
+- Read \`feltdb.flow\` before changing application state or persistence.
+- \`feltdb.flow\` is authoritative for collections, indexes, capabilities, workflows, policies, and agents.
+- Update \`feltdb.flow\` before writing TypeScript that uses a new collection or field.
+- Import \`db\` from \`src/lib/feltdb.ts\`; never define schemas in TypeScript.
+- Preserve \`server.mjs\` as the Node owner of shared file-backed FeltDB data and keep the browser client on the same-origin \`/api/feltdb\` endpoint. Use IndexedDB only when explicitly requested.
+- Store persistent state in FeltDB, not localStorage or in-memory substitutes.
+- Run \`npm run feltdb:sync\` after flow changes when generated contracts are present.
+- Treat \`.feltdb/\` as disposable runtime state, never application configuration.
+
 Available packages and libraries:
 - The lucide-react package is installed for icons.
 - You ALREADY have ALL the shadcn/ui components and their dependencies installed. So you don't need to install them again.

@@ -22,12 +22,9 @@ import {
   isGitRebaseInProgress,
   GitConflictError,
 } from "../utils/git_utils";
-import * as schema from "../../db/schema";
 import fs from "node:fs";
 import { getDyadAppPath } from "../../paths/paths";
-import { db } from "../../db";
-import { apps } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { GithubUser } from "../../lib/schemas";
 import log from "electron-log";
 import { IS_TEST_BUILD } from "../utils/test_utils";
@@ -119,7 +116,7 @@ async function prepareLocalBranch({
   remoteUrl?: string;
   accessToken?: string;
 }) {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) {
     throw new Error("App not found");
   }
@@ -700,7 +697,7 @@ async function handleCreateRepo(
     accessToken,
   });
 
-  // Store org, repo, and branch in the app's DB row (apps table)
+  // Store the repository link on the app record.
   await updateAppGithubRepo({ appId, org: owner, repo, branch });
 }
 
@@ -782,7 +779,7 @@ async function handlePushToGithub(
   }
 
   // Get app info from DB
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app || !app.githubOrg || !app.githubRepo) {
     throw new Error("App is not linked to a GitHub repo.");
   }
@@ -865,7 +862,7 @@ async function handleAbortRebase(
   event: IpcMainInvokeEvent,
   { appId }: { appId: number },
 ): Promise<void> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -876,7 +873,7 @@ async function handleContinueRebase(
   event: IpcMainInvokeEvent,
   { appId }: { appId: number },
 ): Promise<void> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -892,7 +889,7 @@ async function handleRebaseFromGithub(
   if (!accessToken) {
     throw new Error("Not authenticated with GitHub.");
   }
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app || !app.githubOrg || !app.githubRepo) {
     throw new Error("App is not linked to a GitHub repo.");
   }
@@ -946,7 +943,7 @@ async function handleGetGitState(
   event: IpcMainInvokeEvent,
   { appId }: { appId: number },
 ): Promise<{ mergeInProgress: boolean; rebaseInProgress: boolean }> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -967,7 +964,7 @@ async function handleListCollaborators(
       throw new Error("Not authenticated with GitHub.");
     }
 
-    const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+    const app = await getProjectStore().getApp(appId);
     if (!app || !app.githubOrg || !app.githubRepo) {
       throw new Error("App is not linked to a GitHub repo.");
     }
@@ -1035,7 +1032,7 @@ async function handleInviteCollaborator(
       throw new Error("Not authenticated with GitHub.");
     }
 
-    const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+    const app = await getProjectStore().getApp(appId);
     if (!app || !app.githubOrg || !app.githubRepo) {
       throw new Error("App is not linked to a GitHub repo.");
     }
@@ -1079,7 +1076,7 @@ async function handleRemoveCollaborator(
       throw new Error("Not authenticated with GitHub.");
     }
 
-    const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+    const app = await getProjectStore().getApp(appId);
     if (!app || !app.githubOrg || !app.githubRepo) {
       throw new Error("App is not linked to a GitHub repo.");
     }
@@ -1112,7 +1109,7 @@ async function handleGetMergeConflicts(
   event: IpcMainInvokeEvent,
   { appId }: { appId: number },
 ): Promise<string[]> {
-  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  const app = await getProjectStore().getApp(appId);
   if (!app) throw new Error("App not found");
   const appPath = getDyadAppPath(app.path);
 
@@ -1127,23 +1124,18 @@ async function handleDisconnectGithubRepo(
   logger.log(`Disconnecting GitHub repo for appId: ${appId}`);
 
   // Get the app from the database
-  const app = await db.query.apps.findFirst({
-    where: eq(apps.id, appId),
-  });
+  const app = await getProjectStore().getApp(appId);
 
   if (!app) {
     throw new Error("App not found");
   }
 
   // Update app in database to remove GitHub repo, org, and branch
-  await db
-    .update(apps)
-    .set({
-      githubRepo: null,
-      githubOrg: null,
-      githubBranch: null,
-    })
-    .where(eq(apps.id, appId));
+  await getProjectStore().updateApp(appId, {
+    githubRepo: null,
+    githubOrg: null,
+    githubBranch: null,
+  });
 }
 // --- GitHub Clone Repo from URL Handler ---
 async function handleCloneRepoFromUrl(
@@ -1180,9 +1172,9 @@ async function handleCloneRepoFromUrl(
       }
     }
     const finalAppName = appName && appName.trim() ? appName.trim() : repoName;
-    const existingApp = await db.query.apps.findFirst({
-      where: eq(apps.name, finalAppName),
-    });
+    const existingApp = (await getProjectStore().listApps()).find(
+      (app) => app.name === finalAppName,
+    );
 
     if (existingApp) {
       return { error: `An app named "${finalAppName}" already exists.` };
@@ -1217,20 +1209,15 @@ async function handleCloneRepoFromUrl(
     }
     const aiRulesPath = path.join(appPath, "AI_RULES.md");
     const hasAiRules = fs.existsSync(aiRulesPath);
-    const [newApp] = await db
-      .insert(schema.apps)
-      .values({
-        name: finalAppName,
-        path: finalAppName,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        githubOrg: owner,
-        githubRepo: repoName,
-        githubBranch: "main",
-        installCommand: installCommand || null,
-        startCommand: startCommand || null,
-      })
-      .returning();
+    const newApp = await getProjectStore().createApp({
+      name: finalAppName,
+      path: finalAppName,
+      githubOrg: owner,
+      githubRepo: repoName,
+      githubBranch: "main",
+      installCommand: installCommand || undefined,
+      startCommand: startCommand || undefined,
+    });
     logger.log(`Successfully cloned repo ${owner}/${repoName} to ${appPath}`);
     // Return success object
     return {
@@ -1349,12 +1336,9 @@ export async function updateAppGithubRepo({
   repo: string;
   branch?: string;
 }): Promise<void> {
-  await db
-    .update(schema.apps)
-    .set({
-      githubOrg: org,
-      githubRepo: repo,
-      githubBranch: branch || "main",
-    })
-    .where(eq(schema.apps.id, appId));
+  await getProjectStore().updateApp(appId, {
+    githubOrg: org,
+    githubRepo: repo,
+    githubBranch: branch || "main",
+  });
 }

@@ -253,11 +253,7 @@ function SecurityHeader({
             <p>
               <a
                 className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                onClick={() =>
-                  ipc.system.openExternalUrl(
-                    "https://www.dyad.sh/docs/guides/security-review",
-                  )
-                }
+                onClick={() => ipc.system.openExternalUrl("https://feltdb.com")}
               >
                 Open Security Review docs
               </a>

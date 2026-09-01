@@ -481,7 +481,7 @@ export class PageObject {
       ask: "Ask Ask",
       agent: "Build with MCP",
       "local-agent": "Agent v2",
-      "basic-agent": "Basic Agent", // For free users
+      "basic-agent": "Agent",
     };
     const optionName = mapping[mode];
     await this.page

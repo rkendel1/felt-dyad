@@ -1,6 +1,5 @@
-import { db } from "../../db";
-import { apps, messages, versions } from "../../db/schema";
-import { desc, eq, and, gt, gte } from "drizzle-orm";
+import { getFeltDBDataStore, getProjectStore } from "../../store";
+import type { StoredVersion } from "../utils/neon_timestamp_utils";
 import type { GitCommit } from "../git_types";
 import fs from "node:fs";
 import path from "node:path";
@@ -67,9 +66,7 @@ async function restoreBranchForPreview({
 export function registerVersionHandlers() {
   createTypedHandler(versionContracts.listVersions, async (_, params) => {
     const { appId } = params;
-    const app = await db.query.apps.findFirst({
-      where: eq(apps.id, appId),
-    });
+    const app = await getProjectStore().getApp(appId);
 
     if (!app) {
       // The app might have just been deleted, so we return an empty array.
@@ -89,9 +86,9 @@ export function registerVersionHandlers() {
     });
 
     // Get all snapshots for this app to match with commits
-    const appSnapshots = await db.query.versions.findMany({
-      where: eq(versions.appId, appId),
-    });
+    const appSnapshots = (
+      await getFeltDBDataStore().list<StoredVersion>("versions")
+    ).filter((version) => version.appId === appId);
 
     // Create a map of commitHash -> snapshot info for quick lookup
     const snapshotMap = new Map<
@@ -118,9 +115,7 @@ export function registerVersionHandlers() {
 
   createTypedHandler(versionContracts.getCurrentBranch, async (_, params) => {
     const { appId } = params;
-    const app = await db.query.apps.findFirst({
-      where: eq(apps.id, appId),
-    });
+    const app = await getProjectStore().getApp(appId);
 
     if (!app) {
       throw new Error("App not found");
@@ -150,9 +145,8 @@ export function registerVersionHandlers() {
     return withLock(appId, async () => {
       let successMessage = "Restored version";
       let warningMessage = "";
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, appId),
-      });
+      const store = getProjectStore();
+      const app = await store.getApp(appId);
 
       if (!app) {
         throw new Error("App not found");
@@ -195,43 +189,33 @@ export function registerVersionHandlers() {
         // Delete all messages including and after the specified message
         const { chatId, messageId } = currentChatMessageId;
 
-        const messagesToDelete = await db.query.messages.findMany({
-          where: and(eq(messages.chatId, chatId), gte(messages.id, messageId)),
-          orderBy: desc(messages.id),
-        });
+        const messagesToDelete = (await store.listMessages(chatId))
+          .filter((message) => message.id >= messageId)
+          .sort((a, b) => b.id - a.id);
 
         logger.log(
           `Deleting ${messagesToDelete.length} messages (id >= ${messageId}) from chat ${chatId}`,
         );
 
         if (messagesToDelete.length > 0) {
-          await db
-            .delete(messages)
-            .where(
-              and(eq(messages.chatId, chatId), gte(messages.id, messageId)),
-            );
+          await Promise.all(
+            messagesToDelete.map((message) => store.deleteMessage(message.id)),
+          );
         }
       } else {
         // Find the chat and message associated with the commit hash
-        const messageWithCommit = await db.query.messages.findFirst({
-          where: eq(messages.commitHash, previousVersionId),
-          with: {
-            chat: true,
-          },
-        });
+        const messageWithCommit = (await store.listAllMessages()).find(
+          (message) => message.commitHash === previousVersionId,
+        );
 
         // If we found a message with this commit hash, delete all subsequent messages (but keep this message)
         if (messageWithCommit) {
           const chatId = messageWithCommit.chatId;
 
           // Find all messages in this chat with IDs > the one with our commit hash
-          const messagesToDelete = await db.query.messages.findMany({
-            where: and(
-              eq(messages.chatId, chatId),
-              gt(messages.id, messageWithCommit.id),
-            ),
-            orderBy: desc(messages.id),
-          });
+          const messagesToDelete = (await store.listMessages(chatId))
+            .filter((message) => message.id > messageWithCommit.id)
+            .sort((a, b) => b.id - a.id);
 
           logger.log(
             `Deleting ${messagesToDelete.length} messages after commit ${previousVersionId} from chat ${chatId}`,
@@ -239,25 +223,23 @@ export function registerVersionHandlers() {
 
           // Delete the messages
           if (messagesToDelete.length > 0) {
-            await db
-              .delete(messages)
-              .where(
-                and(
-                  eq(messages.chatId, chatId),
-                  gt(messages.id, messageWithCommit.id),
-                ),
-              );
+            await Promise.all(
+              messagesToDelete.map((message) =>
+                store.deleteMessage(message.id),
+              ),
+            );
           }
         }
       }
 
       if (app.neonProjectId && app.neonDevelopmentBranchId) {
-        const version = await db.query.versions.findFirst({
-          where: and(
-            eq(versions.appId, appId),
-            eq(versions.commitHash, previousVersionId),
-          ),
-        });
+        const versionStore = getFeltDBDataStore();
+        const version = (
+          await versionStore.list<StoredVersion>("versions")
+        ).find(
+          (item) =>
+            item.appId === appId && item.commitHash === previousVersionId,
+        );
         if (version && version.neonDbTimestamp) {
           try {
             const preserveBranchName = `preserve_${currentCommitHash}-${Date.now()}`;
@@ -277,15 +259,21 @@ export function registerVersionHandlers() {
             );
             // Update all versions which have a newer DB timestamp than the version we're restoring to
             // and remove their DB timestamp.
-            await db
-              .update(versions)
-              .set({ neonDbTimestamp: null })
-              .where(
-                and(
-                  eq(versions.appId, appId),
-                  gt(versions.neonDbTimestamp, version.neonDbTimestamp),
-                ),
-              );
+            const newerVersions = (
+              await versionStore.list<StoredVersion>("versions")
+            ).filter(
+              (item) =>
+                item.appId === appId &&
+                item.neonDbTimestamp &&
+                item.neonDbTimestamp > version.neonDbTimestamp!,
+            );
+            await Promise.all(
+              newerVersions.map((item) =>
+                versionStore.update<StoredVersion>("versions", item.id, {
+                  neonDbTimestamp: null,
+                }),
+              ),
+            );
 
             const preserveBranchId = response.data.branch.parent_id;
             if (!preserveBranchId) {
@@ -365,9 +353,7 @@ export function registerVersionHandlers() {
   createTypedHandler(versionContracts.checkoutVersion, async (_, params) => {
     const { appId, versionId: gitRef } = params;
     return withLock(appId, async () => {
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, appId),
-      });
+      const app = await getProjectStore().getApp(appId);
 
       if (!app) {
         throw new Error("App not found");
@@ -397,12 +383,9 @@ export function registerVersionHandlers() {
             disabled: true,
           });
 
-          const version = await db.query.versions.findFirst({
-            where: and(
-              eq(versions.appId, appId),
-              eq(versions.commitHash, gitRef),
-            ),
-          });
+          const version = (
+            await getFeltDBDataStore().list<StoredVersion>("versions")
+          ).find((item) => item.appId === appId && item.commitHash === gitRef);
 
           if (version && version.neonDbTimestamp) {
             // SWITCH the env var for POSTGRES_URL to the preview branch

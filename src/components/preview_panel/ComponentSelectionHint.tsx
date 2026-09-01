@@ -9,24 +9,14 @@ import { isPreviewOpenAtom } from "@/atoms/viewAtoms";
  */
 export function ComponentSelectionHint() {
   const isPreviewOpen = useAtomValue(isPreviewOpenAtom);
-  const [isDismissed, setIsDismissed] = useState(() => {
-    // Load from localStorage
-    const stored = localStorage.getItem(
-      "dyad-component-selection-hint-dismissed",
-    );
-    return stored === "true";
-  });
-  const [hasUsedFeature, setHasUsedFeature] = useState(() => {
-    const stored = localStorage.getItem("dyad-component-selection-used");
-    return stored === "true";
-  });
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [hasUsedFeature, setHasUsedFeature] = useState(false);
 
   // Mark feature as used when this mounts (meaning preview is open and user has seen the hint)
   useEffect(() => {
     if (isPreviewOpen && !isDismissed && !hasUsedFeature) {
       const timer = setTimeout(() => {
         setHasUsedFeature(true);
-        localStorage.setItem("dyad-component-selection-used", "true");
       }, 2000); // Show hint for 2 seconds before marking as used
 
       return () => clearTimeout(timer);
@@ -40,7 +30,6 @@ export function ComponentSelectionHint() {
 
   const handleDismiss = () => {
     setIsDismissed(true);
-    localStorage.setItem("dyad-component-selection-hint-dismissed", "true");
   };
 
   return (

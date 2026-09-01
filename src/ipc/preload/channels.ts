@@ -38,7 +38,6 @@ import { upgradeContracts } from "../types/upgrade";
 import { visualEditingContracts } from "../types/visual-editing";
 import { securityContracts } from "../types/security";
 import { miscContracts, miscEvents } from "../types/misc";
-import { freeAgentQuotaContracts } from "../types/free_agent_quota";
 import { conversionAnalysisContracts } from "../types/conversion-analysis";
 import { conversionExecutionContracts } from "../types/conversion-execution";
 import { applicationIntelligenceContracts } from "../types/application-intelligence-contracts";
@@ -89,7 +88,6 @@ export const VALID_INVOKE_CHANNELS = [
   ...getInvokeChannels(visualEditingContracts),
   ...getInvokeChannels(securityContracts),
   ...getInvokeChannels(miscContracts),
-  ...getInvokeChannels(freeAgentQuotaContracts),
   ...getInvokeChannels(conversionAnalysisContracts),
   ...getInvokeChannels(conversionExecutionContracts),
   ...getInvokeChannels(applicationIntelligenceContracts),

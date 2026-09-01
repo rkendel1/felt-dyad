@@ -1,11 +1,9 @@
 /**
  * ProjectStore is the abstraction boundary for all project-related persistence.
- * This allows us to swap between SQLite, FeltDB, or other backends without
- * changing the rest of the Dyad codebase.
+ * FeltDB-backed persistence boundary for project data.
  */
 
 export interface ProjectStoreConfig {
-  type: "sqlite" | "feltdb";
   dataPath?: string;
 }
 
@@ -16,55 +14,65 @@ export interface App {
   path: string;
   createdAt: Date;
   updatedAt: Date;
-  githubOrg?: string;
-  githubRepo?: string;
-  githubBranch?: string;
-  supabaseProjectId?: string;
-  supabaseParentProjectId?: string;
-  supabaseOrganizationSlug?: string;
-  neonProjectId?: string;
-  neonDevelopmentBranchId?: string;
-  neonPreviewBranchId?: string;
-  vercelProjectId?: string;
-  vercelProjectName?: string;
-  vercelTeamId?: string;
-  vercelDeploymentUrl?: string;
-  installCommand?: string;
-  startCommand?: string;
-  chatContext?: Record<string, any>;
+  githubOrg: string | null;
+  githubRepo: string | null;
+  githubBranch: string | null;
+  supabaseProjectId: string | null;
+  supabaseParentProjectId: string | null;
+  supabaseOrganizationSlug: string | null;
+  neonProjectId: string | null;
+  neonDevelopmentBranchId: string | null;
+  neonPreviewBranchId: string | null;
+  vercelProjectId: string | null;
+  vercelProjectName: string | null;
+  vercelTeamId: string | null;
+  vercelDeploymentUrl: string | null;
+  installCommand: string | null;
+  startCommand: string | null;
+  chatContext: Record<string, any> | null;
   isFavorite: boolean;
-  themeId?: string;
+  themeId: string | null;
+  feltdbRuntime: "server" | "browser" | "managed" | null;
+  feltdbMode: "local" | "managed" | null;
+  feltdbProjectId: string | null;
+  feltdbAccountId: string | null;
+  feltdbStatus: "ready" | "initializing" | "failed" | null;
 }
 
 export interface CreateAppInput {
   name: string;
   path: string;
-  githubOrg?: string;
-  githubRepo?: string;
-  githubBranch?: string;
-  supabaseProjectId?: string;
-  supabaseParentProjectId?: string;
-  supabaseOrganizationSlug?: string;
-  neonProjectId?: string;
-  neonDevelopmentBranchId?: string;
-  neonPreviewBranchId?: string;
-  vercelProjectId?: string;
-  vercelProjectName?: string;
-  vercelTeamId?: string;
-  vercelDeploymentUrl?: string;
-  installCommand?: string;
-  startCommand?: string;
+  githubOrg?: string | null;
+  githubRepo?: string | null;
+  githubBranch?: string | null;
+  supabaseProjectId?: string | null;
+  supabaseParentProjectId?: string | null;
+  supabaseOrganizationSlug?: string | null;
+  neonProjectId?: string | null;
+  neonDevelopmentBranchId?: string | null;
+  neonPreviewBranchId?: string | null;
+  vercelProjectId?: string | null;
+  vercelProjectName?: string | null;
+  vercelTeamId?: string | null;
+  vercelDeploymentUrl?: string | null;
+  installCommand?: string | null;
+  startCommand?: string | null;
   chatContext?: Record<string, any>;
   isFavorite?: boolean;
-  themeId?: string;
+  themeId?: string | null;
+  feltdbRuntime?: "server" | "browser" | "managed";
+  feltdbMode?: "local" | "managed";
+  feltdbProjectId?: string | null;
+  feltdbAccountId?: string | null;
+  feltdbStatus?: "ready" | "initializing" | "failed" | null;
 }
 
 // Chats
 export interface Chat {
   id: number;
   appId: number;
-  title?: string;
-  initialCommitHash?: string;
+  title: string | null;
+  initialCommitHash: string | null;
   createdAt: Date;
 }
 
@@ -72,6 +80,14 @@ export interface CreateChatInput {
   appId: number;
   title?: string;
   initialCommitHash?: string;
+}
+
+export interface ChatSearchResult {
+  id: number;
+  appId: number;
+  title: string | null;
+  createdAt: Date;
+  matchedMessageContent: string | null;
 }
 
 // Messages
@@ -89,8 +105,7 @@ export interface Message {
   maxTokensUsed?: number;
   model?: string;
   aiMessagesJson?: Record<string, any>;
-  usingFreeAgentModeQuota?: boolean;
-  createdAt?: Date;
+  createdAt: Date;
 }
 
 export interface CreateMessageInput {
@@ -104,7 +119,6 @@ export interface CreateMessageInput {
   maxTokensUsed?: number;
   model?: string;
   aiMessagesJson?: Record<string, any>;
-  usingFreeAgentModeQuota?: boolean;
 }
 
 // Prompts
@@ -142,6 +156,7 @@ export interface IProjectStore {
   // Initialization
   initialize(): Promise<void>;
   close(): Promise<void>;
+  reset(): Promise<void>;
 
   // Apps
   createApp(input: CreateAppInput): Promise<App>;
@@ -158,6 +173,8 @@ export interface IProjectStore {
   updateChat(chatId: number, input: Partial<CreateChatInput>): Promise<Chat>;
   deleteChat(chatId: number): Promise<void>;
   listChats(appId: number): Promise<Chat[]>;
+  listAllChats(): Promise<Chat[]>;
+  searchChats(appId: number, query: string): Promise<ChatSearchResult[]>;
 
   // Messages
   createMessage(input: CreateMessageInput): Promise<Message>;
@@ -168,6 +185,7 @@ export interface IProjectStore {
   ): Promise<Message>;
   deleteMessage(messageId: number): Promise<void>;
   listMessages(chatId: number): Promise<Message[]>;
+  listAllMessages(): Promise<Message[]>;
   deleteMessagesByChat(chatId: number): Promise<void>;
 
   // Prompts
@@ -199,16 +217,8 @@ export async function initializeProjectStore(
     return _projectStore;
   }
 
-  if (config.type === "feltdb") {
-    const { FeltDBProjectStore } = await import("./feltdb_project_store");
-    _projectStore = new FeltDBProjectStore(config.dataPath);
-    await _projectStore.initialize();
-    return _projectStore;
-  }
-
-  // Default to SQLite
-  const { SqliteProjectStore } = await import("./sqlite_project_store");
-  _projectStore = new SqliteProjectStore(config.dataPath);
+  const { FeltDBProjectStore } = await import("./feltdb_project_store");
+  _projectStore = new FeltDBProjectStore(config.dataPath);
   await _projectStore.initialize();
   return _projectStore;
 }

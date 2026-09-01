@@ -108,7 +108,7 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
       {/* Add a little chip that says "Internal error" if source is "dyad-app" */}
       {error.source === "dyad-app" && (
         <div className="absolute top-1 right-1 p-1 bg-red-100 dark:bg-red-900 rounded-md text-xs font-medium text-red-700 dark:text-red-300">
-          Internal Dyad error
+          Internal FeltDB Builder error
         </div>
       )}
 
@@ -180,9 +180,6 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   const { routes: availableRoutes } = useParseRouter(selectedAppId);
   const { restartApp } = useRunApp();
   const { settings, updateSettings } = useSettings();
-  // All features are now available to all users - Pro mode always enabled
-  const isProMode = true;
-
   // Navigation state
   const [isComponentSelectorInitialized, setIsComponentSelectorInitialized] =
     useState(false);
@@ -328,16 +325,6 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
     setPreviewIframeRef(iframeRef.current);
   }, [iframeRef.current, setPreviewIframeRef]);
 
-  // Send pro mode status to iframe
-  useEffect(() => {
-    if (iframeRef.current?.contentWindow && isComponentSelectorInitialized) {
-      iframeRef.current.contentWindow.postMessage(
-        { type: "dyad-pro-mode", enabled: isProMode },
-        "*",
-      );
-    }
-  }, [isProMode, isComponentSelectorInitialized]);
-
   // Add message listener for iframe errors and navigation events
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -433,10 +420,6 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
 
       if (event.data?.type === "dyad-component-selector-initialized") {
         setIsComponentSelectorInitialized(true);
-        iframeRef.current?.contentWindow?.postMessage(
-          { type: "dyad-pro-mode", enabled: isProMode },
-          "*",
-        );
         return;
       }
 
@@ -458,7 +441,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
         if (!component) return;
 
         // Store the coordinates
-        if (event.data.coordinates && isProMode) {
+        if (event.data.coordinates) {
           setCurrentComponentCoordinates(event.data.coordinates);
         }
 
@@ -478,12 +461,10 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
           return [...prev, component];
         });
 
-        if (isProMode) {
-          // Set as the highlighted component for visual editing
-          setVisualEditingSelectedComponent(component);
-          // Trigger AST analysis
-          analyzeComponent(component.id);
-        }
+        // Set as the highlighted component for visual editing
+        setVisualEditingSelectedComponent(component);
+        // Trigger AST analysis
+        analyzeComponent(component.id);
 
         return;
       }
@@ -1114,16 +1095,14 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
                   allow="clipboard-read; clipboard-write; fullscreen; microphone; camera; display-capture; geolocation; autoplay; picture-in-picture"
                 />
                 {/* Visual Editing Toolbar */}
-                {isProMode &&
-                  visualEditingSelectedComponent &&
-                  selectedAppId && (
-                    <VisualEditingToolbar
-                      selectedComponent={visualEditingSelectedComponent}
-                      iframeRef={iframeRef}
-                      isDynamic={isDynamicComponent}
-                      hasStaticText={hasStaticText}
-                    />
-                  )}
+                {visualEditingSelectedComponent && selectedAppId && (
+                  <VisualEditingToolbar
+                    selectedComponent={visualEditingSelectedComponent}
+                    iframeRef={iframeRef}
+                    isDynamic={isDynamicComponent}
+                    hasStaticText={hasStaticText}
+                  />
+                )}
               </>
             )}
           </div>

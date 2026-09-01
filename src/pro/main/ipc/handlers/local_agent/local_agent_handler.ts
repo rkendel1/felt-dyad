@@ -14,11 +14,8 @@ import {
 } from "ai";
 import log from "electron-log";
 
-import { db } from "@/db";
-import { chats, messages } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { FeltDBRecord, getFeltDBDataStore, getProjectStore } from "@/store";
 
-import { isDyadProEnabled, isBasicAgentMode } from "@/lib/schemas";
 import { readSettings } from "@/main/settings";
 import { getDyadAppPath } from "@/paths/paths";
 import { getModelClient } from "@/ipc/utils/get_model_client";
@@ -37,7 +34,6 @@ import {
   commitAllChanges,
 } from "./processors/file_operations";
 import { mcpManager } from "@/ipc/utils/mcp_manager";
-import { mcpServers } from "@/db/schema";
 import { requireMcpToolConsent } from "@/ipc/utils/mcp_consent";
 import { getAiMessagesJsonIfWithinLimit } from "@/ipc/utils/ai_messages_utils";
 
@@ -127,27 +123,14 @@ export async function handleLocalAgentStream(
 ): Promise<boolean> {
   const settings = readSettings();
 
-  // Check Pro status or Basic Agent mode
-  // Basic Agent mode allows non-Pro users with quota (quota check is done in chat_stream_handlers)
-  if (!isDyadProEnabled(settings) && !isBasicAgentMode(settings)) {
-    safeSend(event.sender, "chat:response:error", {
-      chatId: req.chatId,
-      error:
-        "Agent v2 requires FeltDB AI. Please enable FeltDB AI in Settings → Pro.",
-    });
-    return false;
-  }
-
   // Get the chat and app
-  const chat = await db.query.chats.findFirst({
-    where: eq(chats.id, req.chatId),
-    with: {
-      messages: {
-        orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-      },
-      app: true,
-    },
-  });
+  const store = getProjectStore();
+  const chatRecord = await store.getChat(req.chatId);
+  const app = chatRecord ? await store.getApp(chatRecord.appId) : null;
+  const chat =
+    chatRecord && app
+      ? { ...chatRecord, app, messages: await store.listMessages(req.chatId) }
+      : null;
 
   if (!chat || !chat.app) {
     throw new Error(`Chat not found: ${req.chatId}`);
@@ -188,7 +171,6 @@ export async function handleLocalAgentStream(
       isSharedModulesChanged: false,
       todos: [],
       dyadRequestId,
-      isBasicAgentMode: isBasicAgentMode(settings),
       onXmlStream: (accumulatedXml: string) => {
         // Stream accumulated XML to UI without persisting
         streamingPreview = accumulatedXml;
@@ -288,10 +270,8 @@ export async function handleLocalAgentStream(
           cachedInputTokens ? (cachedInputTokens ?? 0) / (inputTokens ?? 0) : 0,
         );
         if (typeof totalTokens === "number") {
-          await db
-            .update(messages)
-            .set({ maxTokensUsed: totalTokens })
-            .where(eq(messages.id, placeholderMessageId))
+          await store
+            .updateMessage(placeholderMessageId, { maxTokensUsed: totalTokens })
             .catch((err) => logger.error("Failed to save token count", err));
         }
       },
@@ -423,10 +403,7 @@ export async function handleLocalAgentStream(
       const response = await streamResult.response;
       const aiMessagesJson = getAiMessagesJsonIfWithinLimit(response.messages);
       if (aiMessagesJson) {
-        await db
-          .update(messages)
-          .set({ aiMessagesJson })
-          .where(eq(messages.id, placeholderMessageId));
+        await store.updateMessage(placeholderMessageId, { aiMessagesJson });
       }
     } catch (err) {
       logger.warn("Failed to save AI messages JSON:", err);
@@ -441,18 +418,16 @@ export async function handleLocalAgentStream(
       const commitResult = await commitAllChanges(ctx, ctx.chatSummary);
 
       if (commitResult.commitHash) {
-        await db
-          .update(messages)
-          .set({ commitHash: commitResult.commitHash })
-          .where(eq(messages.id, placeholderMessageId));
+        await store.updateMessage(placeholderMessageId, {
+          commitHash: commitResult.commitHash,
+        });
       }
     }
 
     // Mark as approved (auto-approve for local-agent)
-    await db
-      .update(messages)
-      .set({ approvalState: "approved" })
-      .where(eq(messages.id, placeholderMessageId));
+    await store.updateMessage(placeholderMessageId, {
+      approvalState: "approved",
+    });
 
     // Send completion
     safeSend(event.sender, "chat:response:end", {
@@ -469,10 +444,9 @@ export async function handleLocalAgentStream(
     if (abortController.signal.aborted) {
       // Handle cancellation
       if (fullResponse) {
-        await db
-          .update(messages)
-          .set({ content: `${fullResponse}\n\n[Response cancelled by user]` })
-          .where(eq(messages.id, placeholderMessageId));
+        await store.updateMessage(placeholderMessageId, {
+          content: `${fullResponse}\n\n[Response cancelled by user]`,
+        });
       }
       return false;
     }
@@ -487,10 +461,8 @@ export async function handleLocalAgentStream(
 }
 
 async function updateResponseInDb(messageId: number, content: string) {
-  await db
-    .update(messages)
-    .set({ content })
-    .where(eq(messages.id, messageId))
+  await getProjectStore()
+    .updateMessage(messageId, { content })
     .catch((err) => logger.error("Failed to update message", err));
 }
 
@@ -520,10 +492,14 @@ async function getMcpTools(
   const mcpToolSet: ToolSet = {};
 
   try {
-    const servers = await db
-      .select()
-      .from(mcpServers)
-      .where(eq(mcpServers.enabled, true as any));
+    const servers = (
+      await getFeltDBDataStore().list<
+        FeltDBRecord & {
+          name: string;
+          enabled: boolean;
+        }
+      >("mcp_servers")
+    ).filter((server) => server.enabled);
 
     for (const s of servers) {
       const client = await mcpManager.getClient(s.id);

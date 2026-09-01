@@ -1,7 +1,5 @@
 import { ipcMain, app, dialog } from "electron";
-import { db, getDatabasePath } from "../../db";
-import { apps, chats, messages } from "../../db/schema";
-import { desc, eq, like } from "drizzle-orm";
+import { getProjectStore } from "../../store";
 import { createTypedHandler } from "./base";
 import { appContracts } from "../types/app";
 import type { AppFileSearchResult } from "../types/app";
@@ -9,7 +7,7 @@ import { miscContracts } from "../types/misc";
 import { systemContracts } from "../types/system";
 import fs from "node:fs";
 import path from "node:path";
-import { getDyadAppPath, getUserDataPath } from "../../paths/paths";
+import { getDyadAppPath } from "../../paths/paths";
 import { ChildProcess, spawn } from "node:child_process";
 import { promises as fsPromises } from "node:fs";
 
@@ -769,55 +767,21 @@ export function registerAppHandlers() {
       throw new Error(`App already exists at: ${fullAppPath}`);
     }
     // Create a new app with FeltDB as the default runtime
-    const [app] = await db
-      .insert(apps)
-      .values({
-        name: params.name,
-        // Use the name as the path for now
-        path: appPath,
-        // Default to server-side Node FeltDB as the primary runtime
-        feltdbRuntime: "server",
-        feltdbMode: "local",
-        feltdbStatus: "ready",
-      })
-      .returning();
+    const app = await getProjectStore().createApp({
+      name: params.name,
+      path: appPath,
+      feltdbRuntime: "server",
+      feltdbMode: "local",
+      feltdbStatus: "ready",
+    });
 
     // Create an initial chat for this app
-    const [chat] = await db
-      .insert(chats)
-      .values({
-        appId: app.id,
-      })
-      .returning();
+    const chat = await getProjectStore().createChat({ appId: app.id });
 
     await createFromTemplate({
       fullAppPath,
+      projectName: params.name,
     });
-
-    // Initialize .feltdb metadata for the app
-    const feltdbMetadataPath = path.join(
-      fullAppPath,
-      ".feltdb",
-      "metadata.json",
-    );
-    try {
-      const metadata = {
-        version: "1.0.0",
-        appId: app.id.toString(),
-        displayName: params.name,
-        provider: "feltdb",
-        runtime: "node",
-        mode: "local",
-      };
-      await fsPromises.writeFile(
-        feltdbMetadataPath,
-        JSON.stringify(metadata, null, 2),
-      );
-      logger.info(`Initialized .feltdb metadata for app ${app.id}`);
-    } catch (err) {
-      logger.warn(`Failed to initialize .feltdb metadata: `, err);
-      // Don't fail the entire app creation if metadata initialization fails
-    }
 
     // Initialize git repo and create first commit
 
@@ -833,12 +797,9 @@ export function registerAppHandlers() {
     });
 
     // Update chat with initial commit hash
-    await db
-      .update(chats)
-      .set({
-        initialCommitHash: commitHash,
-      })
-      .where(eq(chats.id, chat.id));
+    await getProjectStore().updateChat(chat.id, {
+      initialCommitHash: commitHash,
+    });
 
     return {
       app: { ...app, resolvedPath: fullAppPath },
@@ -850,18 +811,16 @@ export function registerAppHandlers() {
     const { appId, newAppName, withHistory } = params;
 
     // 1. Check if an app with the new name already exists
-    const existingApp = await db.query.apps.findFirst({
-      where: eq(apps.name, newAppName),
-    });
+    const existingApp = (await getProjectStore().listApps()).find(
+      (candidate) => candidate.name === newAppName,
+    );
 
     if (existingApp) {
       throw new Error(`An app named "${newAppName}" already exists.`);
     }
 
     // 2. Find the original app
-    const originalApp = await db.query.apps.findFirst({
-      where: eq(apps.id, appId),
-    });
+    const originalApp = await getProjectStore().getApp(appId);
 
     if (!originalApp) {
       throw new Error("Original app not found.");
@@ -903,54 +862,18 @@ export function registerAppHandlers() {
     }
 
     // 4. Create a new app entry in the database
-    const [newDbApp] = await db
-      .insert(apps)
-      .values({
-        name: newAppName,
-        path: newAppName, // Use the new name for the path
-        // Explicitly set these to null because we don't want to copy them over.
-        // Note: we could just leave them out since they're nullable field, but this
-        // is to make it explicit we intentionally don't want to copy them over.
-        supabaseProjectId: null,
-        githubOrg: null,
-        githubRepo: null,
-        installCommand: originalApp.installCommand,
-        startCommand: originalApp.startCommand,
-      })
-      .returning();
-
-    // 5. Initialize .feltdb metadata for the copied app
-    const feltdbMetadataPath = path.join(
-      newAppPath,
-      ".feltdb",
-      "metadata.json",
-    );
-    try {
-      const metadata = {
-        version: "1.0.0",
-        appId: newDbApp.id.toString(),
-        displayName: newAppName,
-      };
-      await fsPromises.writeFile(
-        feltdbMetadataPath,
-        JSON.stringify(metadata, null, 2),
-      );
-      logger.info(`Initialized .feltdb metadata for copied app ${newDbApp.id}`);
-    } catch (err) {
-      logger.warn(
-        `Failed to initialize .feltdb metadata for copied app: `,
-        err,
-      );
-      // Don't fail the entire app copy if metadata initialization fails
-    }
+    const newDbApp = await getProjectStore().createApp({
+      name: newAppName,
+      path: newAppName,
+      installCommand: originalApp.installCommand,
+      startCommand: originalApp.startCommand,
+    });
 
     return { app: newDbApp };
   });
 
   createTypedHandler(appContracts.getApp, async (_, appId) => {
-    const app = await db.query.apps.findFirst({
-      where: eq(apps.id, appId),
-    });
+    const app = await getProjectStore().getApp(appId);
 
     if (!app) {
       throw new Error("App not found");
@@ -1000,9 +923,7 @@ export function registerAppHandlers() {
   });
 
   createTypedHandler(appContracts.listApps, async () => {
-    const allApps = await db.query.apps.findMany({
-      orderBy: [desc(apps.createdAt)],
-    });
+    const allApps = await getProjectStore().listApps();
     const appsWithResolvedPath = allApps.map((app) => ({
       ...app,
       resolvedPath: getDyadAppPath(app.path),
@@ -1014,9 +935,7 @@ export function registerAppHandlers() {
 
   createTypedHandler(appContracts.readAppFile, async (_, params) => {
     const { appId, filePath } = params;
-    const app = await db.query.apps.findFirst({
-      where: eq(apps.id, appId),
-    });
+    const app = await getProjectStore().getApp(appId);
 
     if (!app) {
       throw new Error("App not found");
@@ -1064,9 +983,7 @@ export function registerAppHandlers() {
         return;
       }
 
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, appId),
-      });
+      const app = await getProjectStore().getApp(appId);
 
       if (!app) {
         throw new Error("App not found");
@@ -1171,9 +1088,7 @@ export function registerAppHandlers() {
         await cleanUpPort(getAppPort(appId));
 
         // Now start the app again
-        const app = await db.query.apps.findFirst({
-          where: eq(apps.id, appId),
-        });
+        const app = await getProjectStore().getApp(appId);
 
         if (!app) {
           throw new Error("App not found");
@@ -1244,9 +1159,7 @@ export function registerAppHandlers() {
     let { appId, filePath, content } = params;
     // It should already be normalized, but just in case.
     filePath = normalizePath(filePath);
-    const app = await db.query.apps.findFirst({
-      where: eq(apps.id, appId),
-    });
+    const app = await getProjectStore().getApp(appId);
 
     if (!app) {
       throw new Error("App not found");
@@ -1348,9 +1261,7 @@ export function registerAppHandlers() {
 
     return withLock(appId, async () => {
       // Check if app exists
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, appId),
-      });
+      const app = await getProjectStore().getApp(appId);
 
       if (!app) {
         throw new Error("App not found");
@@ -1373,8 +1284,7 @@ export function registerAppHandlers() {
 
       // Delete app from database
       try {
-        await db.delete(apps).where(eq(apps.id, appId));
-        // Note: Associated chats will cascade delete
+        await getProjectStore().deleteApp(appId);
       } catch (error: any) {
         logger.error(`Error deleting app ${appId} from database:`, error);
         throw new Error(`Failed to delete app from database: ${error.message}`);
@@ -1397,34 +1307,14 @@ export function registerAppHandlers() {
     const { appId } = params;
     return withLock(appId, async () => {
       try {
-        // Fetch the current isFavorite value
-        const result = await db
-          .select({ isFavorite: apps.isFavorite })
-          .from(apps)
-          .where(eq(apps.id, appId))
-          .limit(1);
-
-        if (result.length === 0) {
+        const app = await getProjectStore().getApp(appId);
+        if (!app) {
           throw new Error(`App with ID ${appId} not found.`);
         }
-
-        const currentIsFavorite = result[0].isFavorite;
-
-        // Toggle the isFavorite value
-        const updated = await db
-          .update(apps)
-          .set({ isFavorite: !currentIsFavorite })
-          .where(eq(apps.id, appId))
-          .returning({ isFavorite: apps.isFavorite });
-
-        if (updated.length === 0) {
-          throw new Error(
-            `Failed to update favorite status for app ID ${appId}.`,
-          );
-        }
-
-        // Return the updated isFavorite value
-        return { isFavorite: updated[0].isFavorite };
+        const updated = await getProjectStore().updateApp(appId, {
+          isFavorite: !app.isFavorite,
+        });
+        return { isFavorite: updated.isFavorite };
       } catch (error: any) {
         logger.error(
           `Error in add-to-favorite handler for app ID ${appId}:`,
@@ -1440,9 +1330,7 @@ export function registerAppHandlers() {
     return withLock(appId, async () => {
       let appPath = newPath;
       // Check if app exists
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, appId),
-      });
+      const app = await getProjectStore().getApp(appId);
 
       if (!app) {
         throw new Error("App not found");
@@ -1473,9 +1361,9 @@ export function registerAppHandlers() {
       }
 
       // Check for conflicts with existing apps
-      const nameConflict = await db.query.apps.findFirst({
-        where: eq(apps.name, appName),
-      });
+      const nameConflict = (await getProjectStore().listApps()).find(
+        (candidate) => candidate.name === appName,
+      );
 
       if (nameConflict && nameConflict.id !== appId) {
         throw new Error(`An app with the name '${appName}' already exists`);
@@ -1490,7 +1378,7 @@ export function registerAppHandlers() {
 
       let hasPathConflict = false;
       if (pathChanged) {
-        const allApps = await db.query.apps.findMany();
+        const allApps = await getProjectStore().listApps();
         hasPathConflict = allApps.some((existingApp) => {
           if (existingApp.id === appId) {
             return false;
@@ -1574,14 +1462,10 @@ export function registerAppHandlers() {
       // If the current path was absolute, store the new absolute path; otherwise store the relative path
       const pathToStore = path.isAbsolute(app.path) ? newAppPath : appPath;
       try {
-        await db
-          .update(apps)
-          .set({
-            name: appName,
-            path: pathToStore,
-          })
-          .where(eq(apps.id, appId))
-          .returning();
+        await getProjectStore().updateApp(appId, {
+          name: appName,
+          path: pathToStore,
+        });
 
         return;
       } catch (error: any) {
@@ -1623,29 +1507,10 @@ export function registerAppHandlers() {
       }
     }
     logger.log("all running apps stopped.");
-    logger.log("deleting database...");
-    // 1. Drop the database by deleting the SQLite file
-    const dbPath = getDatabasePath();
-    if (fs.existsSync(dbPath)) {
-      // Close database connections first
-      if (db.$client) {
-        db.$client.close();
-      }
-      await fsPromises.unlink(dbPath);
-      logger.log(`Database file deleted: ${dbPath}`);
-    }
-    logger.log("database deleted.");
-    logger.log("deleting settings...");
-    // 2. Remove settings
-    const userDataPath = getUserDataPath();
-    const settingsPath = path.join(userDataPath, "user-settings.json");
-
-    if (fs.existsSync(settingsPath)) {
-      await fsPromises.unlink(settingsPath);
-      logger.log(`Settings file deleted: ${settingsPath}`);
-    }
-    logger.log("settings deleted.");
-    // 3. Remove all app files recursively
+    logger.log("resetting FeltDB...");
+    await getProjectStore().reset();
+    logger.log("FeltDB reset.");
+    // 2. Remove all app files recursively
     // Doing this last because it's the most time-consuming and the least important
     // in terms of resetting the app state.
     logger.log("removing all app files...");
@@ -1668,9 +1533,7 @@ export function registerAppHandlers() {
 
   createTypedHandler(appContracts.renameBranch, async (_, params) => {
     const { appId, oldBranchName, newBranchName } = params;
-    const app = await db.query.apps.findFirst({
-      where: eq(apps.id, appId),
-    });
+    const app = await getProjectStore().getApp(appId);
 
     if (!app) {
       throw new Error("App not found");
@@ -1750,9 +1613,7 @@ export function registerAppHandlers() {
       return [];
     }
 
-    const appRecord = await db.query.apps.findFirst({
-      where: eq(apps.id, appId),
-    });
+    const appRecord = await getProjectStore().getApp(appId);
 
     if (!appRecord) {
       throw new Error("App not found");
@@ -1773,74 +1634,39 @@ export function registerAppHandlers() {
   handle(
     "search-app",
     async (_, searchQuery: string): Promise<AppSearchResult[]> => {
-      // Use parameterized query to prevent SQL injection
-      const pattern = `%${searchQuery.replace(/[%_]/g, "\\$&")}%`;
-
-      // 1) Apps whose name matches
-      const appNameMatches = await db
-        .select({
-          id: apps.id,
-          name: apps.name,
-          createdAt: apps.createdAt,
-        })
-        .from(apps)
-        .where(like(apps.name, pattern))
-        .orderBy(desc(apps.createdAt));
-
-      const appNameMatchesResult: AppSearchResult[] = appNameMatches.map(
-        (r) => ({
-          id: r.id,
-          name: r.name,
-          createdAt: r.createdAt,
-          matchedChatTitle: null,
-          matchedChatMessage: null,
-        }),
-      );
-
-      // 2) Apps whose chat title matches
-      const chatTitleMatches = await db
-        .select({
-          id: apps.id,
-          name: apps.name,
-          createdAt: apps.createdAt,
-          matchedChatTitle: chats.title,
-        })
-        .from(apps)
-        .innerJoin(chats, eq(apps.id, chats.appId))
-        .where(like(chats.title, pattern))
-        .orderBy(desc(apps.createdAt));
-
-      const chatTitleMatchesResult: AppSearchResult[] = chatTitleMatches.map(
-        (r) => ({
-          id: r.id,
-          name: r.name,
-          createdAt: r.createdAt,
-          matchedChatTitle: r.matchedChatTitle,
-          matchedChatMessage: null,
-        }),
-      );
-
-      // 3) Apps whose chat message content matches
-      const chatMessageMatches = await db
-        .select({
-          id: apps.id,
-          name: apps.name,
-          createdAt: apps.createdAt,
-          matchedChatTitle: chats.title,
-          matchedChatMessage: messages.content,
-        })
-        .from(apps)
-        .innerJoin(chats, eq(apps.id, chats.appId))
-        .innerJoin(messages, eq(chats.id, messages.chatId))
-        .where(like(messages.content, pattern))
-        .orderBy(desc(apps.createdAt));
-
-      // Flatten and dedupe by app id
-      const allMatches: AppSearchResult[] = [
-        ...appNameMatchesResult,
-        ...chatTitleMatchesResult,
-        ...chatMessageMatches,
-      ];
+      const query = searchQuery.toLocaleLowerCase();
+      const store = getProjectStore();
+      const allMatches: AppSearchResult[] = [];
+      for (const app of await store.listApps()) {
+        if (app.name.toLocaleLowerCase().includes(query)) {
+          allMatches.push({
+            id: app.id,
+            name: app.name,
+            createdAt: app.createdAt,
+            matchedChatTitle: null,
+            matchedChatMessage: null,
+          });
+        }
+        for (const chat of await store.listChats(app.id)) {
+          const matchedChatTitle = chat.title
+            ?.toLocaleLowerCase()
+            .includes(query)
+            ? chat.title
+            : null;
+          const matchedChatMessage = (await store.listMessages(chat.id)).find(
+            (message) => message.content.toLocaleLowerCase().includes(query),
+          )?.content;
+          if (matchedChatTitle || matchedChatMessage) {
+            allMatches.push({
+              id: app.id,
+              name: app.name,
+              createdAt: app.createdAt,
+              matchedChatTitle,
+              matchedChatMessage: matchedChatMessage ?? null,
+            });
+          }
+        }
+      }
       const uniqueApps = Array.from(
         new Map(allMatches.map((app) => [app.id, app])).values(),
       );
@@ -1900,9 +1726,7 @@ export function registerAppHandlers() {
     const normalizedParentDir = path.normalize(parentDirectory);
 
     return withLock(appId, async () => {
-      const app = await db.query.apps.findFirst({
-        where: eq(apps.id, appId),
-      });
+      const app = await getProjectStore().getApp(appId);
 
       if (!app) {
         throw new Error("App not found");
@@ -1918,17 +1742,14 @@ export function registerAppHandlers() {
       if (currentResolvedPath === nextResolvedPath) {
         // Path hasn't changed, but we should update to absolute path format if needed
         if (!path.isAbsolute(app.path)) {
-          await db
-            .update(apps)
-            .set({ path: nextResolvedPath })
-            .where(eq(apps.id, appId));
+          await getProjectStore().updateApp(appId, { path: nextResolvedPath });
         }
         return {
           resolvedPath: nextResolvedPath,
         };
       }
 
-      const allApps = await db.query.apps.findMany();
+      const allApps = await getProjectStore().listApps();
       const conflict = allApps.some(
         (existingApp) =>
           existingApp.id !== appId &&
@@ -1953,10 +1774,7 @@ export function registerAppHandlers() {
         logger.warn(
           `Source path ${currentResolvedPath} does not exist. Updating database path only.`,
         );
-        await db
-          .update(apps)
-          .set({ path: nextResolvedPath })
-          .where(eq(apps.id, appId));
+        await getProjectStore().updateApp(appId, { path: nextResolvedPath });
         return {
           resolvedPath: nextResolvedPath,
         };
@@ -1981,10 +1799,7 @@ export function registerAppHandlers() {
         });
 
         // Update path to absolute path
-        await db
-          .update(apps)
-          .set({ path: nextResolvedPath })
-          .where(eq(apps.id, appId));
+        await getProjectStore().updateApp(appId, { path: nextResolvedPath });
 
         try {
           await fsPromises.rm(currentResolvedPath, {

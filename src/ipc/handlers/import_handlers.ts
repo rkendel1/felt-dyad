@@ -4,10 +4,7 @@ import path from "path";
 import { createLoggedHandler } from "./safe_handle";
 import log from "electron-log";
 import { getDyadAppPath } from "../../paths/paths";
-import { apps } from "@/db/schema";
-import { db } from "@/db";
-import { chats } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getProjectStore } from "@/store";
 
 import { ImportAppParams, ImportAppResult } from "@/ipc/types";
 import { copyDirectoryRecursive } from "../utils/file_utils";
@@ -63,9 +60,9 @@ export function registerImportHandlers() {
       }
 
       // Check database
-      const existingApp = await db.query.apps.findFirst({
-        where: eq(apps.name, appName),
-      });
+      const existingApp = (await getProjectStore().listApps()).find(
+        (app) => app.name === appName,
+      );
 
       return { exists: !!existingApp };
     },
@@ -132,23 +129,15 @@ export function registerImportHandlers() {
 
       // Create a new app
       // Store the full absolute path when skipCopy is true, otherwise store appName
-      const [app] = await db
-        .insert(apps)
-        .values({
-          name: appName,
-          path: skipCopy ? sourcePath : appName,
-          installCommand: installCommand ?? null,
-          startCommand: startCommand ?? null,
-        })
-        .returning();
+      const app = await getProjectStore().createApp({
+        name: appName,
+        path: skipCopy ? sourcePath : appName,
+        installCommand: installCommand ?? undefined,
+        startCommand: startCommand ?? undefined,
+      });
 
       // Create an initial chat for this app
-      const [chat] = await db
-        .insert(chats)
-        .values({
-          appId: app.id,
-        })
-        .returning();
+      const chat = await getProjectStore().createChat({ appId: app.id });
 
       // Trigger analysis asynchronously (non-blocking)
       // This will be persisted to FeltDB but won't block the import flow

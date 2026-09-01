@@ -3,13 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Upload, X, Sparkles, Lock } from "lucide-react";
+import { Loader2, Upload, X, Sparkles } from "lucide-react";
 import { useGenerateThemePrompt } from "@/hooks/useCustomThemes";
 import { ipc } from "@/ipc/types";
 import { showError } from "@/lib/toast";
 import { toast } from "sonner";
-import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
-import { AiAccessBanner } from "./ProBanner";
 import type { ThemeGenerationMode, ThemeGenerationModel } from "@/ipc/types";
 
 // Image upload constants
@@ -62,7 +60,6 @@ export function AIGeneratorTab({
 
   const generatePromptMutation = useGenerateThemePrompt();
   const isGenerating = generatePromptMutation.isPending;
-  const { userBudget } = useUserBudgetInfo();
 
   // Cleanup function to revoke blob URLs and delete temp files
   const cleanupImages = useCallback(
@@ -246,28 +243,6 @@ export function AIGeneratorTab({
     generatePromptMutation,
     setAiGeneratedPrompt,
   ]);
-
-  // Show Pro-only locked state for non-Pro users
-  if (!userBudget) {
-    return (
-      <div className="space-y-4 mt-4">
-        <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-muted-foreground/25 rounded-lg bg-muted/10">
-          <Lock className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold text-center mb-2">
-            AI Theme Generator
-          </h3>
-          <p className="text-sm text-muted-foreground text-center max-w-md">
-            Upload screenshots and let AI generate a custom theme prompt
-            tailored to your design style.
-          </p>
-          <p className="text-xs text-muted-foreground/70 mt-2">
-            Pro-only feature
-          </p>
-        </div>
-        <AiAccessBanner />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4 mt-4">

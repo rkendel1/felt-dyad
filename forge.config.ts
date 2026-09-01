@@ -55,9 +55,6 @@ const ignore = (file: string) => {
   if (file === "/node_modules") {
     return false;
   }
-  if (file.startsWith("/drizzle")) {
-    return false;
-  }
   if (file.startsWith("/scaffold")) {
     return false;
   }
@@ -72,15 +69,6 @@ const ignore = (file: string) => {
     return false;
   }
   if (file.startsWith("/node_modules/html-to-image")) {
-    return false;
-  }
-  if (file.startsWith("/node_modules/better-sqlite3")) {
-    return false;
-  }
-  if (file.startsWith("/node_modules/bindings")) {
-    return false;
-  }
-  if (file.startsWith("/node_modules/file-uri-to-path")) {
     return false;
   }
   if (file.startsWith("/.vite")) {
@@ -100,7 +88,7 @@ const config: ForgeConfig = {
         schemes: ["feltdb"],
       },
     ],
-    icon: "./assets/icon/logo",
+    icon: "./assets/feltdb.png",
 
     osxSign: isEndToEndTestBuild
       ? undefined
@@ -117,11 +105,6 @@ const config: ForgeConfig = {
     asar: true,
     ignore,
     extraResource: ["node_modules/dugite/git", "node_modules/@vscode"],
-    // ignore: [/node_modules\/(?!(better-sqlite3|bindings|file-uri-to-path)\/)/],
-  },
-  rebuildConfig: {
-    extraModules: ["better-sqlite3"],
-    force: true,
   },
   hooks: {
     postMake: async (_forgeConfig, makeResults) => {
@@ -155,7 +138,7 @@ const config: ForgeConfig = {
       },
     }),
     new MakerAppImage({
-      icon: "./assets/icon/logo.png",
+      icon: "./assets/feltdb.png",
     }),
   ],
   publishers: [

@@ -3,20 +3,28 @@ import * as fs from "fs";
 import * as crypto from "crypto";
 import { testWithConfig, test, PageObject } from "./helpers/test_helper";
 import { expect } from "@playwright/test";
+import { createFeltDB } from "@feltdb/core";
 
-const BACKUP_SETTINGS = { testFixture: true };
+async function seedLastVersion(userDataDir: string, version: string) {
+  const db = createFeltDB({
+    namespace: "builder-settings",
+    path: path.join(userDataDir, ".feltdb"),
+  });
+  await db.collection("system_metadata").insert({
+    numeric_id: 1,
+    key: "last_version",
+    value: version,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+}
+
 const testWithLastVersion = testWithConfig({
   preLaunchHook: async ({ userDataDir }) => {
     fs.mkdirSync(path.join(userDataDir), { recursive: true });
-    fs.writeFileSync(path.join(userDataDir, ".last_version"), "0.1.0");
-    fs.copyFileSync(
-      path.join(__dirname, "fixtures", "backups", "empty-v0.12.0-beta.1.db"),
-      path.join(userDataDir, "sqlite.db"),
-    );
-    fs.writeFileSync(
-      path.join(userDataDir, "user-settings.json"),
-      JSON.stringify(BACKUP_SETTINGS, null, 2),
-    );
+    await seedLastVersion(userDataDir, "0.1.0");
+    fs.mkdirSync(path.join(userDataDir, ".feltdb"), { recursive: true });
+    fs.writeFileSync(path.join(userDataDir, ".feltdb", "data.json"), "{}");
   },
 });
 
@@ -24,11 +32,7 @@ const testWithMultipleBackups = testWithConfig({
   preLaunchHook: async ({ userDataDir }) => {
     fs.mkdirSync(path.join(userDataDir), { recursive: true });
     // Make sure there's a last version file so the version upgrade is detected.
-    fs.writeFileSync(path.join(userDataDir, ".last_version"), "0.1.0");
-    fs.writeFileSync(
-      path.join(userDataDir, "user-settings.json"),
-      JSON.stringify(BACKUP_SETTINGS, null, 2),
-    );
+    await seedLastVersion(userDataDir, "0.1.0");
 
     // Create backups directory
     const backupsDir = path.join(userDataDir, "backups");
@@ -95,14 +99,10 @@ const testWithMultipleBackups = testWithConfig({
       );
 
       // Create mock backup files
+      fs.mkdirSync(path.join(backupPath, ".feltdb"));
       fs.writeFileSync(
-        path.join(backupPath, "user-settings.json"),
-        JSON.stringify({ version: backup.version, mockData: true }, null, 2),
-      );
-
-      fs.writeFileSync(
-        path.join(backupPath, "sqlite.db"),
-        `mock_database_content_${backup.version}`,
+        path.join(backupPath, ".feltdb", "data.json"),
+        `mock_data_${backup.version}`,
       );
     }
   },
@@ -140,16 +140,9 @@ testWithLastVersion(
     expect(backupMetadata.checksums.settings).toBeDefined();
     expect(backupMetadata.checksums.database).toBeDefined();
 
-    // Compare the backup files to the original files
-    const backupSettings = fs.readFileSync(
-      path.join(backupDir, "user-settings.json"),
-      "utf8",
-    );
-    expect(backupSettings).toEqual(JSON.stringify(BACKUP_SETTINGS, null, 2));
-
     // For database, verify the backup file exists and has correct checksum
-    const backupDbPath = path.join(backupDir, "sqlite.db");
-    const originalDbPath = path.join(po.userDataDir, "sqlite.db");
+    const backupDbPath = path.join(backupDir, ".feltdb", "data.json");
+    const originalDbPath = path.join(po.userDataDir, ".feltdb", "data.json");
 
     expect(fs.existsSync(backupDbPath)).toBe(true);
     expect(fs.existsSync(originalDbPath)).toBe(true);
@@ -192,13 +185,8 @@ testWithMultipleBackups(
       const backupPath = path.join(backupsDir, expectedBackup);
       expect(fs.existsSync(backupPath)).toBe(true);
       expect(fs.existsSync(path.join(backupPath, "backup.json"))).toBe(true);
-      expect(fs.existsSync(path.join(backupPath, "user-settings.json"))).toBe(
-        true,
-      );
-
-      // The first backup does NOT have a SQLite database because the backup
-      // manager is run before the DB is initialized.
-      expect(fs.existsSync(path.join(backupPath, "sqlite.db"))).toBe(
+      // The first backup has no FeltDB directory because backup runs before initialization.
+      expect(fs.existsSync(path.join(backupPath, ".feltdb"))).toBe(
         backup !== "*",
       );
     }

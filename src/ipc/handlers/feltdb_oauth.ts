@@ -1,6 +1,8 @@
 import log from "electron-log";
 import { BrowserWindow } from "electron";
 import { z } from "zod";
+import { decrypt, encrypt } from "@/main/settings";
+import { FeltDBRecord, getFeltDBDataStore } from "@/store";
 
 const logger = log.scope("feltdb_oauth_handlers");
 
@@ -26,9 +28,19 @@ export const FeltDBOAuthCredentialSchema = z.object({
   email: z.string(),
   accountId: z.string(),
   accountName: z.string().optional(),
+  apiUrl: z.string().url(),
 });
 
 export type FeltDBOAuthCredential = z.infer<typeof FeltDBOAuthCredentialSchema>;
+type StoredManagedCredential = FeltDBRecord & {
+  accountId: string;
+  email: string;
+  accountName?: string;
+  apiUrl: string;
+  accessToken: ReturnType<typeof encrypt>;
+};
+
+const credentialCollection = "feltdb-managed-credentials";
 
 /**
  * Start OAuth flow for FeltDB authentication
@@ -99,15 +111,35 @@ export async function startFeltDBOAuthFlow(
 export async function getFeltDBCredentials(
   accountId: string,
 ): Promise<FeltDBOAuthCredential | null> {
-  // In a real implementation, this would:
-  // 1. Query the secure credential storage (keychain/credential manager)
-  // 2. Return the stored credential
-  // 3. Refresh if expired
-
   logger.info(`Retrieving FeltDB credentials for account ${accountId}`);
+  const records =
+    await getFeltDBDataStore().list<StoredManagedCredential>(
+      credentialCollection,
+    );
+  const record = records.find((item) => item.accountId === accountId);
+  if (!record) return null;
+  return {
+    accountId: record.accountId,
+    email: record.email,
+    accountName: record.accountName,
+    apiUrl: record.apiUrl,
+    accessToken: decrypt(record.accessToken),
+  };
+}
 
-  // For now, return null (no credentials stored)
-  return null;
+export async function getStoredFeltDBAccount(): Promise<{
+  id: string;
+  email?: string;
+  name?: string;
+} | null> {
+  const records =
+    await getFeltDBDataStore().list<StoredManagedCredential>(
+      credentialCollection,
+    );
+  const record = records[0];
+  return record
+    ? { id: record.accountId, email: record.email, name: record.accountName }
+    : null;
 }
 
 /**
@@ -116,14 +148,20 @@ export async function getFeltDBCredentials(
 export async function storeFeltDBCredentials(
   credential: FeltDBOAuthCredential,
 ): Promise<void> {
-  // In a real implementation, this would:
-  // 1. Encrypt sensitive fields
-  // 2. Store in secure credential storage (keychain/credential manager)
-  // 3. Handle rotation
-
   logger.info(`Storing FeltDB credentials for account ${credential.accountId}`);
-
-  // For now, just log (actual storage would go to secure keychain)
+  const store = getFeltDBDataStore();
+  const records =
+    await store.list<StoredManagedCredential>(credentialCollection);
+  await Promise.all(
+    records.map((record) => store.delete(credentialCollection, record.id)),
+  );
+  await store.create<StoredManagedCredential>(credentialCollection, {
+    accountId: credential.accountId,
+    email: credential.email,
+    accountName: credential.accountName,
+    apiUrl: credential.apiUrl.replace(/\/$/, ""),
+    accessToken: encrypt(credential.accessToken),
+  });
 }
 
 /**
@@ -134,10 +172,14 @@ export async function revokeFeltDBCredentials(
 ): Promise<void> {
   logger.info(`Revoking FeltDB credentials for account ${accountId}`);
 
-  // In a real implementation, this would:
-  // 1. Call FeltDB API to revoke token
-  // 2. Remove from secure storage
-  // 3. Clear session
+  const store = getFeltDBDataStore();
+  const records =
+    await store.list<StoredManagedCredential>(credentialCollection);
+  await Promise.all(
+    records
+      .filter((record) => record.accountId === accountId)
+      .map((record) => store.delete(credentialCollection, record.id)),
+  );
 }
 
 /**
@@ -149,13 +191,32 @@ export async function listFeltDBProjects(
   logger.info(`Listing FeltDB projects for account ${credential.accountId}`);
 
   try {
-    // In a real implementation, this would:
-    // 1. Call FeltDB API with access token
-    // 2. Fetch user's projects
-    // 3. Return project list
-
-    // For now, return empty list
-    return [];
+    const url = new URL("/v1/projects", credential.apiUrl);
+    url.searchParams.set("accountId", credential.accountId);
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${credential.accessToken}` },
+    });
+    if (!response.ok) {
+      throw new Error(
+        `FeltDB returned ${response.status} while listing projects`,
+      );
+    }
+    const payload = await response.json();
+    const projects = z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          url: z.string().optional(),
+        }),
+      )
+      .parse(Array.isArray(payload) ? payload : payload.projects);
+    return projects.map((project) => ({
+      ...project,
+      url:
+        project.url ??
+        new URL(`/projects/${project.id}`, credential.apiUrl).toString(),
+    }));
   } catch (error) {
     logger.error("Error listing FeltDB projects:", error);
     throw error;

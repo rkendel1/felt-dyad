@@ -14,9 +14,7 @@ import {
   type ToolExecutionOptions,
 } from "ai";
 
-import { db } from "../../db";
-import { chats, messages } from "../../db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { FeltDBRecord, getFeltDBDataStore, getProjectStore } from "../../store";
 import type { SmartContextMode } from "../../lib/schemas";
 import {
   constructSystemPrompt,
@@ -59,7 +57,6 @@ import { getMaxTokens, getTemperature } from "../utils/token_utils";
 import { MAX_CHAT_TURNS_IN_CONTEXT } from "@/constants/settings_constants";
 import { validateChatContext } from "../utils/context_paths_utils";
 import { getProviderOptions, getAiHeaders } from "../utils/provider_options";
-import { mcpServers } from "../../db/schema";
 import { requireMcpToolConsent } from "../utils/mcp_consent";
 
 import { handleLocalAgentStream } from "../../pro/main/ipc/handlers/local_agent/local_agent_handler";
@@ -80,21 +77,10 @@ import { fileExists } from "../utils/file_utils";
 import { FileUploadsState } from "../utils/file_uploads_state";
 import { extractMentionedAppsCodebases } from "../utils/mention_apps";
 import { parseAppMentions } from "@/shared/parse_mention_apps";
-import { prompts as promptsTable } from "../../db/schema";
-import { inArray } from "drizzle-orm";
 import { replacePromptReference } from "../utils/replacePromptReference";
 import { mcpManager } from "../utils/mcp_manager";
 import z from "zod";
-import {
-  isDyadProEnabled,
-  isBasicAgentMode,
-  isSupabaseConnected,
-  isTurboEditsV2Enabled,
-} from "@/lib/schemas";
-import {
-  getFreeAgentQuotaStatus,
-  markMessageAsUsingFreeAgentQuota,
-} from "./free_agent_quota_handlers";
+import { isSupabaseConnected, isTurboEditsV2Enabled } from "@/lib/schemas";
 import { AI_STREAMING_ERROR_MESSAGE_PREFIX } from "@/shared/texts";
 import { getCurrentCommitHash } from "../utils/git_utils";
 import {
@@ -104,6 +90,15 @@ import {
 import { getAiMessagesJsonIfWithinLimit } from "../utils/ai_messages_utils";
 
 type AsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
+
+async function getChatAggregate(chatId: number) {
+  const store = getProjectStore();
+  const chat = await store.getChat(chatId);
+  if (!chat) return null;
+  const app = await store.getApp(chat.appId);
+  if (!app) return null;
+  return { ...chat, app, messages: await store.listMessages(chatId) };
+}
 
 const logger = log.scope("chat_stream_handlers");
 
@@ -243,15 +238,8 @@ export function registerChatStreamHandlers() {
       safeSend(event.sender, "chat:stream:start", { chatId: req.chatId });
 
       // Get the chat to check for existing messages
-      const chat = await db.query.chats.findFirst({
-        where: eq(chats.id, req.chatId),
-        with: {
-          messages: {
-            orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-          },
-          app: true, // Include app information
-        },
-      });
+      const store = getProjectStore();
+      const chat = await getChatAggregate(req.chatId);
 
       if (!chat) {
         throw new Error(`Chat not found: ${req.chatId}`);
@@ -273,20 +261,16 @@ export function registerChatStreamHandlers() {
 
         if (lastUserMessageIndex >= 0) {
           // Delete the user message
-          await db
-            .delete(messages)
-            .where(eq(messages.id, chatMessages[lastUserMessageIndex].id));
+          await store.deleteMessage(chatMessages[lastUserMessageIndex].id);
 
           // If there's an assistant message after the user message, delete it too
           if (
             lastUserMessageIndex < chatMessages.length - 1 &&
             chatMessages[lastUserMessageIndex + 1].role === "assistant"
           ) {
-            await db
-              .delete(messages)
-              .where(
-                eq(messages.id, chatMessages[lastUserMessageIndex + 1].id),
-              );
+            await store.deleteMessage(
+              chatMessages[lastUserMessageIndex + 1].id,
+            );
           }
         }
       }
@@ -351,10 +335,9 @@ export function registerChatStreamHandlers() {
         const matches = Array.from(userPrompt.matchAll(/@prompt:(\d+)/g));
         if (matches.length > 0) {
           const ids = Array.from(new Set(matches.map((m) => Number(m[1]))));
-          const referenced = await db
-            .select()
-            .from(promptsTable)
-            .where(inArray(promptsTable.id, ids));
+          const referenced = (
+            await Promise.all(ids.map((id) => store.getPrompt(id)))
+          ).filter((prompt) => prompt !== null);
           if (referenced.length > 0) {
             const promptsMap: Record<number, string> = {};
             for (const p of referenced) {
@@ -411,47 +394,30 @@ ${componentSnippet}
         }
       }
 
-      const [insertedUserMessage] = await db
-        .insert(messages)
-        .values({
-          chatId: req.chatId,
-          role: "user",
-          content: userPrompt,
-        })
-        .returning({ id: messages.id });
+      const insertedUserMessage = await store.createMessage({
+        chatId: req.chatId,
+        role: "user",
+        content: userPrompt,
+      });
       const userMessageId = insertedUserMessage.id;
       const settings = readSettings();
-      // Only FeltDB AI requests have request ids.
-      if (settings.enableDyadPro) {
-        // Generate requestId early so it can be saved with the message
-        dyadRequestId = uuidv4();
-      }
+      // Generate the request ID early so it is saved with the message.
+      dyadRequestId = uuidv4();
 
       // Add a placeholder assistant message immediately
-      const [placeholderAssistantMessage] = await db
-        .insert(messages)
-        .values({
-          chatId: req.chatId,
-          role: "assistant",
-          content: "", // Start with empty content
-          requestId: dyadRequestId,
-          model: settings.selectedModel.name,
-          sourceCommitHash: await getCurrentCommitHash({
-            path: getDyadAppPath(chat.app.path),
-          }),
-        })
-        .returning();
+      const placeholderAssistantMessage = await store.createMessage({
+        chatId: req.chatId,
+        role: "assistant",
+        content: "", // Start with empty content
+        requestId: dyadRequestId,
+        model: settings.selectedModel.name,
+        sourceCommitHash: await getCurrentCommitHash({
+          path: getDyadAppPath(chat.app.path),
+        }),
+      });
 
       // Fetch updated chat data after possible deletions and additions
-      const updatedChat = await db.query.chats.findFirst({
-        where: eq(chats.id, req.chatId),
-        with: {
-          messages: {
-            orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-          },
-          app: true, // Include app information
-        },
-      });
+      const updatedChat = await getChatAggregate(req.chatId);
 
       if (!updatedChat) {
         throw new Error(`Chat not found: ${req.chatId}`);
@@ -575,7 +541,7 @@ ${componentSnippet}
           commitHash: message.commitHash,
         }));
 
-        // For FeltDB AI + Deep Context, we set to 200 chat turns (+1)
+        // For managed AI + Deep Context, we set to 200 chat turns (+1)
         // this is to enable more cache hits. Practically, users should
         // rarely go over this limit because they will hit the model's
         // context window limit.
@@ -820,7 +786,6 @@ This conversation includes one or more image attachments. When the user uploads 
             const willUseLocalAgentStream =
               settings.selectedChatMode === "local-agent" ||
               (settings.selectedChatMode === "ask" &&
-                isDyadProEnabled(settings) &&
                 !mentionedAppsCodebases.length);
             if (willUseLocalAgentStream) {
               // Insert into DB (with size guard)
@@ -828,10 +793,9 @@ This conversation includes one or more image attachments. When the user uploads 
                 chatMessages[lastUserIndex],
               ]);
               if (userAiMessagesJson) {
-                await db
-                  .update(messages)
-                  .set({ aiMessagesJson: userAiMessagesJson })
-                  .where(eq(messages.id, userMessageId));
+                await store.updateMessage(userMessageId, {
+                  aiMessagesJson: userAiMessagesJson,
+                });
               }
             }
           }
@@ -843,14 +807,9 @@ This conversation includes one or more image attachments. When the user uploads 
         }
 
         if (isSummarizeIntent) {
-          const previousChat = await db.query.chats.findFirst({
-            where: eq(chats.id, parseInt(req.prompt.split("=")[1])),
-            with: {
-              messages: {
-                orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-              },
-            },
-          });
+          const previousChat = await getChatAggregate(
+            parseInt(req.prompt.split("=")[1]),
+          );
           chatMessages = [
             {
               role: "user",
@@ -928,10 +887,10 @@ This conversation includes one or more image attachments. When the user uploads 
                 maxTokensUsed = Math.max(maxTokensUsed ?? 0, totalTokens);
 
                 // Persist the aggregated token usage on the placeholder assistant message
-                void db
-                  .update(messages)
-                  .set({ maxTokensUsed: maxTokensUsed })
-                  .where(eq(messages.id, placeholderAssistantMessage.id))
+                void store
+                  .updateMessage(placeholderAssistantMessage.id, {
+                    maxTokensUsed,
+                  })
                   .catch((error) => {
                     logger.error(
                       "Failed to save total tokens for assistant message",
@@ -987,10 +946,9 @@ This conversation includes one or more image attachments. When the user uploads 
           // Save to DB (in case user is switching chats during the stream)
           const now = Date.now();
           if (now - lastDbSaveAt >= 150) {
-            await db
-              .update(messages)
-              .set({ content: fullResponse })
-              .where(eq(messages.id, placeholderAssistantMessage.id));
+            await store.updateMessage(placeholderAssistantMessage.id, {
+              content: fullResponse,
+            });
 
             lastDbSaveAt = now;
           }
@@ -1012,11 +970,9 @@ This conversation includes one or more image attachments. When the user uploads 
           return fullResponse;
         };
 
-        // Handle pro ask mode: use local-agent in read-only mode
-        // This gives pro users access to code reading tools while in ask mode
+        // Ask mode uses the local agent with state-changing tools disabled.
         if (
           settings.selectedChatMode === "ask" &&
-          isDyadProEnabled(settings) &&
           !mentionedAppsCodebases.length
         ) {
           // Reconstruct system prompt for local-agent read-only mode
@@ -1051,48 +1007,12 @@ This conversation includes one or more image attachments. When the user uploads 
           settings.selectedChatMode === "local-agent" &&
           !mentionedAppsCodebases.length
         ) {
-          // Check quota for Basic Agent mode (non-Pro users)
-          const isBasicAgentModeRequest = isBasicAgentMode(settings);
-          if (isBasicAgentModeRequest) {
-            const quotaStatus = await getFreeAgentQuotaStatus();
-            if (quotaStatus.isQuotaExceeded) {
-              safeSend(event.sender, "chat:response:error", {
-                chatId: req.chatId,
-                error: JSON.stringify({
-                  type: "FREE_AGENT_QUOTA_EXCEEDED",
-                  hoursUntilReset: quotaStatus.hoursUntilReset,
-                  resetTime: quotaStatus.resetTime,
-                }),
-              });
-              return;
-            }
-
-            // Mark quota BEFORE starting the stream to prevent race condition
-            // Multiple parallel requests could otherwise all pass the quota check
-            if (userMessageId) {
-              await markMessageAsUsingFreeAgentQuota(userMessageId);
-            }
-          }
-
-          const success = await handleLocalAgentStream(
-            event,
-            req,
-            abortController,
-            {
-              placeholderMessageId: placeholderAssistantMessage.id,
-              systemPrompt,
-              dyadRequestId: dyadRequestId ?? "[no-request-id]",
-              messageOverride: isSummarizeIntent ? chatMessages : undefined,
-            },
-          );
-
-          // If the stream failed or was aborted, unmark the quota usage
-          if (isBasicAgentModeRequest && userMessageId && !success) {
-            await db
-              .update(messages)
-              .set({ usingFreeAgentModeQuota: false })
-              .where(eq(messages.id, userMessageId));
-          }
+          await handleLocalAgentStream(event, req, abortController, {
+            placeholderMessageId: placeholderAssistantMessage.id,
+            systemPrompt,
+            dyadRequestId: dyadRequestId ?? "[no-request-id]",
+            messageOverride: isSummarizeIntent ? chatMessages : undefined,
+          });
 
           return;
         }
@@ -1429,14 +1349,11 @@ ${problemReport.problems
             if (partialResponse) {
               try {
                 // Update the placeholder assistant message with the partial content and cancellation note
-                await db
-                  .update(messages)
-                  .set({
-                    content: `${partialResponse}
+                await store.updateMessage(placeholderAssistantMessage.id, {
+                  content: `${partialResponse}
 
 [Response cancelled by user]`,
-                  })
-                  .where(eq(messages.id, placeholderAssistantMessage.id));
+                });
 
                 logger.log(
                   `Updated cancelled response for placeholder message ${placeholderAssistantMessage.id} in chat ${chatId}`,
@@ -1462,18 +1379,17 @@ ${problemReport.problems
           /<dyad-chat-summary>(.*?)<\/dyad-chat-summary>/,
         );
         if (chatTitle) {
-          await db
-            .update(chats)
-            .set({ title: chatTitle[1] })
-            .where(and(eq(chats.id, req.chatId), isNull(chats.title)));
+          const currentChat = await store.getChat(req.chatId);
+          if (currentChat && !currentChat.title) {
+            await store.updateChat(req.chatId, { title: chatTitle[1] });
+          }
         }
         const chatSummary = chatTitle?.[1];
 
         // Update the placeholder assistant message with the full response
-        await db
-          .update(messages)
-          .set({ content: fullResponse })
-          .where(eq(messages.id, placeholderAssistantMessage.id));
+        await store.updateMessage(placeholderAssistantMessage.id, {
+          content: fullResponse,
+        });
         const settings = readSettings();
         if (
           settings.autoApproveChanges &&
@@ -1488,14 +1404,7 @@ ${problemReport.problems
             }, // Use placeholder ID
           );
 
-          const chat = await db.query.chats.findFirst({
-            where: eq(chats.id, req.chatId),
-            with: {
-              messages: {
-                orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-              },
-            },
-          });
+          const chat = await getChatAggregate(req.chatId);
 
           safeSend(event.sender, "chat:response:chunk", {
             chatId: req.chatId,
@@ -1791,10 +1700,14 @@ ${otherAppsCodebaseInfo}
 async function getMcpTools(event: IpcMainInvokeEvent): Promise<ToolSet> {
   const mcpToolSet: ToolSet = {};
   try {
-    const servers = await db
-      .select()
-      .from(mcpServers)
-      .where(eq(mcpServers.enabled, true as any));
+    const servers = (
+      await getFeltDBDataStore().list<
+        FeltDBRecord & {
+          name: string;
+          enabled: boolean;
+        }
+      >("mcp_servers")
+    ).filter((server) => server.enabled);
     for (const s of servers) {
       const client = await mcpManager.getClient(s.id);
       const toolSet = await client.tools();
