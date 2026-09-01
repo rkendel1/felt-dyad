@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi, beforeAll } from "vitest";
 import { db } from "../db";
+import { initializeDatabase } from "../db";
 import { apps } from "../db/schema";
 import { eq } from "drizzle-orm";
 
@@ -10,13 +11,22 @@ import { eq } from "drizzle-orm";
 describe("FeltDB Handlers", () => {
   let testAppId: number;
 
+  beforeAll(() => {
+    // Initialize the database before running tests
+    initializeDatabase();
+  });
+
   beforeEach(async () => {
-    // Create a test app
+    // Create a test app (note: when created through IPC handlers, it will have defaults)
+    // But here we manually set defaults to match the IPC handler behavior
     const [app] = await db
       .insert(apps)
       .values({
         name: "test-feltdb-app",
         path: "/tmp/test-app",
+        feltdbRuntime: "server",
+        feltdbMode: "local",
+        feltdbStatus: "ready",
       })
       .returning();
     testAppId = app.id;
@@ -24,7 +34,11 @@ describe("FeltDB Handlers", () => {
 
   afterEach(async () => {
     // Clean up
-    await db.delete(apps).where(eq(apps.id, testAppId));
+    try {
+      await db.delete(apps).where(eq(apps.id, testAppId));
+    } catch (err) {
+      // Ignore cleanup errors
+    }
   });
 
   describe("App Creation", () => {
@@ -138,3 +152,4 @@ describe("FeltDB Handlers", () => {
     });
   });
 });
+
