@@ -2,6 +2,7 @@ import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StateSurface, StateInspector } from "@/components/state";
 import { ProposalPanel } from "@/components/proposals/ProposalPanel";
+import { ChangesPanel } from "@/components/changes/ChangesPanel";
 import {
   Database,
   GitBranch,
@@ -81,10 +82,7 @@ export const ChatPanelTabs: React.FC<ChatPanelTabsProps> = ({ children }) => {
       </TabsContent>
 
       <TabsContent value="changes" className="flex-1 overflow-y-auto p-4">
-        <div className="text-sm text-muted-foreground">
-          Changes view coming soon. Will show Git history and conversion
-          reports.
-        </div>
+        <ChangesPanel />
       </TabsContent>
 
       <TabsContent value="proposals" className="flex-1 overflow-y-auto p-4">
