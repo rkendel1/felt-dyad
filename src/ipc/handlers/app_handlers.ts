@@ -791,7 +791,11 @@ export function registerAppHandlers() {
     });
 
     // Initialize .feltdb metadata for the app
-    const feltdbMetadataPath = path.join(fullAppPath, ".feltdb", "metadata.json");
+    const feltdbMetadataPath = path.join(
+      fullAppPath,
+      ".feltdb",
+      "metadata.json",
+    );
     try {
       const metadata = {
         version: "1.0.0",
@@ -909,7 +913,11 @@ export function registerAppHandlers() {
       .returning();
 
     // 5. Initialize .feltdb metadata for the copied app
-    const feltdbMetadataPath = path.join(newAppPath, ".feltdb", "metadata.json");
+    const feltdbMetadataPath = path.join(
+      newAppPath,
+      ".feltdb",
+      "metadata.json",
+    );
     try {
       const metadata = {
         version: "1.0.0",
@@ -922,7 +930,10 @@ export function registerAppHandlers() {
       );
       logger.info(`Initialized .feltdb metadata for copied app ${newDbApp.id}`);
     } catch (err) {
-      logger.warn(`Failed to initialize .feltdb metadata for copied app: `, err);
+      logger.warn(
+        `Failed to initialize .feltdb metadata for copied app: `,
+        err,
+      );
       // Don't fail the entire app copy if metadata initialization fails
     }
 

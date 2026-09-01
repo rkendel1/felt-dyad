@@ -14,7 +14,10 @@ describe("FeltDBProjectStore", () => {
   let store: FeltDBProjectStore;
 
   beforeEach(async () => {
-    tempDir = path.join(os.tmpdir(), `feltdb-test-${Date.now()}-${Math.random()}`);
+    tempDir = path.join(
+      os.tmpdir(),
+      `feltdb-test-${Date.now()}-${Math.random()}`,
+    );
     fs.mkdirSync(tempDir, { recursive: true });
 
     store = new FeltDBProjectStore(tempDir);
@@ -149,8 +152,16 @@ describe("FeltDBProjectStore", () => {
     it("should delete messages by chat", async () => {
       const chat = await store.createChat({ appId });
 
-      await store.createMessage({ chatId: chat.id, role: "user", content: "Msg 1" });
-      await store.createMessage({ chatId: chat.id, role: "assistant", content: "Msg 2" });
+      await store.createMessage({
+        chatId: chat.id,
+        role: "user",
+        content: "Msg 1",
+      });
+      await store.createMessage({
+        chatId: chat.id,
+        role: "assistant",
+        content: "Msg 2",
+      });
 
       let messages = await store.listMessages(chat.id);
       expect(messages.length).toBe(2);
@@ -197,7 +208,10 @@ describe("FeltDBProjectStore", () => {
       };
 
       const createdApp = await store.createApp(appInput);
-      const chat = await store.createChat({ appId: createdApp.id, title: "Chat" });
+      const chat = await store.createChat({
+        appId: createdApp.id,
+        title: "Chat",
+      });
 
       await store.createMessage({
         chatId: chat.id,
@@ -225,7 +239,10 @@ describe("FeltDBProjectStore", () => {
       expect(messages.length).toBe(1);
       expect(messages[0].content).toBe("Test message");
 
-      const lastChat = await newStore.getProjectState(createdApp.id, "lastChat");
+      const lastChat = await newStore.getProjectState(
+        createdApp.id,
+        "lastChat",
+      );
       expect(lastChat).toBe(chat.id);
 
       await newStore.close();
@@ -234,7 +251,10 @@ describe("FeltDBProjectStore", () => {
 
   describe("Concurrency: Multiple Operations", () => {
     it("should handle concurrent writes without loss", async () => {
-      const app = await store.createApp({ name: "Concurrent", path: "/tmp/concurrent" });
+      const app = await store.createApp({
+        name: "Concurrent",
+        path: "/tmp/concurrent",
+      });
       const chat = await store.createChat({ appId: app.id });
 
       // Create multiple messages concurrently
@@ -243,12 +263,12 @@ describe("FeltDBProjectStore", () => {
           chatId: chat.id,
           role: i % 2 === 0 ? "user" : "assistant",
           content: `Message ${i}`,
-        })
+        }),
       );
 
       // Set project state concurrently
       const statePromises = Array.from({ length: 3 }).map((_, i) =>
-        store.setProjectState(app.id, `key_${i}`, { value: i })
+        store.setProjectState(app.id, `key_${i}`, { value: i }),
       );
 
       await Promise.all([...msgPromises, ...statePromises]);

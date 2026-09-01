@@ -13,10 +13,13 @@
 ## 1. What is Obscura?
 
 ### Official Description
+
 From the Obscura project:
+
 > "A lightweight Rust headless browser/automation engine with JavaScript/V8 and Chrome DevTools Protocol (CDP) support"
 
 ### Key Capabilities
+
 1. **Headless Browser Engine**: Renders web content without GUI
 2. **JavaScript Runtime**: V8 engine for running scripts
 3. **CDP Support**: Chrome DevTools Protocol for remote control
@@ -24,6 +27,7 @@ From the Obscura project:
 5. **Lightweight**: Designed for minimal resource usage
 
 ### Project Status
+
 - Open source Rust project
 - Active development (as of 2024)
 - Designed as alternative to Puppeteer/Playwright
@@ -51,6 +55,7 @@ Native Browser Window
 ```
 
 ### Why This Works
+
 - ✅ **Proven**: Used in Dyad for years
 - ✅ **Simple**: No external dependencies beyond Node.js
 - ✅ **Interactive**: Full browser capabilities
@@ -59,6 +64,7 @@ Native Browser Window
 - ✅ **Flexible**: Can inject any script
 
 ### What We Can't Do With Proxy Alone
+
 - ❌ Control browser headlessly (we need UI)
 - ❌ Automate testing (we need user interaction)
 - ❌ Create multiple instances easily (we need pop-out)
@@ -70,25 +76,25 @@ Native Browser Window
 
 ### ✅ What Obscura Does Well
 
-| Capability | Use Case | Relevance |
-|-----------|----------|-----------|
-| Headless Rendering | Automated testing | Not needed |
-| Script Execution | Browser automation | Not needed |
-| CDP Control | Remote debugging | Maybe useful |
-| V8 Integration | In-process JS | Not needed |
-| Lightweight | Resource efficiency | Minor benefit |
+| Capability         | Use Case            | Relevance     |
+| ------------------ | ------------------- | ------------- |
+| Headless Rendering | Automated testing   | Not needed    |
+| Script Execution   | Browser automation  | Not needed    |
+| CDP Control        | Remote debugging    | Maybe useful  |
+| V8 Integration     | In-process JS       | Not needed    |
+| Lightweight        | Resource efficiency | Minor benefit |
 
 ### ❌ What Obscura Doesn't Provide
 
-| Capability | Why Needed | Current Solution |
-|-----------|-----------|-----------------|
-| **Interactive Window** | User sees/interacts with preview | Native browser |
-| **DOM Inspector** | Visual editing features | Browser DevTools |
-| **Screenshot API** | Component screenshots | html-to-image.js |
-| **Event Injection** | User clicks/typing | Proxy + iframe |
-| **CSS Inspector** | Style editing | Visual editor client |
-| **Network Simulation** | Testing slow connections | Browser network tab |
-| **Responsive Design** | Mobile preview | Browser resize |
+| Capability             | Why Needed                       | Current Solution     |
+| ---------------------- | -------------------------------- | -------------------- |
+| **Interactive Window** | User sees/interacts with preview | Native browser       |
+| **DOM Inspector**      | Visual editing features          | Browser DevTools     |
+| **Screenshot API**     | Component screenshots            | html-to-image.js     |
+| **Event Injection**    | User clicks/typing               | Proxy + iframe       |
+| **CSS Inspector**      | Style editing                    | Visual editor client |
+| **Network Simulation** | Testing slow connections         | Browser network tab  |
+| **Responsive Design**  | Mobile preview                   | Browser resize       |
 
 ---
 
@@ -96,24 +102,24 @@ Native Browser Window
 
 ### For Desktop Preview Surface
 
-| Feature | Obscura | Current | Winner |
-|---------|---------|---------|--------|
-| **Interactive** | ❌ No (headless) | ✅ Yes | Current |
-| **Real-time** | ❌ Via CDP protocol | ✅ Direct | Current |
-| **User clicks** | ❌ Requires scripting | ✅ Native | Current |
-| **Typing input** | ❌ Requires scripting | ✅ Native | Current |
-| **Visual feedback** | ❌ Screenshots only | ✅ Live | Current |
-| **Debugging** | ❌ Limited CDP | ✅ Full DevTools | Current |
-| **Simplicity** | ❌ Extra layer | ✅ Direct proxy | Current |
-| **Dependencies** | ❌ V8 build | ✅ None | Current |
+| Feature             | Obscura               | Current          | Winner  |
+| ------------------- | --------------------- | ---------------- | ------- |
+| **Interactive**     | ❌ No (headless)      | ✅ Yes           | Current |
+| **Real-time**       | ❌ Via CDP protocol   | ✅ Direct        | Current |
+| **User clicks**     | ❌ Requires scripting | ✅ Native        | Current |
+| **Typing input**    | ❌ Requires scripting | ✅ Native        | Current |
+| **Visual feedback** | ❌ Screenshots only   | ✅ Live          | Current |
+| **Debugging**       | ❌ Limited CDP        | ✅ Full DevTools | Current |
+| **Simplicity**      | ❌ Extra layer        | ✅ Direct proxy  | Current |
+| **Dependencies**    | ❌ V8 build           | ✅ None          | Current |
 
 ### For Pop-out Preview
 
-| Feature | Obscura | Current | Winner |
-|---------|---------|---------|--------|
-| **Multiple windows** | ❌ Complex | ✅ Native | Current |
-| **Shared state** | ❌ IPC overhead | ✅ Direct | Current |
-| **Focus/lifecycle** | ❌ Manual | ✅ Native | Current |
+| Feature              | Obscura         | Current   | Winner  |
+| -------------------- | --------------- | --------- | ------- |
+| **Multiple windows** | ❌ Complex      | ✅ Native | Current |
+| **Shared state**     | ❌ IPC overhead | ✅ Direct | Current |
+| **Focus/lifecycle**  | ❌ Manual       | ✅ Native | Current |
 
 ---
 
@@ -122,16 +128,19 @@ Native Browser Window
 ### ✅ Legitimate Use Cases
 
 1. **Automated Testing**: Testing your FeltDB-generated apps
+
    ```
    Obscura → Headless browser → Test runner → Results
    ```
 
 2. **CI/CD Validation**: Verify generated apps work correctly
+
    ```
    GitHub Actions → Obscura → Render → Screenshot → Assert
    ```
 
 3. **Server-Side Rendering**: Pre-render apps for performance
+
    ```
    Build System → Obscura → HTML → S3
    ```
@@ -142,6 +151,7 @@ Native Browser Window
    ```
 
 ### Future Integration Point
+
 We could use Obscura for **E2E testing of generated apps**, separate from the interactive builder preview.
 
 ---
@@ -154,6 +164,7 @@ We could use Obscura for **E2E testing of generated apps**, separate from the in
 **We need**: Interactive user interface
 
 Think of it like:
+
 ```
 Obscura  = Remote-controlled robot camera (great for inspecting things)
 Browser  = Window with a person using it (great for interaction)
@@ -198,17 +209,18 @@ If we tried to embed Obscura:
 Dyad App Size Increases:
   Current: ~150 MB (Electron + Node.js)
   With Obscura: ~350-400 MB (adds V8 + Rust runtime)
-  
+
 Build Time:
   Current: ~2 minutes
   With Obscura: ~10+ minutes (rebuilds V8 each time)
-  
+
 Platform Support:
   Current: Windows, Mac, Linux (standard)
   With Obscura: Need Rust toolchain + platform-specific builds
 ```
 
 ### Why This Matters
+
 - Users download lighter app (important for slow internet)
 - CI/CD builds faster (save developer time)
 - Deployment is simpler (fewer dependencies)
@@ -239,6 +251,7 @@ Platform Support:
 ## 9. Recommended Architecture
 
 ### Use Case 1: Interactive Preview (This PR)
+
 ```
 FeltDB Builder
   ↓
@@ -251,6 +264,7 @@ Native Browser Window ✅
 ```
 
 ### Use Case 2: E2E Testing (Future Feature)
+
 ```
 FeltDB Project
   ↓
@@ -267,22 +281,26 @@ Obscura (Optional Future)
 ## 10. Future Architectural Evolution
 
 ### Phase 1: Current (Interactive Preview)
+
 - ✅ Native browser windows
 - ✅ Proxy injection
 - ✅ Component selector
 
 ### Phase 2: Pop-out Preview (PR3)
+
 - ✅ Multiple native windows
 - ✅ Shared selection state
 - ✅ No new tools needed
 
 ### Phase 3: CLI Tools (Future)
+
 - Obscura could help here
 - Command-line generation
 - Headless screenshot capture
 - No impact on interactive builder
 
 ### Phase 4: Advanced Features (Much Later)
+
 - Visual regression testing
 - Automated accessibility checks
 - Performance profiling
@@ -293,6 +311,7 @@ Obscura (Optional Future)
 ## 11. Risks of Using Obscura
 
 ### Risks of Adoption
+
 1. 🔴 **Complexity**: Adds entire new subsystem
 2. 🔴 **Performance**: CDP is slower than direct messaging
 3. 🔴 **Maintenance**: Tracks upstream Obscura development
@@ -301,6 +320,7 @@ Obscura (Optional Future)
 6. 🔴 **Platform Support**: Needs Rust build infrastructure
 
 ### Risks of NOT Using It
+
 1. 🟢 **None identified** - Current architecture is superior
 
 ---
@@ -315,6 +335,7 @@ Obscura (Optional Future)
 **Instead**: Use native browser windows + proxy server (current approach)
 
 **Future**: Obscura could be valuable as optional tool for:
+
 - CLI screenshot generation
 - E2E testing of generated apps
 - Headless rendering for performance
@@ -328,6 +349,7 @@ Current = ✅ Right tool for what we're building
 ```
 
 The existing proxy + browser window architecture is:
+
 - ✅ Simpler
 - ✅ Faster
 - ✅ More interactive
@@ -348,17 +370,20 @@ The existing proxy + browser window architecture is:
 ## 13. References
 
 ### Obscura Project
+
 - [Obscura GitHub](https://github.com/obscura-browser/obscura)
 - Described as: "Lightweight Rust headless browser"
 - Best for: Automation, testing, headless scenarios
 - NOT intended for: Interactive UI applications
 
 ### Dyad Architecture
+
 - [Proxy Server](./worker/proxy_server.js) - HTML injection
 - [Component Selector](./worker/dyad-component-selector-client.js) - Event handling
 - [Preview Component](./src/components/preview_panel/PreviewIframe.tsx) - iframe management
 
 ### Browser Alternatives
+
 - Puppeteer - Node.js headless browser (also headless-only)
 - Playwright - Cross-browser automation (also headless-only)
 - Headless Chrome - Built into Chromium (also headless-only)

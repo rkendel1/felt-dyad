@@ -14,17 +14,20 @@ This PR implements Dyad's existing native component selection mechanism into Fel
 ## Deliverables
 
 ### ✅ 1. Audit Complete
+
 - **File**: `docs/pr3-investigation/01-native-selection-audit.md`
 - Documents complete implementation, data flows, dependencies
 - Confirms FeltDB compatibility
 - Maps limitations and security considerations
 
 ### ✅ 2. Data Flow Documented
+
 - Selection flow: Component click → Message → Jotai atom → IPC → AI
 - IPC types fully defined in `src/ipc/types/chat.ts`
 - ComponentSelection schema is stable and typed
 
 ### ✅ 3. FeltDB Integration Verified
+
 - Scaffold vite.config.ts includes `dyadComponentTagger()`
 - Every generated app has `data-dyad-id` attributes on components
 - Works out-of-box for all FeltDB-generated applications
@@ -34,9 +37,11 @@ This PR implements Dyad's existing native component selection mechanism into Fel
 ### Phase 1: Proof of Concept (2-3 days)
 
 #### 1.1 E2E Test: Select Component → AI → Mutation
+
 **File**: `e2e-tests/component-selection.spec.ts`
 
 Test scenario:
+
 ```
 1. Generate FeltDB app
 2. Open preview
@@ -50,9 +55,11 @@ Test scenario:
 **Why**: Proves the complete data flow works end-to-end
 
 #### 1.2 Documentation: Component Selection Workflow
+
 **File**: `docs/COMPONENT_SELECTION.md`
 
 Document:
+
 - How to activate component selector
 - How selected components appear in chat
 - How AI uses selection data
@@ -61,17 +68,21 @@ Document:
 ### Phase 2: UX Enhancement (1-2 days)
 
 #### 2.1 Add Component Selection UI Control
-**Files**: 
+
+**Files**:
+
 - `src/components/preview_panel/PreviewIframe.tsx` - Add button
 - `src/components/chat/ChatInput.tsx` - Show selected components
 
 Features:
+
 - Button to toggle component selector (instead of keyboard shortcut only)
 - Visual indicator showing number of selected components
 - List of selected components in chat input
 - "Clear selection" button
 
 #### 2.2 Visual Feedback
+
 - Selected components list in chat input (like attachments)
 - Component count badge on selector button
 - Better integration with existing UI
@@ -79,13 +90,16 @@ Features:
 ### Phase 3: Pop-out Preview (2-4 days)
 
 #### 3.1 Multi-Window Architecture
+
 **Files**:
+
 - `src/main.ts` - Add pop-out window creation
 - `src/preload.ts` - Define IPC bridge for pop-out
 - `src/ipc/handlers/popup_handlers.ts` - Handle pop-out messages
 - New IPC contracts for pop-out communication
 
 Design:
+
 ```
 Main Window (FeltDB Builder)
     ↓
@@ -103,6 +117,7 @@ Main Window (FeltDB Builder)
 ```
 
 #### 3.2 Shared Selection State
+
 - Pop-out sends selection to main window
 - Main window can broadcast selection to pop-out
 - Chat input sees selections from both windows
@@ -111,9 +126,11 @@ Main Window (FeltDB Builder)
 ### Phase 4: Obscura Evaluation (research, 1-2 hours)
 
 #### 4.1 Research Task
+
 **File**: `docs/pr3-investigation/02-obscura-evaluation.md`
 
 Questions:
+
 - Can Obscura serve as interactive desktop preview?
 - How does it compare to current architecture?
 - Is it necessary for our use case?
@@ -124,21 +141,25 @@ Questions:
 ## Implementation Order
 
 ### Week 1: Core (Proof of Concept)
+
 1. E2E test for component selection
 2. Documentation of workflow
 3. Verification that everything works
 
 ### Week 2: Polish (UX)
+
 1. Component selection button UI
 2. Selected components display
 3. Integration with chat input
 
 ### Week 3: Advanced (Pop-out)
+
 1. Pop-out window creation
 2. Shared selection state
 3. Window management
 
 ### Parallel: Research
+
 1. Obscura evaluation
 2. Architecture documentation
 3. Future roadmap
@@ -146,6 +167,7 @@ Questions:
 ## Code Changes Summary
 
 ### Files to Create
+
 - `docs/pr3-investigation/01-native-selection-audit.md` ✅
 - `docs/pr3-investigation/02-obscura-evaluation.md` (pending)
 - `docs/COMPONENT_SELECTION.md` (pending)
@@ -154,6 +176,7 @@ Questions:
 - `src/ipc/types/popup.ts` (pending - pop-out IPC contracts)
 
 ### Files to Modify
+
 - `src/main.ts` - Pop-out window creation (pending)
 - `src/preload.ts` - Add pop-out IPC bridge (pending)
 - `src/components/preview_panel/PreviewIframe.tsx` - Add selector button (pending)
@@ -161,6 +184,7 @@ Questions:
 - `scaffold/vite.config.ts` - No changes needed ✅
 
 ### Files Unchanged
+
 - All IPC types and contracts already support component selection
 - Message flow already implemented
 - Jotai atoms already exist
@@ -169,6 +193,7 @@ Questions:
 ## Testing Strategy
 
 ### E2E Tests
+
 ```
 ✅ test-component-selection.spec.ts
   ✅ Can activate component selector
@@ -181,6 +206,7 @@ Questions:
 ```
 
 ### Manual Testing Checklist
+
 - [ ] Generate FeltDB app
 - [ ] Open preview
 - [ ] Press Ctrl+Shift+C (or click button)
@@ -195,12 +221,12 @@ Questions:
 
 ## Risks & Mitigations
 
-| Risk | Probability | Mitigation |
-|------|-------------|-----------|
-| Pop-out window IPC complexity | Medium | Start with simple message passing, add sync later |
-| Selection lost on reload | Low | Document as expected, save to chat history |
-| Multiple app instances conflict | Low | Use app ID to route messages correctly |
-| Pro mode vs free tier features | Low | Already implemented, just use existing code |
+| Risk                            | Probability | Mitigation                                        |
+| ------------------------------- | ----------- | ------------------------------------------------- |
+| Pop-out window IPC complexity   | Medium      | Start with simple message passing, add sync later |
+| Selection lost on reload        | Low         | Document as expected, save to chat history        |
+| Multiple app instances conflict | Low         | Use app ID to route messages correctly            |
+| Pro mode vs free tier features  | Low         | Already implemented, just use existing code       |
 
 ## Success Criteria
 
@@ -214,14 +240,14 @@ Questions:
 
 ## Timeline
 
-| Phase | Duration | Start | End | Status |
-|-------|----------|-------|-----|--------|
-| Investigation | ✅ 4 hours | Day 1 | Day 1 | Complete |
-| E2E Test | 2 days | Day 2 | Day 3 | Pending |
-| UX Enhancement | 1-2 days | Day 4 | Day 5 | Pending |
-| Pop-out Preview | 2-4 days | Day 6 | Day 9 | Pending |
-| Obscura Research | 1-2 hours | Parallel | Day 9 | Pending |
-| **Total** | **~9-11 days** | **Day 1** | **Day 9** | **In Progress** |
+| Phase            | Duration       | Start     | End       | Status          |
+| ---------------- | -------------- | --------- | --------- | --------------- |
+| Investigation    | ✅ 4 hours     | Day 1     | Day 1     | Complete        |
+| E2E Test         | 2 days         | Day 2     | Day 3     | Pending         |
+| UX Enhancement   | 1-2 days       | Day 4     | Day 5     | Pending         |
+| Pop-out Preview  | 2-4 days       | Day 6     | Day 9     | Pending         |
+| Obscura Research | 1-2 hours      | Parallel  | Day 9     | Pending         |
+| **Total**        | **~9-11 days** | **Day 1** | **Day 9** | **In Progress** |
 
 ## Architecture Diagram
 

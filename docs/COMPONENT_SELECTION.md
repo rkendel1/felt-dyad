@@ -22,15 +22,18 @@ These attributes are added automatically by the Vite component tagger plugin and
 ### 2. Selecting Components
 
 #### Using Keyboard Shortcut
+
 - **Mac**: `Cmd + Shift + C`
 - **Windows/Linux**: `Ctrl + Shift + C`
 
 This activates the component selector mode. Your cursor will change and components will show purple overlays as you hover over them.
 
 #### Using the Component Selector Button
+
 A visual button in the preview panel lets you activate component selection without memorizing shortcuts.
 
 #### Visual Feedback
+
 - **Purple overlay**: Marks component boundaries while hovering
 - **Component label**: Shows component name and file location
 - **Blue highlight**: Indicates selected component
@@ -38,6 +41,7 @@ A visual button in the preview panel lets you activate component selection witho
 ### 3. Viewing Selected Components
 
 After selecting components, you'll see them listed in the chat input area, similar to file attachments. This shows:
+
 - Component name
 - File path
 - Source location (line:column)
@@ -53,12 +57,14 @@ When you send a prompt with selected components:
 ```
 
 The AI receives:
+
 - Your prompt text
 - Full component metadata (file path, line, column)
 - Component name
 - Runtime instance ID
 
 This allows the AI to:
+
 - Locate the exact component in your code
 - Understand its current position
 - Propose modifications
@@ -77,6 +83,7 @@ You can select multiple components at once:
 ### 6. Deselecting Components
 
 #### Clear All
+
 A "Clear Selection" button in the chat input removes all selected components.
 
 #### Clear Individual Component
@@ -84,11 +91,13 @@ A "Clear Selection" button in the chat input removes all selected components.
 Click the X button next to a component name to deselect it individually.
 
 #### Deselect by Clicking
+
 With component selector active, click a selected component again to deselect it.
 
 ## Use Cases
 
 ### Use Case 1: Quick Style Changes
+
 ```
 User: "Make this button bigger"
      [Select Button component]
@@ -98,6 +107,7 @@ User: "Make this button bigger"
 ```
 
 ### Use Case 2: Layout Adjustments
+
 ```
 User: "Move this to the right side"
      [Select Card component]
@@ -107,6 +117,7 @@ User: "Move this to the right side"
 ```
 
 ### Use Case 3: Multi-Component Changes
+
 ```
 User: "Make these buttons match"
      [Select Button A, Button B]
@@ -120,6 +131,7 @@ User: "Make these buttons match"
 ### Component Identification
 
 Components are identified by their source location:
+
 ```
 filepath:line:column
 src/components/Button.tsx:5:2
@@ -128,6 +140,7 @@ src/components/Button.tsx:5:2
 ```
 
 This allows the AI to:
+
 - Find exact component in source code
 - Apply changes to correct component (not similar ones)
 - Maintain accurate source mapping
@@ -135,6 +148,7 @@ This allows the AI to:
 ### Runtime ID
 
 Each selected instance also gets a unique runtime ID:
+
 ```
 dyad-1725158472000-abc12def
    ↑                    ↑
@@ -142,6 +156,7 @@ dyad-1725158472000-abc12def
 ```
 
 This helps when:
+
 - Same component appears multiple times
 - Need to track which instance user clicked
 - Maintaining consistency across page reloads
@@ -170,6 +185,7 @@ When you send a prompt with selected components:
 ## Limitations
 
 ### What Works
+
 - ✅ React components (JSX)
 - ✅ TypeScript (TSX)
 - ✅ Stateless components
@@ -178,6 +194,7 @@ When you send a prompt with selected components:
 - ✅ Multiple instances of same component
 
 ### What Doesn't Work
+
 - ❌ Non-JSX HTML elements (created outside React)
 - ❌ Dynamically created elements (e.g., `document.createElement`)
 - ❌ Iframes within your app
@@ -185,6 +202,7 @@ When you send a prompt with selected components:
 - ❌ Built-in HTML tags without JSX wrapper
 
 ### Persistence
+
 - Selection is cleared when:
   - Page is reloaded
   - Preview is restarted
@@ -202,6 +220,7 @@ When you send a prompt with selected components:
 **Problem**: When I press Ctrl+Shift+C, nothing happens.
 
 **Solutions**:
+
 1. Make sure preview panel is open
 2. Try clicking in the preview area first
 3. Check browser console for errors (F12 in preview)
@@ -212,6 +231,7 @@ When you send a prompt with selected components:
 **Problem**: I clicked a component but it doesn't appear in chat input.
 
 **Solutions**:
+
 1. Make sure selector mode is still active (press Ctrl+Shift+C again if needed)
 2. Try clicking a different component
 3. Check that you're clicking on a JSX element (not a plain HTML element)
@@ -222,6 +242,7 @@ When you send a prompt with selected components:
 **Problem**: AI says it can't locate the selected component.
 
 **Solutions**:
+
 1. Regenerate the app (save triggers regeneration)
 2. Check that component file exists at the path shown
 3. Clear selection and try selecting a different component
@@ -232,6 +253,7 @@ When you send a prompt with selected components:
 ### Visual Editing
 
 Selected components show:
+
 - **Toolbar below component**: Edit styling directly
 - **Green highlight**: Shows which component is being edited
 - **Live preview**: See changes in real-time
@@ -240,6 +262,7 @@ Selected components show:
 ### Multi-Window Selection
 
 If you open a pop-out preview window:
+
 - Selections sync between main and pop-out windows
 - Selecting in pop-out updates main window
 - Selecting in main window updates pop-out
@@ -281,12 +304,12 @@ interface ChatStreamParams {
 }
 
 interface ComponentSelection {
-  id: string;              // "filepath:line:column"
-  name: string;            // Component name
-  runtimeId?: string;      // Unique runtime ID
-  relativePath: string;    // File path
-  lineNumber: number;      // Source line
-  columnNumber: number;    // Source column
+  id: string; // "filepath:line:column"
+  name: string; // Component name
+  runtimeId?: string; // Unique runtime ID
+  relativePath: string; // File path
+  lineNumber: number; // Source line
+  columnNumber: number; // Source column
 }
 ```
 

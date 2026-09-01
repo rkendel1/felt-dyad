@@ -78,22 +78,38 @@ export class SqliteProjectStore implements IProjectStore {
     if (input.name !== undefined) updateData.name = input.name;
     if (input.path !== undefined) updateData.path = input.path;
     if (input.githubOrg !== undefined) updateData.githubOrg = input.githubOrg;
-    if (input.githubRepo !== undefined) updateData.githubRepo = input.githubRepo;
-    if (input.githubBranch !== undefined) updateData.githubBranch = input.githubBranch;
-    if (input.supabaseProjectId !== undefined) updateData.supabaseProjectId = input.supabaseProjectId;
-    if (input.supabaseParentProjectId !== undefined) updateData.supabaseParentProjectId = input.supabaseParentProjectId;
-    if (input.supabaseOrganizationSlug !== undefined) updateData.supabaseOrganizationSlug = input.supabaseOrganizationSlug;
-    if (input.neonProjectId !== undefined) updateData.neonProjectId = input.neonProjectId;
-    if (input.neonDevelopmentBranchId !== undefined) updateData.neonDevelopmentBranchId = input.neonDevelopmentBranchId;
-    if (input.neonPreviewBranchId !== undefined) updateData.neonPreviewBranchId = input.neonPreviewBranchId;
-    if (input.vercelProjectId !== undefined) updateData.vercelProjectId = input.vercelProjectId;
-    if (input.vercelProjectName !== undefined) updateData.vercelProjectName = input.vercelProjectName;
-    if (input.vercelTeamId !== undefined) updateData.vercelTeamId = input.vercelTeamId;
-    if (input.vercelDeploymentUrl !== undefined) updateData.vercelDeploymentUrl = input.vercelDeploymentUrl;
-    if (input.installCommand !== undefined) updateData.installCommand = input.installCommand;
-    if (input.startCommand !== undefined) updateData.startCommand = input.startCommand;
-    if (input.chatContext !== undefined) updateData.chatContext = input.chatContext;
-    if (input.isFavorite !== undefined) updateData.isFavorite = input.isFavorite;
+    if (input.githubRepo !== undefined)
+      updateData.githubRepo = input.githubRepo;
+    if (input.githubBranch !== undefined)
+      updateData.githubBranch = input.githubBranch;
+    if (input.supabaseProjectId !== undefined)
+      updateData.supabaseProjectId = input.supabaseProjectId;
+    if (input.supabaseParentProjectId !== undefined)
+      updateData.supabaseParentProjectId = input.supabaseParentProjectId;
+    if (input.supabaseOrganizationSlug !== undefined)
+      updateData.supabaseOrganizationSlug = input.supabaseOrganizationSlug;
+    if (input.neonProjectId !== undefined)
+      updateData.neonProjectId = input.neonProjectId;
+    if (input.neonDevelopmentBranchId !== undefined)
+      updateData.neonDevelopmentBranchId = input.neonDevelopmentBranchId;
+    if (input.neonPreviewBranchId !== undefined)
+      updateData.neonPreviewBranchId = input.neonPreviewBranchId;
+    if (input.vercelProjectId !== undefined)
+      updateData.vercelProjectId = input.vercelProjectId;
+    if (input.vercelProjectName !== undefined)
+      updateData.vercelProjectName = input.vercelProjectName;
+    if (input.vercelTeamId !== undefined)
+      updateData.vercelTeamId = input.vercelTeamId;
+    if (input.vercelDeploymentUrl !== undefined)
+      updateData.vercelDeploymentUrl = input.vercelDeploymentUrl;
+    if (input.installCommand !== undefined)
+      updateData.installCommand = input.installCommand;
+    if (input.startCommand !== undefined)
+      updateData.startCommand = input.startCommand;
+    if (input.chatContext !== undefined)
+      updateData.chatContext = input.chatContext;
+    if (input.isFavorite !== undefined)
+      updateData.isFavorite = input.isFavorite;
     if (input.themeId !== undefined) updateData.themeId = input.themeId;
 
     // Always update updatedAt
@@ -159,10 +175,14 @@ export class SqliteProjectStore implements IProjectStore {
     return result[0] ? this.chatRowToChat(result[0]) : null;
   }
 
-  async updateChat(chatId: number, input: Partial<CreateChatInput>): Promise<Chat> {
+  async updateChat(
+    chatId: number,
+    input: Partial<CreateChatInput>,
+  ): Promise<Chat> {
     const updateData: any = {};
     if (input.title !== undefined) updateData.title = input.title;
-    if (input.initialCommitHash !== undefined) updateData.initialCommitHash = input.initialCommitHash;
+    if (input.initialCommitHash !== undefined)
+      updateData.initialCommitHash = input.initialCommitHash;
 
     const result = await db
       .update(chats)
@@ -218,21 +238,33 @@ export class SqliteProjectStore implements IProjectStore {
   }
 
   async getMessage(messageId: number): Promise<Message | null> {
-    const result = await db.select().from(messages).where(eq(messages.id, messageId));
+    const result = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, messageId));
     return result[0] ? this.messageRowToMessage(result[0]) : null;
   }
 
-  async updateMessage(messageId: number, input: Partial<CreateMessageInput>): Promise<Message> {
+  async updateMessage(
+    messageId: number,
+    input: Partial<CreateMessageInput>,
+  ): Promise<Message> {
     const updateData: any = {};
     if (input.content !== undefined) updateData.content = input.content;
-    if (input.approvalState !== undefined) updateData.approvalState = input.approvalState;
-    if (input.sourceCommitHash !== undefined) updateData.sourceCommitHash = input.sourceCommitHash;
-    if (input.commitHash !== undefined) updateData.commitHash = input.commitHash;
+    if (input.approvalState !== undefined)
+      updateData.approvalState = input.approvalState;
+    if (input.sourceCommitHash !== undefined)
+      updateData.sourceCommitHash = input.sourceCommitHash;
+    if (input.commitHash !== undefined)
+      updateData.commitHash = input.commitHash;
     if (input.requestId !== undefined) updateData.requestId = input.requestId;
-    if (input.maxTokensUsed !== undefined) updateData.maxTokensUsed = input.maxTokensUsed;
+    if (input.maxTokensUsed !== undefined)
+      updateData.maxTokensUsed = input.maxTokensUsed;
     if (input.model !== undefined) updateData.model = input.model;
-    if (input.aiMessagesJson !== undefined) updateData.aiMessagesJson = input.aiMessagesJson;
-    if (input.usingFreeAgentModeQuota !== undefined) updateData.usingFreeAgentModeQuota = input.usingFreeAgentModeQuota;
+    if (input.aiMessagesJson !== undefined)
+      updateData.aiMessagesJson = input.aiMessagesJson;
+    if (input.usingFreeAgentModeQuota !== undefined)
+      updateData.usingFreeAgentModeQuota = input.usingFreeAgentModeQuota;
 
     const result = await db
       .update(messages)
@@ -284,14 +316,21 @@ export class SqliteProjectStore implements IProjectStore {
   }
 
   async getPrompt(promptId: number): Promise<Prompt | null> {
-    const result = await db.select().from(prompts).where(eq(prompts.id, promptId));
+    const result = await db
+      .select()
+      .from(prompts)
+      .where(eq(prompts.id, promptId));
     return result[0] ? this.promptRowToPrompt(result[0]) : null;
   }
 
-  async updatePrompt(promptId: number, input: UpdatePromptInput): Promise<Prompt> {
+  async updatePrompt(
+    promptId: number,
+    input: UpdatePromptInput,
+  ): Promise<Prompt> {
     const updateData: any = {};
     if (input.title !== undefined) updateData.title = input.title;
-    if (input.description !== undefined) updateData.description = input.description;
+    if (input.description !== undefined)
+      updateData.description = input.description;
     if (input.content !== undefined) updateData.content = input.content;
 
     // Always update updatedAt
@@ -315,13 +354,20 @@ export class SqliteProjectStore implements IProjectStore {
   }
 
   async listPrompts(): Promise<Prompt[]> {
-    const result = await db.select().from(prompts).orderBy(desc(prompts.createdAt));
+    const result = await db
+      .select()
+      .from(prompts)
+      .orderBy(desc(prompts.createdAt));
     return result.map((row) => this.promptRowToPrompt(row));
   }
 
   // ============ Project State (key-value) ============
 
-  async setProjectState(_projectId: number, _key: string, _value: any): Promise<void> {
+  async setProjectState(
+    _projectId: number,
+    _key: string,
+    _value: any,
+  ): Promise<void> {
     // Note: Project state will be implemented in FeltDB integration
     // For now, we store it in chatContext as a temporary solution
     throw new Error("Project state not yet implemented in SQLite store");
@@ -335,7 +381,10 @@ export class SqliteProjectStore implements IProjectStore {
     throw new Error("Project state not yet implemented in SQLite store");
   }
 
-  async getProjectStateByKey(_projectId: number, _key: string): Promise<ProjectState | null> {
+  async getProjectStateByKey(
+    _projectId: number,
+    _key: string,
+  ): Promise<ProjectState | null> {
     throw new Error("Project state not yet implemented in SQLite store");
   }
 
@@ -346,8 +395,10 @@ export class SqliteProjectStore implements IProjectStore {
       id: row.id,
       name: row.name,
       path: row.path,
-      createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt),
-      updatedAt: row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt),
+      createdAt:
+        row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt),
+      updatedAt:
+        row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt),
       githubOrg: row.githubOrg,
       githubRepo: row.githubRepo,
       githubBranch: row.githubBranch,
@@ -375,7 +426,8 @@ export class SqliteProjectStore implements IProjectStore {
       appId: row.appId,
       title: row.title,
       initialCommitHash: row.initialCommitHash,
-      createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt),
+      createdAt:
+        row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt),
     };
   }
 
@@ -393,7 +445,8 @@ export class SqliteProjectStore implements IProjectStore {
       model: row.model,
       aiMessagesJson: row.aiMessagesJson,
       usingFreeAgentModeQuota: row.usingFreeAgentModeQuota,
-      createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt),
+      createdAt:
+        row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt),
     };
   }
 
@@ -403,8 +456,10 @@ export class SqliteProjectStore implements IProjectStore {
       title: row.title,
       description: row.description,
       content: row.content,
-      createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt),
-      updatedAt: row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt),
+      createdAt:
+        row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt),
+      updatedAt:
+        row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt),
     };
   }
 }
