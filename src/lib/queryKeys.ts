@@ -249,6 +249,27 @@ export const queryKeys = {
     byApp: ({ appId }: { appId: number | null }) =>
       ["app-env-vars", appId] as const,
   },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Application Intelligence
+  // ─────────────────────────────────────────────────────────────────────────────
+  applicationIntelligence: {
+    all: ["application-intelligence"] as const,
+    detail: ({ appId }: { appId: number }) =>
+      ["application-intelligence", appId] as const,
+    context: ({
+      appId,
+      selectedComponent,
+      request,
+    }: {
+      appId: number;
+      selectedComponent?: string;
+      request?: string;
+    }) =>
+      ["application-intelligence", appId, "context", selectedComponent, request] as const,
+    reconciliationStatus: ({ appId }: { appId: number }) =>
+      ["application-intelligence", appId, "reconciliation-status"] as const,
+  },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -306,4 +327,7 @@ export type AppQueryKey =
   | QueryKeyOf<(typeof queryKeys.neon)[keyof typeof queryKeys.neon]>
   | QueryKeyOf<
       (typeof queryKeys.appEnvVars)[keyof typeof queryKeys.appEnvVars]
+    >
+  | QueryKeyOf<
+      (typeof queryKeys.applicationIntelligence)[keyof typeof queryKeys.applicationIntelligence]
     >;
