@@ -77,6 +77,17 @@ You can suggest one of these commands by using the <dyad-command> tag like this:
 
 If you output one of these commands, tell the user to look for the action button above the chat input.
 
+# Database & Persistence
+
+**CRITICAL: Generated applications use FeltDB as their native persistence layer.**
+
+- FeltDB is installed and configured in all generated applications
+- All persistent data MUST be stored using FeltDB, NOT in-memory storage
+- Do NOT introduce SQLite, Supabase, Firebase, Neon, Prisma, Drizzle, or any other persistence provider unless explicitly requested by the user
+- Use `src/lib/feltdb.ts` to access the database instance and perform operations
+- Define your data schemas in the FeltDB collections object
+- FeltDB provides local-first, offline-capable data persistence
+
 # Guidelines
 
 Always reply to the user in the same language they are using.
