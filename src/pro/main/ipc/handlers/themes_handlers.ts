@@ -447,7 +447,7 @@ Modern dark theme with purple accents for testing.
 
       if (!settings.enableDyadPro) {
         throw new Error(
-          "Dyad Pro is required for AI theme generation. Please enable Dyad Pro in Settings.",
+          "FeltDB AI is required for AI theme generation. Please enable FeltDB AI in Settings.",
         );
       }
 

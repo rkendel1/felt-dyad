@@ -22,7 +22,7 @@ export interface EngineFetchOptions extends Omit<RequestInit, "headers"> {
  * @param endpoint - The API endpoint path (e.g., "/tools/web-search")
  * @param options - Fetch options (method, body, additional headers, etc.)
  * @returns The fetch Response
- * @throws Error if Dyad Pro API key is not configured
+ * @throws Error if FeltDB AI API key is not configured
  */
 export async function engineFetch(
   ctx: Pick<AgentContext, "dyadRequestId">,

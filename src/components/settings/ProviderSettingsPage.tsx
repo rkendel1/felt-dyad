@@ -188,7 +188,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
         enableDyadPro: enabled,
       });
     } catch (error: any) {
-      showError(`Error toggling Dyad Pro: ${error}`);
+      showError(`Error toggling FeltDB AI: ${error}`);
     } finally {
       setIsSaving(false);
     }
