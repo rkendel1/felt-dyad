@@ -8,15 +8,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { applicationIntelligenceClient } from "@/ipc/types/application-intelligence-contracts";
-import type {
-  IndexApplicationResponse,
-  GetApplicationIntelligenceResponse,
-  GetApplicationContextResponse,
-  StoreDecisionResponse,
-  RecordChangeResponse,
-  GetReconciliationStatusResponse,
-  ReindexApplicationResponse,
-} from "@/ipc/types/application-intelligence-contracts";
 
 /**
  * Index an application (full scan)

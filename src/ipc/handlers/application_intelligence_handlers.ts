@@ -10,7 +10,6 @@
  */
 
 import { ipcMain } from "electron";
-import { z } from "zod";
 import log from "electron-log";
 import {
   IndexApplicationSchema,
@@ -31,7 +30,6 @@ import {
 import { RepositoryIntelligenceIndexer } from "@/import/repository_intelligence_indexer";
 import {
   ApplicationContextResolver,
-  generateAIPrompt,
 } from "@/import/application_context_resolver";
 
 const logger = log.scope("application-intelligence");
