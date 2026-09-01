@@ -50,6 +50,7 @@ export { visualEditingContracts } from "./visual-editing";
 export { securityContracts } from "./security";
 export { miscContracts, miscEvents } from "./misc";
 export { freeAgentQuotaContracts } from "./free_agent_quota";
+export { conversionAnalysisContracts } from "./conversion-analysis";
 
 // =============================================================================
 // Client Exports
@@ -79,6 +80,7 @@ export { visualEditingClient } from "./visual-editing";
 export { securityClient } from "./security";
 export { miscClient, miscEventClient } from "./misc";
 export { freeAgentQuotaClient } from "./free_agent_quota";
+export { conversionAnalysisClient } from "./conversion-analysis";
 
 // =============================================================================
 // Type Exports
@@ -281,6 +283,28 @@ export type { ChatLogsData, DeepLinkData, AppOutput, EnvVar } from "./misc";
 // Free agent quota types
 export type { FreeAgentQuotaStatus } from "./free_agent_quota";
 
+// Conversion analysis types
+export type {
+  StateDependencyClassification,
+  FrameworkType,
+  BackendFramework,
+  DatabaseType,
+  ApplicationAnalysis,
+  StateSource,
+  StateAnalysis,
+  ApiRoute,
+  BackendAnalysis,
+  DatabaseSchema,
+  DataAnalysis,
+  ExternalService,
+  UiChange,
+  ConversionPlan,
+  StartAppAnalysisParams,
+  StartAppAnalysisResult,
+  GetConversionPlanParams,
+  GetConversionPlanResult,
+} from "./conversion-analysis";
+
 // =============================================================================
 // Schema Exports (for validation in handlers/components)
 // =============================================================================
@@ -337,6 +361,7 @@ import { visualEditingClient } from "./visual-editing";
 import { securityClient } from "./security";
 import { miscClient, miscEventClient } from "./misc";
 import { freeAgentQuotaClient } from "./free_agent_quota";
+import { conversionAnalysisClient } from "./conversion-analysis";
 
 /**
  * Unified IPC client with all domains organized by namespace.
@@ -392,6 +417,7 @@ export const ipc = {
   security: securityClient,
   misc: miscClient,
   freeAgentQuota: freeAgentQuotaClient,
+  conversionAnalysis: conversionAnalysisClient,
 
   // Event clients for main->renderer pub/sub
   events: {
