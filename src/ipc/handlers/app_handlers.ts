@@ -768,13 +768,17 @@ export function registerAppHandlers() {
     if (fs.existsSync(fullAppPath)) {
       throw new Error(`App already exists at: ${fullAppPath}`);
     }
-    // Create a new app
+    // Create a new app with FeltDB as the default runtime
     const [app] = await db
       .insert(apps)
       .values({
         name: params.name,
         // Use the name as the path for now
         path: appPath,
+        // Default to server-side Node FeltDB as the primary runtime
+        feltdbRuntime: "server",
+        feltdbMode: "local",
+        feltdbStatus: "ready",
       })
       .returning();
 
@@ -801,6 +805,9 @@ export function registerAppHandlers() {
         version: "1.0.0",
         appId: app.id.toString(),
         displayName: params.name,
+        provider: "feltdb",
+        runtime: "node",
+        mode: "local",
       };
       await fsPromises.writeFile(
         feltdbMetadataPath,
