@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi, beforeAll } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
 import { db } from "../db";
 import { initializeDatabase } from "../db";
 import { apps } from "../db/schema";
@@ -36,7 +36,7 @@ describe("FeltDB Handlers", () => {
     // Clean up
     try {
       await db.delete(apps).where(eq(apps.id, testAppId));
-    } catch (err) {
+    } catch (_err) {
       // Ignore cleanup errors
     }
   });

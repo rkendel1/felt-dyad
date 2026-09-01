@@ -7,7 +7,7 @@ interface FeltDBIntegrationProps {
 }
 
 export function FeltDBIntegration({ appId }: FeltDBIntegrationProps) {
-  const { data: status, isLoading, error } = useQuery({
+  const { data: status, isLoading } = useQuery({
     queryKey: ["feltdb-status", appId],
     queryFn: () => ipc.feltdb.getStatus({ appId }),
     refetchInterval: 5000, // Refetch every 5 seconds to get latest status
