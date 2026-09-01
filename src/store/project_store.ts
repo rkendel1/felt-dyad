@@ -162,7 +162,10 @@ export interface IProjectStore {
   // Messages
   createMessage(input: CreateMessageInput): Promise<Message>;
   getMessage(messageId: number): Promise<Message | null>;
-  updateMessage(messageId: number, input: Partial<CreateMessageInput>): Promise<Message>;
+  updateMessage(
+    messageId: number,
+    input: Partial<CreateMessageInput>,
+  ): Promise<Message>;
   deleteMessage(messageId: number): Promise<void>;
   listMessages(chatId: number): Promise<Message[]>;
   deleteMessagesByChat(chatId: number): Promise<void>;
@@ -178,7 +181,10 @@ export interface IProjectStore {
   setProjectState(projectId: number, key: string, value: any): Promise<void>;
   getProjectState(projectId: number, key: string): Promise<any>;
   deleteProjectState(projectId: number, key: string): Promise<void>;
-  getProjectStateByKey(projectId: number, key: string): Promise<ProjectState | null>;
+  getProjectStateByKey(
+    projectId: number,
+    key: string,
+  ): Promise<ProjectState | null>;
 }
 
 let _projectStore: IProjectStore | null = null;
@@ -186,7 +192,9 @@ let _projectStore: IProjectStore | null = null;
 /**
  * Initialize the project store based on configuration
  */
-export async function initializeProjectStore(config: ProjectStoreConfig): Promise<IProjectStore> {
+export async function initializeProjectStore(
+  config: ProjectStoreConfig,
+): Promise<IProjectStore> {
   if (_projectStore) {
     return _projectStore;
   }
@@ -210,7 +218,9 @@ export async function initializeProjectStore(config: ProjectStoreConfig): Promis
  */
 export function getProjectStore(): IProjectStore {
   if (!_projectStore) {
-    throw new Error("ProjectStore not initialized. Call initializeProjectStore() first.");
+    throw new Error(
+      "ProjectStore not initialized. Call initializeProjectStore() first.",
+    );
   }
   return _projectStore;
 }

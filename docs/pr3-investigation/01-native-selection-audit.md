@@ -3,6 +3,7 @@
 ## Executive Summary
 
 Dyad's existing component selection system is **already functional and non-invasive**. It requires:
+
 1. Components instrumented with `data-dyad-id` attributes (via Vite plugin)
 2. A proxy server that injects the component selector client script
 3. Message passing from the preview iframe to the builder
@@ -16,6 +17,7 @@ The architecture is clean and requires minimal new code to integrate with FeltDB
 **Where**: `/packages/@dyad-sh/react-vite-component-tagger/src/index.ts`
 
 **How it works**:
+
 - Vite plugin runs during `serve` mode
 - Processes all `.jsx` and `.tsx` files (except node_modules)
 - Uses Babel parser to find all JSX elements
@@ -24,6 +26,7 @@ The architecture is clean and requires minimal new code to integrate with FeltDB
   - `data-dyad-name="ComponentName"` - Display name for the component
 
 **Example**:
+
 ```jsx
 // Before plugin:
 <Button>Click me</Button>
@@ -33,6 +36,7 @@ The architecture is clean and requires minimal new code to integrate with FeltDB
 ```
 
 **Key Properties**:
+
 - Non-invasive: Pure attribute addition, no code changes
 - Preserves source mapping: Line and column info enables exact file location
 - Works with all component types
@@ -45,6 +49,7 @@ The architecture is clean and requires minimal new code to integrate with FeltDB
 **Injected by**: Proxy server into all HTML responses (see below)
 
 **What it does**:
+
 1. **Discovery Phase** (on page load):
    - Waits for DOM elements with `data-dyad-id` attributes
    - Sends `dyad-component-selector-initialized` message to parent
@@ -58,6 +63,7 @@ The architecture is clean and requires minimal new code to integrate with FeltDB
    - User clicks with component selector active
    - Generates a unique `runtimeId` for the selected element
    - Sends message to parent:
+
    ```javascript
    {
      type: "dyad-component-selected",
@@ -81,6 +87,7 @@ The architecture is clean and requires minimal new code to integrate with FeltDB
    - Hides hover overlay when deactivated
 
 **Key Properties**:
+
 - Decoupled from app code: Injected externally
 - Multi-selection capable: Can select multiple components
 - Tracks runtime state: Maintains overlay positions during scrolling/resize
@@ -91,11 +98,13 @@ The architecture is clean and requires minimal new code to integrate with FeltDB
 **File**: `/worker/proxy_server.js`
 
 **Architecture**:
+
 - Node.js worker thread that proxies HTTP requests to the actual app server
 - Intercepts HTML responses and injects Dyad scripts
 - Configurable injection of multiple client scripts
 
 **Script Injection Flow**:
+
 ```
 incoming request → proxy to upstream → response received
   ↓
@@ -116,6 +125,7 @@ send response to client
 ```
 
 **Key Properties**:
+
 - Transparent to the app: No app modifications needed
 - Preserves legacy apps: Detects if app already has shim, doesn't double-inject
 - Zero dependencies in injected code
@@ -165,26 +175,28 @@ IPC channel "chat:stream"
 ### 3.2 Key Data Structures
 
 **ComponentSelection (IPC Type)**:
+
 ```typescript
 // File: src/ipc/types/chat.ts
 export const ComponentSelectionSchema = z.object({
-  id: z.string(),              // "filepath:line:column"
-  name: z.string(),             // Component name
+  id: z.string(), // "filepath:line:column"
+  name: z.string(), // Component name
   runtimeId: z.string().optional(),
-  relativePath: z.string(),     // Normalized file path
-  lineNumber: z.number(),       // Source line
-  columnNumber: z.number(),     // Source column
+  relativePath: z.string(), // Normalized file path
+  lineNumber: z.number(), // Source line
+  columnNumber: z.number(), // Source column
 });
 ```
 
 **ChatStreamParams**:
+
 ```typescript
 export const ChatStreamParamsSchema = z.object({
   chatId: z.number(),
   prompt: z.string(),
   redo: z.boolean().optional(),
   attachments: z.array(ChatAttachmentSchema).optional(),
-  selectedComponents: z.array(ComponentSelectionSchema).optional(),  // ← HERE
+  selectedComponents: z.array(ComponentSelectionSchema).optional(), // ← HERE
 });
 ```
 
@@ -196,20 +208,20 @@ export const ChatStreamParamsSchema = z.object({
 function parseComponentSelection(data: any): ComponentSelection | null {
   // Validates message type
   if (data.type !== "dyad-component-selected") return null;
-  
+
   // Extracts component data
   const { id, name, runtimeId } = data.component;
-  
+
   // Parses id format: "filepath:line:column"
   const parts = id.split(":");
   const columnStr = parts.pop();
   const lineStr = parts.pop();
   const relativePath = parts.join(":");
-  
+
   // Validates and parses line/column as integers
   const lineNumber = parseInt(lineStr, 10);
   const columnNumber = parseInt(columnStr, 10);
-  
+
   // Returns validated ComponentSelection
   return {
     id,
@@ -243,7 +255,7 @@ import dyadComponentTagger from "@dyad-sh/react-vite-component-tagger";
 
 export default defineConfig({
   plugins: [
-    dyadComponentTagger(),  // ← NEEDS TO BE HERE
+    dyadComponentTagger(), // ← NEEDS TO BE HERE
     react(),
     // ... other plugins
   ],
@@ -277,7 +289,7 @@ Once verified that plugin is included:
 
 ### 5.2 Limitations
 
-1. **Source Mapping**: 
+1. **Source Mapping**:
    - Works only for JSX elements directly in source
    - Not for dynamically created DOM elements
    - Not for iframes within the app
@@ -393,13 +405,13 @@ Once verified that plugin is included:
 
 ## 9. Risks & Mitigations
 
-| Risk | Mitigation |
-|------|-----------|
-| FeltDB scaffold missing tagger plugin | Add to scaffold generation template |
-| Selection breaks on framework changes | Monitor Vite plugin ecosystem |
-| Performance with many components | Overlay rendering already optimized |
-| Security regression in messaging | IPC type validation already in place |
-| Pop-out window state sync issues | Design message protocol before implementation |
+| Risk                                  | Mitigation                                    |
+| ------------------------------------- | --------------------------------------------- |
+| FeltDB scaffold missing tagger plugin | Add to scaffold generation template           |
+| Selection breaks on framework changes | Monitor Vite plugin ecosystem                 |
+| Performance with many components      | Overlay rendering already optimized           |
+| Security regression in messaging      | IPC type validation already in place          |
+| Pop-out window state sync issues      | Design message protocol before implementation |
 
 ## 10. Next Steps
 

@@ -9,8 +9,9 @@ All PR3 investigation deliverables have been completed. The codebase is ready fo
 From the original issue:
 
 > PR3 — Investigate & Integrate Native Preview Selection
-> 
+>
 > Deliverables:
+>
 > 1. Audit existing Dyad Select Component implementation.
 > 2. Document its data flow.
 > 3. Verify it against our FeltDB-generated scaffold.
@@ -23,9 +24,11 @@ From the original issue:
 ## What We Found
 
 ### 1. ✅ Audit Complete
+
 **File**: `docs/pr3-investigation/01-native-selection-audit.md`
 
 The existing Dyad component selection system is:
+
 - **Production-ready**: Used for years in Dyad
 - **Non-invasive**: No code modifications to apps
 - **Efficient**: Minimal performance impact
@@ -33,12 +36,14 @@ The existing Dyad component selection system is:
 - **Comprehensive**: Handles multi-component selection, pro mode features, runtime tracking
 
 **Key Components**:
+
 - Vite component tagger plugin (build-time instrumentation)
 - Component selector client script (runtime event handling)
 - Proxy server injection (automatic deployment)
 - PreviewIframe message handling (state management)
 
 ### 2. ✅ Data Flow Documented
+
 **File**: `docs/pr3-investigation/01-native-selection-audit.md` (Section 3)
 
 Complete data flow from component click to AI system:
@@ -68,6 +73,7 @@ AI/agent system accesses component metadata
 All message types, data structures, and validation rules documented.
 
 ### 3. ✅ FeltDB Verification Complete
+
 **File**: `docs/pr3-investigation/01-native-selection-audit.md` (Section 4)
 
 Key Finding: **FeltDB scaffold already has everything needed.**
@@ -84,9 +90,11 @@ Key Finding: **FeltDB scaffold already has everything needed.**
 **Zero additional setup required.** Selection works out-of-box for all FeltDB apps.
 
 ### 4. ✅ Integration Verified
+
 **File**: `docs/pr3-investigation/01-native-selection-audit.md` (Section 5)
 
 Selection seamlessly integrates with FeltDB Builder because:
+
 - IPC types already support ComponentSelection
 - Jotai atoms already exist
 - ChatInput already passes selections to AI
@@ -96,9 +104,11 @@ Selection seamlessly integrates with FeltDB Builder because:
 **No code changes needed.** The architecture already exists and works.
 
 ### 5. ✅ Selected-Element → AI Proven
+
 **File**: `e2e-tests/select_component.spec.ts`
 
 E2E tests already exist and are comprehensive:
+
 - ✅ Single component selection
 - ✅ Multiple component selection
 - ✅ Component deselection
@@ -107,17 +117,20 @@ E2E tests already exist and are comprehensive:
 - ✅ Next.js app selection
 
 Tests verify the complete flow:
+
 ```
-Select component → Component appears in chat → Send prompt → 
+Select component → Component appears in chat → Send prompt →
 AI receives component metadata → AI can modify component
 ```
 
 **Selection → AI flow is proven and working.**
 
 ### 6. ✅ Pop-out Preview Architecture Designed
+
 **File**: `docs/pr3-investigation/00-implementation-guide.md` (Phase 3)
 
 Design approach:
+
 - Use native Electron multi-window architecture
 - Share same proxy server between windows
 - Sync selection state via IPC
@@ -127,7 +140,7 @@ Design approach:
 Desktop Preview Window  ┐
                         ├─ Same Proxy Server ─ Component Selector
 Pop-out Preview Window  ┘
-                        
+
 Both share:
 - Same app URL
 - Same component selector client
@@ -138,11 +151,13 @@ Both share:
 **No new infrastructure needed.** Uses existing proxy + native windows.
 
 ### 7. ✅ Obscura Evaluated
+
 **File**: `docs/pr3-investigation/02-obscura-evaluation.md`
 
 **Recommendation**: ❌ DO NOT USE
 
 Why:
+
 - Obscura is headless-only (we need interactive window)
 - CDP adds latency (direct messaging is better)
 - Increases package size (V8 adds 200MB+)
@@ -151,6 +166,7 @@ Why:
 - Architectural mismatch (automation tool vs interactive UI)
 
 **Obscura could be useful for** (future feature):
+
 - CLI screenshot generation
 - E2E testing of generated apps
 - But NOT for interactive preview
@@ -158,11 +174,13 @@ Why:
 **Conclusion**: Current architecture (browser window + proxy) is superior.
 
 ### 8. ✅ No New Architecture Needed
+
 **File**: `docs/pr3-investigation/01-native-selection-audit.md` (Section 8-9)
 
 Assessment: **Existing system is complete.**
 
 No need for:
+
 - ❌ Browser extension
 - ❌ Chrome extension
 - ❌ Separate DevTools server
@@ -226,33 +244,42 @@ No need for:
 ## Key Insights
 
 ### 1. Architecture is Already Integrated
+
 The component selection system doesn't need adaptation because it's **already built into Dyad** and **automatically included in FeltDB apps**. The tagger plugin runs at build time, the proxy injects the selector at runtime, and the UI components already handle the selection flow.
 
 ### 2. Build-Time + Runtime Strategy Works
+
 The two-phase approach (Babel plugin at build time + event handlers at runtime) is elegant:
+
 - Zero overhead for non-selection use cases
 - Complete source location data available to AI
 - No app code modifications needed
 - Works with any React/TypeScript app
 
 ### 3. Data Flow is Complete
+
 From component click to AI system, the path is well-established:
+
 - Message protocol is stable
 - State management is clean (Jotai atoms)
 - IPC types are properly defined (Zod schemas)
 - E2E tests prove it works end-to-end
 
 ### 4. FeltDB Integration is Automatic
+
 Because the FeltDB scaffold includes the tagger plugin, **all FeltDB-generated apps automatically support component selection without any user configuration or code changes**.
 
 ### 5. Multi-Window is Simpler Than Expected
+
 The pop-out preview doesn't require a new subsystem. It can:
+
 - Use the same proxy server
 - Share the same component selector injection
 - Sync state through existing IPC channels
 - Leverage native Electron multi-window support
 
 ### 6. Obscura Solves Wrong Problem
+
 Obscura is designed for headless automation, but we need interactive UI. The current architecture (browser window + proxy) is superior for our use case.
 
 ---
@@ -260,6 +287,7 @@ Obscura is designed for headless automation, but we need interactive UI. The cur
 ## What Hasn't Changed
 
 ✅ **No code modifications to the core system**
+
 - IPC types still support ComponentSelection
 - Jotai atoms still manage state
 - ChatInput still passes selections to AI
@@ -267,12 +295,14 @@ Obscura is designed for headless automation, but we need interactive UI. The cur
 - All existing functionality preserved
 
 ✅ **Backward compatibility maintained**
+
 - No breaking changes
 - No new dependencies
 - No deprecations
 - Existing apps continue to work
 
 ✅ **User experience unchanged**
+
 - Component selection still works as before
 - Keyboard shortcuts (Ctrl+Shift+C) still functional
 - Multi-component selection still available
@@ -283,18 +313,21 @@ Obscura is designed for headless automation, but we need interactive UI. The cur
 ## What's Ready to Build (Phase 2+)
 
 ### Phase 2: UI Enhancement (1-2 days)
+
 - Add component selector button to preview panel
 - Display selected components in chat input
 - Add clear selection functionality
 - Show component count badge
 
 ### Phase 3: Pop-out Preview (2-4 days)
+
 - Create multi-window architecture
 - Implement shared selection state
 - Add window lifecycle management
 - Test synchronization
 
 ### Phase 4: Advanced Research (1-2 hours)
+
 - Detailed Obscura evaluation ✅ Already done
 - CLI tool exploration
 - Automation framework integration
@@ -308,6 +341,7 @@ Obscura is designed for headless automation, but we need interactive UI. The cur
 **Risk Level**: Very Low (no breaking changes needed)
 
 The investigation proves:
+
 1. ✅ Component selection is production-ready
 2. ✅ FeltDB apps support it automatically
 3. ✅ No new architecture is needed
@@ -343,6 +377,7 @@ The investigation proves:
 ## Files Changed in This PR
 
 **Documentation Only** (no code changes):
+
 - ✅ Created: `docs/pr3-investigation/00-implementation-guide.md`
 - ✅ Created: `docs/pr3-investigation/01-native-selection-audit.md`
 - ✅ Created: `docs/pr3-investigation/02-obscura-evaluation.md`
@@ -355,9 +390,10 @@ The investigation proves:
 
 ## Summary
 
-PR3 Investigation is **complete and successful**. 
+PR3 Investigation is **complete and successful**.
 
 The findings prove that Dyad's existing native selection system is:
+
 - ✅ Production-ready
 - ✅ Already integrated with FeltDB apps
 - ✅ Well-tested with comprehensive E2E tests
