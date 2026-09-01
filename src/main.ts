@@ -91,8 +91,9 @@ export async function onReady() {
   initializeDatabase();
 
   // Initialize ProjectStore (abstraction layer for persistence)
+  // Default to FeltDB for new projects
   try {
-    await initializeProjectStore({ type: "sqlite" });
+    await initializeProjectStore({ type: "feltdb" });
   } catch (e) {
     logger.error("Error initializing project store", e);
   }

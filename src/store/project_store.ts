@@ -192,8 +192,10 @@ export async function initializeProjectStore(config: ProjectStoreConfig): Promis
   }
 
   if (config.type === "feltdb") {
-    // Will be implemented in Phase 2
-    throw new Error("FeltDB store not yet implemented");
+    const { FeltDBProjectStore } = await import("./feltdb_project_store");
+    _projectStore = new FeltDBProjectStore(config.dataPath);
+    await _projectStore.initialize();
+    return _projectStore;
   }
 
   // Default to SQLite
