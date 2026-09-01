@@ -35,9 +35,7 @@ export function BuilderWorkspace({
   const [isResizing, setIsResizing] = useState(false);
   const [selectedNav, setSelectedNav] = useState<NavItem>("pages");
   const previewPanelRef = useRef<ImperativePanelHandle>(null);
-  const [runtimeStatus] = useState<"running" | "stopped" | "error">(
-    "running",
-  );
+  const [runtimeStatus] = useState<"running" | "stopped" | "error">("running");
   const [runtimeOpen, setRuntimeOpen] = useState(false);
 
   useEffect(() => {
