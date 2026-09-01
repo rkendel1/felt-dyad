@@ -51,6 +51,7 @@ export { securityContracts } from "./security";
 export { miscContracts, miscEvents } from "./misc";
 export { freeAgentQuotaContracts } from "./free_agent_quota";
 export { conversionAnalysisContracts } from "./conversion-analysis";
+export { conversionExecutionContracts } from "./conversion-execution";
 export { feltdbContracts } from "./feltdb";
 
 
@@ -83,6 +84,7 @@ export { securityClient } from "./security";
 export { miscClient, miscEventClient } from "./misc";
 export { freeAgentQuotaClient } from "./free_agent_quota";
 export { conversionAnalysisClient } from "./conversion-analysis";
+export { conversionExecutionClient } from "./conversion-execution";
 export { feltdbClient } from "./feltdb";
 
 
@@ -383,6 +385,7 @@ import { securityClient } from "./security";
 import { miscClient, miscEventClient } from "./misc";
 import { freeAgentQuotaClient } from "./free_agent_quota";
 import { conversionAnalysisClient } from "./conversion-analysis";
+import { conversionExecutionClient } from "./conversion-execution";
 
 /**
  * Unified IPC client with all domains organized by namespace.
@@ -441,6 +444,7 @@ export const ipc = {
   misc: miscClient,
   freeAgentQuota: freeAgentQuotaClient,
   conversionAnalysis: conversionAnalysisClient,
+  conversionExecution: conversionExecutionClient,
 
   // Event clients for main->renderer pub/sub
   events: {
