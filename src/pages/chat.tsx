@@ -17,6 +17,8 @@ import { BuilderSidebar } from "@/components/builder/BuilderSidebar";
 import { DataPanel } from "@/components/builder/DataPanel";
 import { ChangesPanel } from "@/components/builder/ChangesPanel";
 import { PublishPanel } from "@/components/builder/PublishPanel";
+import { ComponentSelectionPanel } from "@/components/builder/ComponentSelectionPanel";
+import { visualEditingSelectedComponentAtom } from "@/atoms/previewAtoms";
 
 export default function ChatPage() {
   let { id: chatId } = useSearch({ from: "/chat" });
@@ -30,6 +32,7 @@ export default function ChatPage() {
   const [currentSidebarView, setCurrentSidebarView] = useState<
     "pages" | "data" | "changes" | "publish" | "settings" | null
   >(null);
+  const selectedComponent = useAtomValue(visualEditingSelectedComponentAtom);
 
   useEffect(() => {
     if (!chatId && chats.length && !loading) {
@@ -99,6 +102,13 @@ export default function ChatPage() {
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Component Selection Panel - Shows when component is selected */}
+        {selectedComponent && !currentSidebarView && (
+          <div className="w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4">
+            <ComponentSelectionPanel />
           </div>
         )}
 
