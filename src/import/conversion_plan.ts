@@ -120,10 +120,6 @@ function generateSummary(
   ).length;
   const uiChangeCount = uiChanges.length;
   const apiRouteCount = backendAnalysis.apiRoutes.length;
-  const locReduction = Math.round(
-    simplificationAnalysis.complexity.estimatedReductionPercent,
-  );
-  const netSimplification = simplificationAnalysis.netEstimatedReduction;
   const flowsEliminated = simplificationAnalysis.flowStats.canBeEliminated;
 
   // Detect existing database providers
@@ -155,12 +151,9 @@ Converting to FeltDB will require:
 - ${dataAnalysis.totalTables} database table migrations
 ${backendAnalysis.serverActions.length > 0 ? `- ${backendAnalysis.serverActions.length} server action updates` : ""}
 
-Estimated Simplification:
-- Potential LOC reduction: ${locReduction}%
+Detected simplification scope:
 - State plumbing flows that can be eliminated: ${flowsEliminated}
-- Net estimated reduction: ~${netSimplification} LOC
-
-These are estimates based on static analysis. Actual results will be measured after conversion.
+- LOC reduction will be measured after the approved conversion is applied
 
 Your application will be converted to use FeltDB as the primary state and database runtime.
 

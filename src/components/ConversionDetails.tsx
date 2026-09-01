@@ -251,11 +251,9 @@ export const ConversionDetails: React.FC<ConversionDetailsProps> = ({
               )}
             </CardTitle>
             <CardDescription>
-              Estimated{" "}
-              {Math.round(
-                plan.simplification.complexity.estimatedReductionPercent,
-              )}
-              % code reduction
+              {plan.simplification.locEstimateAvailable === true
+                ? `Estimated ${Math.round(plan.simplification.complexity.estimatedReductionPercent)}% code reduction`
+                : "Detected conversion scope; LOC change is measured after conversion"}
             </CardDescription>
           </CardHeader>
           {expandedSections.has("simplification") && (

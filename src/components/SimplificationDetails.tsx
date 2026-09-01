@@ -195,73 +195,75 @@ export const SimplificationDetails: React.FC<SimplificationDetailsProps> = ({
       </section>
 
       {/* Tradeoffs */}
-      <section className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Tradeoffs</h3>
-        <div className="space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-sm font-semibold text-red-900 mb-1">
-              Code That Will Be Removed
-            </p>
-            <p className="text-sm text-red-800">
-              ~{simplification.complexity.removableLOC.toLocaleString()} LOC
-            </p>
-            <p className="text-xs text-red-700 mt-1">
-              API client code, database plumbing, sync logic, cache handling
-            </p>
-          </div>
+      {simplification.locEstimateAvailable === true && (
+        <section className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Tradeoffs
+          </h3>
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-red-900 mb-1">
+                Code That Will Be Removed
+              </p>
+              <p className="text-sm text-red-800">
+                ~{simplification.complexity.removableLOC.toLocaleString()} LOC
+              </p>
+              <p className="text-xs text-red-700 mt-1">
+                API client code, database plumbing, sync logic, cache handling
+              </p>
+            </div>
 
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p className="text-sm font-semibold text-orange-900 mb-1">
-              Code That Will Be Replaced
-            </p>
-            <p className="text-sm text-orange-800">
-              ~{simplification.complexity.replaceableLOC.toLocaleString()} LOC
-            </p>
-            <p className="text-xs text-orange-700 mt-1">
-              React state management, context providers, store setup, loading
-              state handling
-            </p>
-          </div>
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-orange-900 mb-1">
+                Code That Will Be Replaced
+              </p>
+              <p className="text-sm text-orange-800">
+                ~{simplification.complexity.replaceableLOC.toLocaleString()} LOC
+              </p>
+              <p className="text-xs text-orange-700 mt-1">
+                React state management, context providers, store setup, loading
+                state handling
+              </p>
+            </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-semibold text-blue-900 mb-1">
-              New Code to Add
-            </p>
-            <p className="text-sm text-blue-800">
-              +{simplification.newFeltDBCode.toLocaleString()} LOC
-            </p>
-            <p className="text-xs text-blue-700 mt-1">
-              FeltDB schema, query hooks, sync configuration, server actions
-            </p>
-          </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-blue-900 mb-1">
+                New Code to Add
+              </p>
+              <p className="text-sm text-blue-800">
+                +{simplification.newFeltDBCode.toLocaleString()} LOC
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                FeltDB schema, query hooks, sync configuration, server actions
+              </p>
+            </div>
 
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-            <p className="text-sm font-semibold text-emerald-900 mb-1">
-              Net Reduction
-            </p>
-            <p className="text-sm text-emerald-800">
-              ~{simplification.netEstimatedReduction.toLocaleString()} LOC
-            </p>
-            <p className="text-xs text-emerald-700 mt-1">
-              {Math.round(
-                (simplification.netEstimatedReduction /
-                  simplification.complexity.currentLOC) *
-                  100,
-              )}
-              % of current application size
-            </p>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-emerald-900 mb-1">
+                Net Reduction
+              </p>
+              <p className="text-sm text-emerald-800">
+                ~{simplification.netEstimatedReduction.toLocaleString()} LOC
+              </p>
+              <p className="text-xs text-emerald-700 mt-1">
+                {Math.round(
+                  (simplification.netEstimatedReduction /
+                    simplification.complexity.currentLOC) *
+                    100,
+                )}
+                % of current application size
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Disclaimer */}
       <section className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <p className="text-xs text-yellow-800">
-          <span className="font-semibold">Disclaimer:</span> These metrics are
-          estimates based on static code analysis. Actual measurements will be
-          recorded after PR6 performs the actual conversion. The goal of this
-          analysis is to give you confidence about the scope of changes before
-          proceeding.
+          Static analysis reports detected routes, state sources, and affected
+          files. LOC reduction is measured only after an approved conversion is
+          applied.
         </p>
       </section>
     </div>

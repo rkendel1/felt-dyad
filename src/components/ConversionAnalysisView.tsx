@@ -82,7 +82,7 @@ export const ConversionAnalysisView: React.FC<ConversionAnalysisViewProps> = ({
                 plan.status === "PENDING_APPROVAL" ? "outline" : "secondary"
               }
             >
-              {plan.status.replaceAll("_", " ")}
+              {plan.status.replace(/_/g, " ")}
             </Badge>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">

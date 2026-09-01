@@ -1,26 +1,44 @@
 import path from "node:path";
 import os from "node:os";
+import fs from "node:fs";
 import { IS_TEST_BUILD } from "../ipc/utils/test_utils";
 
 /**
- * Gets the base dyad-apps directory path (without a specific app subdirectory)
+ * Gets the base feltdb-apps directory path (without a specific app subdirectory)
  */
-export function getDyadAppsBaseDirectory(): string {
+export function getFeltDBAppsBaseDirectory(): string {
   if (IS_TEST_BUILD) {
     const electron = getElectron();
-    return path.join(electron!.app.getPath("userData"), "dyad-apps");
+    return path.join(electron!.app.getPath("userData"), "feltdb-apps");
   }
-  return path.join(os.homedir(), "dyad-apps");
+  return path.join(os.homedir(), "feltdb-apps");
 }
 
-export function getDyadAppPath(appPath: string): string {
+export function getFeltDBAppPath(appPath: string): string {
   // If appPath is already absolute, use it as-is
   if (path.isAbsolute(appPath)) {
     return appPath;
   }
   // Otherwise, use the default base path
-  return path.join(getDyadAppsBaseDirectory(), appPath);
+  return path.join(getFeltDBAppsBaseDirectory(), appPath);
 }
+
+/** Resolve existing relative app records from the current directory first,
+ * then the legacy directory. New apps are always created in feltdb-apps. */
+export function resolveAppPath(appPath: string): string {
+  const currentPath = getFeltDBAppPath(appPath);
+  if (path.isAbsolute(appPath) || fs.existsSync(currentPath))
+    return currentPath;
+
+  const legacyBase = IS_TEST_BUILD
+    ? path.join(getElectron()!.app.getPath("userData"), "dyad-apps")
+    : path.join(os.homedir(), "dyad-apps");
+  const legacyPath = path.join(legacyBase, appPath);
+  return fs.existsSync(legacyPath) ? legacyPath : currentPath;
+}
+
+/** @deprecated Use resolveAppPath for stored records or getFeltDBAppPath for creation. */
+export const getDyadAppPath = resolveAppPath;
 
 export function getTypeScriptCachePath(): string {
   const electron = getElectron();

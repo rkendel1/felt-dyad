@@ -271,6 +271,7 @@ export const StatePlumbingFlowSchema = z.object({
 export type StatePlumbingFlow = z.infer<typeof StatePlumbingFlowSchema>;
 
 export const SimplificationAnalysisSchema = z.object({
+  locEstimateAvailable: z.boolean().optional(),
   complexity: ComplexityMetricsSchema,
   categoryRemovals: z.array(ComplexityCategoryRemovalSchema),
   statePlumbingFlows: z.array(StatePlumbingFlowSchema),

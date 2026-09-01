@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { createLoggedHandler } from "./safe_handle";
 import log from "electron-log";
-import { getDyadAppPath } from "../../paths/paths";
+import { getFeltDBAppPath } from "../../paths/paths";
 import { getProjectStore } from "@/store";
 
 import { ImportAppParams, ImportAppResult } from "@/ipc/types";
@@ -11,6 +11,7 @@ import { copyDirectoryRecursive } from "../utils/file_utils";
 import { gitCommit, gitAdd, gitInit } from "../utils/git_utils";
 import { runFullAnalysis } from "../../import";
 import { getConversionPlanStore } from "../../store/conversion_plan_store";
+import { discoverJavaScriptProject } from "../../import/project_discovery";
 
 const logger = log.scope("import-handlers");
 const handle = createLoggedHandler(logger);
@@ -50,9 +51,9 @@ export function registerImportHandlers() {
       _,
       { appName, skipCopy }: { appName: string; skipCopy?: boolean },
     ) => {
-      // Only check filesystem if we're copying to dyad-apps
+      // Only check filesystem if we're copying to feltdb-apps
       if (!skipCopy) {
-        const appPath = getDyadAppPath(appName);
+        const appPath = getFeltDBAppPath(appName);
         try {
           await fs.access(appPath);
           return { exists: true };
@@ -90,11 +91,17 @@ export function registerImportHandlers() {
         throw new Error("Source folder does not exist");
       }
 
+      if (!discoverJavaScriptProject(sourcePath)?.runScript) {
+        throw new Error(
+          `No runnable JavaScript application was found in ${sourcePath}. Select the source project folder that contains package.json, not a build-output folder.`,
+        );
+      }
+
       // Determine the app path based on skipCopy
-      const appPath = skipCopy ? sourcePath : getDyadAppPath(appName);
+      const appPath = skipCopy ? sourcePath : getFeltDBAppPath(appName);
 
       if (!skipCopy) {
-        // Check if the app already exists in dyad-apps
+        // Check if the app already exists in feltdb-apps
         const errorMessage = "An app with this name already exists";
         try {
           await fs.access(appPath);
@@ -104,7 +111,7 @@ export function registerImportHandlers() {
             throw error;
           }
         }
-        // Copy the app folder to the Dyad apps directory.
+        // Copy the app folder to the FeltDB apps directory.
         // Why not use fs.cp? Because we want stable ordering for
         // tests.
         await copyDirectoryRecursive(sourcePath, appPath);

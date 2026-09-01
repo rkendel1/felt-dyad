@@ -463,11 +463,9 @@ export const AcceptanceCriteriaReport: React.FC<
                 11. Simplification & Complexity Metrics
               </span>
               <Badge className="bg-emerald-600">
-                -
-                {Math.round(
-                  simplification.complexity.estimatedReductionPercent,
-                )}
-                %
+                {simplification.locEstimateAvailable === true
+                  ? `-${Math.round(simplification.complexity.estimatedReductionPercent)}%`
+                  : "Scope only"}
               </Badge>
             </CardTitle>
             <CardDescription className="text-emerald-800">
@@ -475,26 +473,35 @@ export const AcceptanceCriteriaReport: React.FC<
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-emerald-800 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="border border-emerald-200 bg-white rounded p-2">
-                <div className="font-medium">Current</div>
-                <div className="text-lg font-bold">
-                  {simplification.complexity.currentLOC.toLocaleString()} LOC
+            {simplification.locEstimateAvailable === true && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="border border-emerald-200 bg-white rounded p-2">
+                  <div className="font-medium">Current</div>
+                  <div className="text-lg font-bold">
+                    {simplification.complexity.currentLOC.toLocaleString()} LOC
+                  </div>
+                </div>
+                <div className="border border-emerald-200 bg-white rounded p-2">
+                  <div className="font-medium">Estimated</div>
+                  <div className="text-lg font-bold">
+                    {simplification.estimatedAfterLOC.low.toLocaleString()}-
+                    {simplification.estimatedAfterLOC.high.toLocaleString()} LOC
+                  </div>
                 </div>
               </div>
-              <div className="border border-emerald-200 bg-white rounded p-2">
-                <div className="font-medium">Estimated</div>
-                <div className="text-lg font-bold">
-                  {simplification.estimatedAfterLOC.low.toLocaleString()}-
-                  {simplification.estimatedAfterLOC.high.toLocaleString()} LOC
-                </div>
-              </div>
-            </div>
+            )}
             <div className="border-t border-emerald-200 pt-2">
-              <div>
-                Net reduction: ~
-                {simplification.netEstimatedReduction.toLocaleString()} LOC
-              </div>
+              {simplification.locEstimateAvailable === true ? (
+                <div>
+                  Net reduction: ~
+                  {simplification.netEstimatedReduction.toLocaleString()} LOC
+                </div>
+              ) : (
+                <div>
+                  LOC reduction is measured from the applied conversion, not
+                  predicted from route counts.
+                </div>
+              )}
               <div className="text-xs text-emerald-700 mt-1">
                 {simplification.flowStats.canBeEliminated} state flows can be
                 eliminated

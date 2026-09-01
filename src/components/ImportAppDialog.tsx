@@ -54,7 +54,7 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
   const [isCheckingName, setIsCheckingName] = useState<boolean>(false);
   const [installCommand, setInstallCommand] = useState("");
   const [startCommand, setStartCommand] = useState("");
-  const [copyToDyadApps, setCopyToDyadApps] = useState(true);
+  const [copyToFeltDBApps, setCopyToFeltDBApps] = useState(true);
   const navigate = useNavigate();
   const { streamMessage } = useStreamChat({ hasChatId: false });
   const { refreshApps } = useLoadApps();
@@ -82,12 +82,12 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
     }
   }, [isOpen, isAuthenticated]);
 
-  // Re-check app name when copyToDyadApps changes
+  // Re-check app name when the copy destination changes
   useEffect(() => {
     if (customAppName.trim() && selectedPath) {
-      checkAppName({ name: customAppName, skipCopy: !copyToDyadApps });
+      checkAppName({ name: customAppName, skipCopy: !copyToFeltDBApps });
     }
-  }, [copyToDyadApps]);
+  }, [copyToFeltDBApps]);
 
   const fetchRepos = async () => {
     setLoading(true);
@@ -246,7 +246,7 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
       // Use the folder name from the IPC response
       setCustomAppName(result.name);
       // Check if the app name already exists
-      await checkAppName({ name: result.name, skipCopy: !copyToDyadApps });
+      await checkAppName({ name: result.name, skipCopy: !copyToFeltDBApps });
       return result;
     },
     onError: (error: Error) => {
@@ -262,7 +262,7 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
         appName: customAppName,
         installCommand: installCommand || undefined,
         startCommand: startCommand || undefined,
-        skipCopy: !copyToDyadApps,
+        skipCopy: !copyToFeltDBApps,
       });
     },
     onSuccess: async (result) => {
@@ -311,7 +311,7 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
     setNameExists(false);
     setInstallCommand("");
     setStartCommand("");
-    setCopyToDyadApps(true);
+    setCopyToFeltDBApps(true);
   };
 
   const handleAppNameChange = async (
@@ -320,7 +320,7 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
     const newName = e.target.value;
     setCustomAppName(newName);
     if (newName.trim()) {
-      await checkAppName({ name: newName, skipCopy: !copyToDyadApps });
+      await checkAppName({ name: newName, skipCopy: !copyToFeltDBApps });
     }
   };
 
@@ -411,20 +411,20 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
 
                     <div className="flex items-center space-x-2">
                       <Checkbox
-                        id="copy-to-dyad-apps"
-                        checked={copyToDyadApps}
+                        id="copy-to-feltdb-apps"
+                        checked={copyToFeltDBApps}
                         onCheckedChange={(checked) =>
-                          setCopyToDyadApps(checked === true)
+                          setCopyToFeltDBApps(checked === true)
                         }
                         disabled={importAppMutation.isPending}
                       />
                       <label
-                        htmlFor="copy-to-dyad-apps"
+                        htmlFor="copy-to-feltdb-apps"
                         className="text-xs sm:text-sm cursor-pointer"
                       >
                         Copy to the{" "}
                         <code className="bg-muted px-1 py-0.5 rounded text-xs">
-                          dyad-apps
+                          feltdb-apps
                         </code>{" "}
                         folder
                       </label>

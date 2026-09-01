@@ -1133,7 +1133,7 @@ export class PageObject {
   }
 
   getAppPath({ appName }: { appName: string }) {
-    return path.join(this.userDataDir, "dyad-apps", appName);
+    return path.join(this.userDataDir, "feltdb-apps", appName);
   }
 
   async clickAppListItem({ appName }: { appName: string }) {

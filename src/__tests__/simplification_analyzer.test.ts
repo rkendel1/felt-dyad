@@ -149,11 +149,9 @@ describe("SimplificationAnalyzer", () => {
     // Verify complexity metrics
     expect(result.complexity).toBeDefined();
     expect(result.complexity.currentLOC).toBeGreaterThan(0);
-    expect(result.complexity.removableLOC).toBeGreaterThan(0);
-    expect(result.complexity.estimatedReductionPercent).toBeGreaterThan(0);
-    expect(result.complexity.estimatedReductionPercent).toBeLessThanOrEqual(
-      100,
-    );
+    expect(result.locEstimateAvailable).toBe(false);
+    expect(result.complexity.removableLOC).toBe(0);
+    expect(result.complexity.estimatedReductionPercent).toBe(0);
   });
 
   it("should calculate category removals", async () => {
@@ -211,7 +209,7 @@ describe("SimplificationAnalyzer", () => {
       (r) => r.category === "API routes",
     );
     expect(apiRouteRemoval).toBeDefined();
-    expect(apiRouteRemoval?.changePercent).toBeLessThan(0);
+    expect(apiRouteRemoval?.changePercent).toBe(0);
   });
 
   it("should identify state plumbing flows", async () => {
@@ -379,9 +377,8 @@ describe("SimplificationAnalyzer", () => {
       testProjectPath,
     );
 
-    // Verify new FeltDB code estimate
-    expect(result.newFeltDBCode).toBeGreaterThan(0);
-    expect(result.newFeltDBCode).toBeLessThan(3000);
+    // Static analysis reports scope rather than inventing generated LOC.
+    expect(result.newFeltDBCode).toBe(0);
   });
 
   it("should not invent new concepts when there are no conversion targets", async () => {
@@ -476,9 +473,7 @@ describe("SimplificationAnalyzer", () => {
     expect(result.estimatedAfterLOC.high).toBeGreaterThanOrEqual(
       result.estimatedAfterLOC.low,
     );
-    expect(result.estimatedAfterLOC.low).toBeLessThan(
-      result.complexity.currentLOC,
-    );
+    expect(result.estimatedAfterLOC.low).toBe(result.complexity.currentLOC);
   });
 
   it("should calculate net estimated reduction", async () => {

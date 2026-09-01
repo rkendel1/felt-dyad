@@ -31,7 +31,7 @@ import { cleanupOldAiMessagesJson } from "./pro/main/ipc/handlers/local_agent/ai
 import { shouldPromptMoveToApplications } from "./main/app_location";
 import fs from "fs";
 import { gitAddSafeDirectory } from "./ipc/utils/git_utils";
-import { getDyadAppsBaseDirectory, getUserDataPath } from "./paths/paths";
+import { getFeltDBAppsBaseDirectory, getUserDataPath } from "./paths/paths";
 
 log.errorHandler.startCatching();
 log.eventLogger.startLogging();
@@ -101,13 +101,13 @@ export async function onReady() {
 
   const settings = readSettings();
 
-  // Add dyad-apps directory to git safe.directory (required for Windows).
+  // Add feltdb-apps directory to git safe.directory (required for Windows).
   // The trailing /* allows access to all repositories under the named directory.
   // See: https://git-scm.com/docs/git-config#Documentation/git-config.txt-safedirectory
   if (settings.enableNativeGit) {
     // Don't need to await because this only needs to run before
     // the user starts interacting with Dyad app and uses a git-related feature.
-    gitAddSafeDirectory(`${getDyadAppsBaseDirectory()}/*`);
+    gitAddSafeDirectory(`${getFeltDBAppsBaseDirectory()}/*`);
   }
 
   // Check if app was force-closed
