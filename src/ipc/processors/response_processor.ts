@@ -561,7 +561,8 @@ export async function processFullResponseActions(
         try {
           commitHash = await gitCommit({
             path: appPath,
-            message: message + " + extra files edited outside of FeltDB Builder",
+            message:
+              message + " + extra files edited outside of FeltDB Builder",
             amend: true,
           });
           logger.log(

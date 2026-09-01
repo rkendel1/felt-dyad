@@ -24,7 +24,6 @@ import {
   DependencyEntity,
   EvidenceRecord,
   generateComponentId,
-
 } from "@/ipc/types/application-intelligence";
 import { FrameworkType } from "@/ipc/types/conversion-analysis";
 

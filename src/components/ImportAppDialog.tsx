@@ -503,8 +503,8 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
                           </Tooltip>
                         </TooltipProvider>
                         <AlertDescription className="text-xs sm:text-sm">
-                          No AI_RULES.md found. FeltDB Builder will automatically generate
-                          one after importing.
+                          No AI_RULES.md found. FeltDB Builder will
+                          automatically generate one after importing.
                         </AlertDescription>
                       </Alert>
                     )}

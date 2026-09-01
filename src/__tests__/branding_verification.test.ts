@@ -18,7 +18,7 @@ const ALLOWLIST = [
   "hasDyadProKey",
   "handleDyadProReturn",
   "showDyadProSuccessDialog",
-  "lastDeepLink?.type === \"dyad-pro-return\"",
+  'lastDeepLink?.type === "dyad-pro-return"',
   "dyad-pro-return",
   "handleDeepLink",
   "DyadProButton",
@@ -80,7 +80,7 @@ describe("Branding Verification", () => {
     for (const filePath of filesToCheck) {
       const fullPath = path.join(
         "/home/runner/work/felt-dyad/felt-dyad",
-        filePath
+        filePath,
       );
       if (!fs.existsSync(fullPath)) {
         console.warn(`Warning: File not found: ${fullPath}`);
@@ -103,7 +103,7 @@ describe("Branding Verification", () => {
 
           if (!isAllowed) {
             errors.push(
-              `File ${filePath} contains public-facing reference: "${reference}"`
+              `File ${filePath} contains public-facing reference: "${reference}"`,
             );
           }
         }
@@ -112,7 +112,7 @@ describe("Branding Verification", () => {
 
     if (errors.length > 0) {
       expect.fail(
-        `Branding regression detected. Found ${errors.length} public-facing Dyad references:\n${errors.join("\n")}`
+        `Branding regression detected. Found ${errors.length} public-facing Dyad references:\n${errors.join("\n")}`,
       );
     }
 
@@ -120,23 +120,16 @@ describe("Branding Verification", () => {
   });
 
   it("should use FeltDB terminology in user-visible strings", () => {
-    const filesToCheck = [
-      "src/app/TitleBar.tsx",
-      "index.html",
-      "README.md",
-    ];
+    const filesToCheck = ["src/app/TitleBar.tsx", "index.html", "README.md"];
 
-    const requiredTerms = [
-      "FeltDB Builder",
-      "FeltDB",
-    ];
+    const requiredTerms = ["FeltDB Builder", "FeltDB"];
 
     let foundAny = false;
 
     for (const filePath of filesToCheck) {
       const fullPath = path.join(
         "/home/runner/work/felt-dyad/felt-dyad",
-        filePath
+        filePath,
       );
       if (!fs.existsSync(fullPath)) continue;
 
