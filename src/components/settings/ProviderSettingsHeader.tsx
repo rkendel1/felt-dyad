@@ -35,8 +35,8 @@ function getKeyButtonText({
 }) {
   if (isDyad) {
     return isConfigured
-      ? "Manage Dyad Pro Subscription"
-      : "Setup Dyad Pro Subscription";
+      ? "Manage FeltDB AI"
+      : "Setup FeltDB AI";
   }
   return isConfigured ? "Manage API Keys" : "Setup API Key";
 }

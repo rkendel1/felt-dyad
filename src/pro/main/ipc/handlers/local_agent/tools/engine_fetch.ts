@@ -33,7 +33,7 @@ export async function engineFetch(
   const apiKey = settings.providerSettings?.auto?.apiKey?.value;
 
   if (!apiKey) {
-    throw new Error("Dyad Pro API key is required");
+    throw new Error("FeltDB AI API key is required");
   }
 
   const { headers: extraHeaders, ...restOptions } = options;

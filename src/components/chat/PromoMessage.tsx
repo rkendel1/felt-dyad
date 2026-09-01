@@ -182,17 +182,17 @@ export const ROADMAP_TIP: MessageConfig = {
   ],
 };
 
-// Like Dyad? Star it on GitHub https://github.com/dyad-sh/dyad/
+// Like FeltDB Builder? Star it on GitHub https://github.com/rkendel1/felt-dyad/
 export const GITHUB_TIP: MessageConfig = {
   spans: [
     {
       type: "text",
-      content: "Like Dyad? Star it on ",
+      content: "Like FeltDB Builder? Star it on ",
     },
     {
       type: "link",
       content: "GitHub",
-      url: "https://github.com/dyad-sh/dyad",
+      url: "https://github.com/rkendel1/felt-dyad",
     },
   ],
 };

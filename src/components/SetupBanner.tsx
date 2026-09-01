@@ -348,7 +348,7 @@ export function SetupBanner() {
                 leadingIcon={
                   <img src={logo} alt="FeltDB Builder Logo" className="w-6 h-6 mr-0.5" />
                 }
-                title="Setup Dyad Pro"
+                title="Setup FeltDB AI"
                 subtitle="Access all AI models with one plan"
                 chip={<>Recommended</>}
               />
