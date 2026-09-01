@@ -12,7 +12,10 @@ import type {
   GetConversionExecutionParams,
   RollbackConversionParams,
 } from "../types/conversion-execution";
-import { discoverJavaScriptProject } from "@/import/project_discovery";
+import {
+  createProjectSourceFingerprint,
+  discoverJavaScriptProject,
+} from "@/import/project_discovery";
 
 const logger = log.scope("conversion_execution_handlers");
 const handle = createLoggedHandler(logger);
@@ -37,7 +40,8 @@ export function registerConversionExecutionHandlers() {
 
         // Get the conversion plan
         const appPath = getDyadAppPath(appRecord.path);
-        if (!discoverJavaScriptProject(appPath)?.runScript) {
+        const discoveredProject = discoverJavaScriptProject(appPath);
+        if (!discoveredProject?.runScript) {
           throw new Error(
             `Cannot approve this conversion because the source project is unavailable at ${appPath}. Reconnect or re-import the complete project first.`,
           );
@@ -48,6 +52,15 @@ export function registerConversionExecutionHandlers() {
         if (!plan) {
           throw new Error(
             `No conversion plan found for app ${params.appId}. Run analysis first.`,
+          );
+        }
+
+        const currentFingerprint = createProjectSourceFingerprint(
+          discoveredProject.rootPath,
+        );
+        if (plan.sourceFingerprint !== currentFingerprint) {
+          throw new Error(
+            "Cannot approve this conversion because the source changed after analysis. Reopen the conversion review to generate a current plan.",
           );
         }
 

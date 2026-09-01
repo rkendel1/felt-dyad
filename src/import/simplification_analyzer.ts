@@ -314,9 +314,7 @@ function identifyStatePlumbingFlows(
         "Error handling & retry",
       ],
       canBeEliminated: route.classification === "REPLACE_WITH_FELTDB",
-      canBeConsolidated:
-        route.classification === "MOVE_TO_FELTDB" ||
-        route.classification === "KEEP_SERVER_SIDE",
+      canBeConsolidated: route.classification === "MOVE_TO_FELTDB",
       requiresReview: route.classification === "REVIEW",
     });
   }

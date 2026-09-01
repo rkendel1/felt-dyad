@@ -71,6 +71,9 @@ export const AcceptanceCriteriaReport: React.FC<
   const apiFeltDBChanges = plan.backendAnalysis.apiRoutes.filter(
     (route) => route.classification === "REPLACE_WITH_FELTDB",
   ).length;
+  const apiRouteReviews = plan.backendAnalysis.apiRoutes.filter(
+    (route) => route.classification === "REVIEW",
+  ).length;
   const serverActionsCount = plan.backendAnalysis.serverActions.length;
 
   // Criterion 7: What happens to existing data?
@@ -110,7 +113,7 @@ export const AcceptanceCriteriaReport: React.FC<
             <Badge variant="outline">{stateCount} sources found</Badge>
           </CardTitle>
           <CardDescription>
-            Identified all persistent state in your application
+            Detected state-related patterns in your application
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -178,7 +181,7 @@ export const AcceptanceCriteriaReport: React.FC<
             <Badge variant="default">{moveToFeltDB.length} candidates</Badge>
           </CardTitle>
           <CardDescription>
-            State that will be converted to FeltDB collections
+            State verified for conversion to FeltDB collections
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -291,7 +294,7 @@ export const AcceptanceCriteriaReport: React.FC<
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-3 gap-3 text-sm">
             <div className="border rounded p-2">
               <div className="font-medium text-gray-900">
                 {apiFeltDBChanges}
@@ -299,8 +302,12 @@ export const AcceptanceCriteriaReport: React.FC<
               <div className="text-xs text-gray-600">Routes → FeltDB</div>
             </div>
             <div className="border rounded p-2">
+              <div className="font-medium text-gray-900">{apiRouteReviews}</div>
+              <div className="text-xs text-gray-600">Routes to review</div>
+            </div>
+            <div className="border rounded p-2">
               <div className="font-medium text-gray-900">
-                {apiRouteCount - apiFeltDBChanges}
+                {apiRouteCount - apiFeltDBChanges - apiRouteReviews}
               </div>
               <div className="text-xs text-gray-600">Routes remain</div>
             </div>
@@ -339,7 +346,7 @@ export const AcceptanceCriteriaReport: React.FC<
             {excludedFields.length > 0 && (
               <div className="mt-3 p-2 bg-red-50 rounded border border-red-200">
                 <p className="text-xs font-medium text-red-900 mb-1">
-                  Sensitive fields excluded:
+                  Sensitive fields requiring explicit migration handling:
                 </p>
                 <div className="text-xs text-red-800">
                   {excludedFields.join(", ")}

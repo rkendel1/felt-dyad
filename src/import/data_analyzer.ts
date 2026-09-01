@@ -37,7 +37,8 @@ export async function analyzeData(appPath: string): Promise<DataAnalysis> {
 
 function findSensitiveFields(schema: DatabaseSchema | undefined): string[] {
   if (!schema) return [];
-  const sensitiveName = /(password|secret|token|api[_-]?key|private[_-]?key)/i;
+  const sensitiveName =
+    /^(?:pin|password|password_hash|secret|token|api[_-]?key|private[_-]?key)$/i;
   return [
     ...new Set(
       schema.tables.flatMap((table) =>
@@ -58,7 +59,11 @@ function detectDatabase(packageJson: any, appPath: string): DatabaseType {
     const provider = schemaContent.match(
       /datasource\s+\w+\s*\{[\s\S]*?provider\s*=\s*["']([^"']+)["']/,
     )?.[1];
-    if (provider === "postgresql" || provider === "cockroachdb")
+    if (
+      provider === "postgres" ||
+      provider === "postgresql" ||
+      provider === "cockroachdb"
+    )
       return "POSTGRESQL";
     if (provider === "mysql") return "MYSQL";
     if (provider === "mongodb") return "MONGODB";
@@ -116,18 +121,15 @@ function parsePrismaSchema(filePath: string): DatabaseSchema {
       const tableName = match[1];
       const modelBody = match[2];
 
-      // Extract fields
-      const fields: any[] = [];
-      const fieldPattern = /(\w+)\s+(\w+)/g;
-      let fieldMatch;
-
-      while ((fieldMatch = fieldPattern.exec(modelBody)) !== null) {
-        fields.push({
+      const fields = modelBody
+        .split(/\r?\n/)
+        .map((line) => line.match(/^\s*(\w+)\s+([A-Za-z][\w[\]?]*)/))
+        .filter((fieldMatch): fieldMatch is RegExpMatchArray => !!fieldMatch)
+        .map((fieldMatch) => ({
           name: fieldMatch[1],
-          type: fieldMatch[2],
-          nullable: modelBody.includes(`${fieldMatch[1]}?`),
-        });
-      }
+          type: fieldMatch[2].replace(/\?$/, ""),
+          nullable: fieldMatch[2].endsWith("?"),
+        }));
 
       tables.push({
         name: tableName,

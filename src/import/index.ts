@@ -6,7 +6,10 @@ import { analyzeExternalServices } from "./external_services_analyzer";
 import { analyzeSimplification } from "./simplification_analyzer";
 import { generateConversionPlan } from "./conversion_plan";
 import { ConversionPlan } from "@/ipc/types/conversion-analysis";
-import { discoverJavaScriptProject } from "./project_discovery";
+import {
+  createProjectSourceFingerprint,
+  discoverJavaScriptProject,
+} from "./project_discovery";
 
 export async function runFullAnalysis(
   appId: number,
@@ -58,6 +61,7 @@ export async function runFullAnalysis(
       externalServices,
       simplificationAnalysis,
     );
+    plan.sourceFingerprint = createProjectSourceFingerprint(analysisPath);
 
     return plan;
   } catch (error) {

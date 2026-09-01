@@ -72,7 +72,10 @@ function generateUiChanges(stateAnalysis: StateAnalysis): UiChange[] {
       component: component.name,
       file: component.file || "",
       currentPattern: "fetch + useState + useEffect",
-      proposedPattern: "FeltDB reactive query",
+      proposedPattern:
+        component.classification === "REPLACE_WITH_FELTDB"
+          ? "FeltDB reactive query"
+          : "Decision required after reviewing request semantics",
       impact:
         component.classification === "REPLACE_WITH_FELTDB"
           ? "Remove manual fetch lifecycle, connect to FeltDB state"
@@ -91,7 +94,10 @@ function generateUiChanges(stateAnalysis: StateAnalysis): UiChange[] {
       component: store.name,
       file: store.file || "",
       currentPattern: `${store.type} provider/hook`,
-      proposedPattern: "FeltDB collection subscription",
+      proposedPattern:
+        store.classification === "REPLACE_WITH_FELTDB"
+          ? "FeltDB collection subscription"
+          : "Decision required after reviewing store semantics",
       impact: "Replace store with FeltDB reactive subscription",
       isManual: store.classification !== "REPLACE_WITH_FELTDB",
     });
@@ -162,7 +168,7 @@ function generateWarnings(
 
   if (dataAnalysis.excludedFields && dataAnalysis.excludedFields.length > 0) {
     warnings.push(
-      `⚠ ${dataAnalysis.excludedFields.length} sensitive fields will be excluded from FeltDB (passwords, API keys, secrets)`,
+      `⚠ ${dataAnalysis.excludedFields.length} sensitive ${dataAnalysis.excludedFields.length === 1 ? "field requires" : "fields require"} explicit migration handling and will not be moved automatically: ${dataAnalysis.excludedFields.join(", ")}`,
     );
   }
 
@@ -218,7 +224,7 @@ function generateManualDecisions(
 
   // Check for localStorage transformations
   const localStorageState = stateAnalysis.sources.filter(
-    (s) => s.type === "LOCALSTORAGE",
+    (s) => s.type === "LOCALSTORAGE" && s.classification === "REVIEW",
   );
   if (localStorageState.length > 0) {
     decisions.push({
@@ -274,14 +280,24 @@ function generateManualDecisions(
   }
 
   // Check for webhook handling
-  const webhookServices = externalServices.filter(
-    (s) => s.type === "WEBHOOKS" || s.type === "API",
-  );
+  const webhookServices = externalServices.filter((s) => s.type === "WEBHOOKS");
   if (webhookServices.length > 0) {
     decisions.push({
       item: "External webhook handlers",
       reason: "Webhooks that update application state need special handling",
       recommendation: "Webhook → Server action → FeltDB mutation pattern",
+    });
+  }
+
+  const integrationReviews = externalServices.filter(
+    (service) => service.classification === "REVIEW",
+  );
+  if (integrationReviews.length > 0) {
+    decisions.push({
+      item: `Data integrations requiring review (${integrationReviews.length})`,
+      reason: `${integrationReviews.map((service) => service.name).join(", ")} may contain durable data, cache data, or both.`,
+      recommendation:
+        "Inspect how each integration is used before deciding whether FeltDB replaces it or it remains external.",
     });
   }
 

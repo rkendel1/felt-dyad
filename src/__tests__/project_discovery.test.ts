@@ -56,4 +56,18 @@ describe("JavaScript project discovery", () => {
     expect(command).toContain("npm run start -- --port 5318");
     expect(command).not.toContain("run dev");
   });
+
+  it("does not guess when conflicting package-manager lockfiles exist", () => {
+    const repository = temporaryRepository();
+    fs.writeFileSync(
+      path.join(repository, "package.json"),
+      JSON.stringify({ scripts: { dev: "next dev" } }),
+    );
+    fs.writeFileSync(path.join(repository, "package-lock.json"), "{}");
+    fs.writeFileSync(path.join(repository, "pnpm-lock.yaml"), "");
+
+    expect(discoverJavaScriptProject(repository)?.packageManager).toBe(
+      "unknown",
+    );
+  });
 });

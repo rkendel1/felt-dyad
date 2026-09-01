@@ -300,6 +300,7 @@ export type SimplificationAnalysis = z.infer<
 
 export const ConversionPlanSchema = z.object({
   analysisVersion: z.number().optional(),
+  sourceFingerprint: z.string().optional(),
   appId: z.number(),
   status: z.enum(["PENDING_APPROVAL", "APPROVED", "IN_PROGRESS", "COMPLETED"]),
   applicationAnalysis: ApplicationAnalysisSchema,

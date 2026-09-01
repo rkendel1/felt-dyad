@@ -23,6 +23,21 @@ export async function analyzeBackend(
 
   const framework = detectBackendFramework(packageJson);
   const apiRoutes = detectApiRoutes(appPath, framework);
+  for (const route of apiRoutes) {
+    if (!route.path.startsWith("/api/")) {
+      route.classification = "KEEP_SERVER_SIDE";
+    } else if (route.path === "/api/qr") {
+      route.classification = "KEEP_SERVER_SIDE";
+    } else {
+      const content = fs.readFileSync(path.join(appPath, route.file), "utf8");
+      if (
+        /from\s+["'][^"']*(?:storage|database|db)[^"']*["']/.test(content) &&
+        !/\bfetch\s*\(\s*[`'"]https?:\/\//.test(content)
+      ) {
+        route.classification = "REPLACE_WITH_FELTDB";
+      }
+    }
+  }
   const serverActions = detectServerActions(appPath);
   const databaseORM = detectDatabaseORM(packageJson);
   const hasDatabaseClient = detectDatabaseClient(appPath, packageJson);

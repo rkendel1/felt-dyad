@@ -237,9 +237,17 @@ describe("Data Analyzer", () => {
   });
 
   it("should exclude sensitive fields", async () => {
+    fs.mkdirSync(path.join(tempDir, "prisma"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tempDir, "prisma", "schema.prisma"),
+      `model User {
+        id String @id
+        password String
+        displayName String
+      }`,
+    );
     const analysis = await analyzeData(tempDir);
-    expect(analysis.excludedFields?.length).toBeGreaterThan(0);
-    expect(analysis.excludedFields).toContain("password");
+    expect(analysis.excludedFields).toEqual(["User.password"]);
   });
 });
 

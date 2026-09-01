@@ -122,17 +122,38 @@ export async function analyzeState(
       }
 
       // Detect localStorage/sessionStorage
-      if (/\blocalStorage\.(?:getItem|setItem|removeItem|clear)\s*\(/.test(content)) {
+      if (
+        /\blocalStorage\.(?:getItem|setItem|removeItem|clear)\s*\(/.test(
+          content,
+        )
+      ) {
+        const isDeviceIdentity =
+          /private[_\s-]?key|identity[_\s-]?seed|cryptographic identity/i.test(
+            content,
+          );
+        const isSyncQueue = /sync[_\s-]?queue/i.test(content);
         stateSources.push({
           name: `localStorage (${path.basename(file)})`,
           type: "LOCALSTORAGE",
           file: path.relative(appPath, file),
-          classification: "REVIEW",
-          description: "Client-side persistent storage",
+          classification: isDeviceIdentity
+            ? "KEEP_LOCAL"
+            : isSyncQueue
+              ? "MOVE_TO_FELTDB"
+              : "REVIEW",
+          description: isDeviceIdentity
+            ? "Device-bound identity material must remain local"
+            : isSyncQueue
+              ? "Durable synchronization queue"
+              : "Client-side persistent storage",
         });
       }
 
-      if (/\bsessionStorage\.(?:getItem|setItem|removeItem|clear)\s*\(/.test(content)) {
+      if (
+        /\bsessionStorage\.(?:getItem|setItem|removeItem|clear)\s*\(/.test(
+          content,
+        )
+      ) {
         stateSources.push({
           name: `sessionStorage (${path.basename(file)})`,
           type: "SESSION_STORAGE",
@@ -144,12 +165,18 @@ export async function analyzeState(
 
       // Detect IndexedDB
       if (/\bindexedDB\.(?:open|deleteDatabase|cmp)\s*\(/.test(content)) {
+        const isDeviceIdentity =
+          /private[_\s-]?key|identity[_\s-]?seed|cryptographic identity/i.test(
+            content,
+          );
         stateSources.push({
           name: `IndexedDB (${path.basename(file)})`,
           type: "INDEXED_DB",
           file: path.relative(appPath, file),
-          classification: "REVIEW",
-          description: "Indexed database for client-side storage",
+          classification: isDeviceIdentity ? "KEEP_LOCAL" : "MOVE_TO_FELTDB",
+          description: isDeviceIdentity
+            ? "Device-bound private key storage must remain local"
+            : "Durable application records stored in the browser",
         });
       }
 
@@ -160,12 +187,18 @@ export async function analyzeState(
         content.includes("useQuery") ||
         content.includes("useMutation")
       ) {
+        const usesInternalApi =
+          /(?:fetch\s*\(|axios\.(?:get|post|put|patch|delete)\s*\()\s*[`'"]\/api\//.test(
+            content,
+          );
         stateSources.push({
           name: `API responses (${path.basename(file)})`,
           type: "API_RESPONSE",
           file: path.relative(appPath, file),
-          classification: "REVIEW",
-          description: "State populated from API calls",
+          classification: usesInternalApi ? "REPLACE_WITH_FELTDB" : "REVIEW",
+          description: usesInternalApi
+            ? "State populated from this application's API routes"
+            : "State populated from API calls",
         });
       }
     } catch {

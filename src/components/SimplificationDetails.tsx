@@ -33,11 +33,13 @@ export const SimplificationDetails: React.FC<SimplificationDetailsProps> = ({
             <div
               key={idx}
               className={`border rounded-lg transition-colors ${
-                flow.canBeEliminated
-                  ? "border-emerald-200 bg-emerald-50"
-                  : flow.canBeConsolidated
-                    ? "border-orange-200 bg-orange-50"
-                    : "border-gray-200 bg-gray-50"
+                flow.requiresReview
+                  ? "border-blue-200 bg-blue-50"
+                  : flow.canBeEliminated
+                    ? "border-emerald-200 bg-emerald-50"
+                    : flow.canBeConsolidated
+                      ? "border-orange-200 bg-orange-50"
+                      : "border-gray-200 bg-gray-50"
               }`}
             >
               <button
@@ -47,21 +49,30 @@ export const SimplificationDetails: React.FC<SimplificationDetailsProps> = ({
                 className="w-full p-4 text-left flex items-start gap-3 hover:opacity-75 transition-opacity"
               >
                 <div className="flex-shrink-0 mt-1">
-                  {flow.canBeEliminated && (
+                  {flow.requiresReview && (
+                    <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                      ?
+                    </div>
+                  )}
+                  {!flow.requiresReview && flow.canBeEliminated && (
                     <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">
                       ✓
                     </div>
                   )}
-                  {flow.canBeConsolidated && !flow.canBeEliminated && (
-                    <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold">
-                      ~
-                    </div>
-                  )}
-                  {!flow.canBeEliminated && !flow.canBeConsolidated && (
-                    <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-bold">
-                      -
-                    </div>
-                  )}
+                  {!flow.requiresReview &&
+                    flow.canBeConsolidated &&
+                    !flow.canBeEliminated && (
+                      <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold">
+                        ~
+                      </div>
+                    )}
+                  {!flow.requiresReview &&
+                    !flow.canBeEliminated &&
+                    !flow.canBeConsolidated && (
+                      <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-bold">
+                        -
+                      </div>
+                    )}
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">

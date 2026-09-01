@@ -4,7 +4,10 @@ import log from "electron-log";
 import { runFullAnalysis } from "../../import";
 import { getConversionPlanStore } from "../../store/conversion_plan_store";
 import { getDyadAppPath } from "../../paths/paths";
-import { discoverJavaScriptProject } from "@/import/project_discovery";
+import {
+  createProjectSourceFingerprint,
+  discoverJavaScriptProject,
+} from "@/import/project_discovery";
 import type { ConversionPlan } from "@/ipc/types/conversion-analysis";
 
 const logger = log.scope("conversion_analysis_handlers");
@@ -77,6 +80,10 @@ export function registerConversionAnalysisHandlers() {
 
       // Retrieve from FeltDB
       const appPath = resolveAnalysisPath(appRecord);
+      const discoveredProject = discoverJavaScriptProject(appPath)!;
+      const currentFingerprint = createProjectSourceFingerprint(
+        discoveredProject.rootPath,
+      );
       const store = await getConversionPlanStore(appPath);
       const storedPlan = await store.getPlan(params.appId);
       let plan: ConversionPlan | null = storedPlan;
@@ -87,6 +94,7 @@ export function registerConversionAnalysisHandlers() {
       if (
         !plan ||
         plan.analysisVersion !== 2 ||
+        plan.sourceFingerprint !== currentFingerprint ||
         plan.applicationAnalysis.framework === "UNKNOWN" ||
         plan.simplification?.locEstimateAvailable !== false
       ) {

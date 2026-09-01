@@ -21,6 +21,36 @@ export async function analyzeExternalServices(
   // Check dependencies
   const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
 
+  if (
+    deps["@fingerprintjs/fingerprintjs-pro"] &&
+    projectUsesPackage(appPath, "@fingerprintjs/fingerprintjs-pro")
+  ) {
+    services.push({
+      name: "FingerprintJS Pro",
+      type: "API",
+      usedFor: "Browser and device identification",
+      classification: "KEEP_EXTERNAL",
+    });
+  }
+
+  if (deps["@upstash/redis"] && projectUsesPackage(appPath, "@upstash/redis")) {
+    services.push({
+      name: "Upstash Redis",
+      type: "DATABASE",
+      usedFor: "Hosted Redis data and caching",
+      classification: "REVIEW",
+    });
+  }
+
+  if (deps["@vercel/kv"] && projectUsesPackage(appPath, "@vercel/kv")) {
+    services.push({
+      name: "Vercel KV",
+      type: "DATABASE",
+      usedFor: "Hosted key-value data and caching",
+      classification: "REVIEW",
+    });
+  }
+
   // Authentication services
   if (deps["next-auth"] || deps["@auth/core"]) {
     services.push({
@@ -80,7 +110,7 @@ export async function analyzeExternalServices(
     });
   }
 
-  if (deps["@prisma/client"]) {
+  if (deps["@prisma/client"] && projectUsesPackage(appPath, "@prisma/client")) {
     services.push({
       name: "Prisma",
       type: "DATABASE",
@@ -321,6 +351,23 @@ export async function analyzeExternalServices(
   }
 
   return services;
+}
+
+function projectUsesPackage(appPath: string, packageName: string): boolean {
+  const escapedPackage = packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const importPattern = new RegExp(
+    `(?:from\\s+|import\\s*\\(|require\\s*\\()\\s*["']${escapedPackage}(?:\\/[^"']*)?["']`,
+  );
+  return ["src", "app", "pages", "components", "lib"]
+    .map((directory) => path.join(appPath, directory))
+    .filter((directory) => fs.existsSync(directory))
+    .some((directory) =>
+      getAllFiles(directory).some(
+        (file) =>
+          /\.[cm]?[jt]sx?$/.test(file) &&
+          importPattern.test(fs.readFileSync(file, "utf8")),
+      ),
+    );
 }
 
 function getAllFiles(dir: string): string[] {

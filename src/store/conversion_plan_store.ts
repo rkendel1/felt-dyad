@@ -61,6 +61,7 @@ export class ConversionPlanStore {
     // Serialize the plan for storage
     const docData = {
       analysis_version: plan.analysisVersion,
+      source_fingerprint: plan.sourceFingerprint,
       app_id: appId,
       status: plan.status,
       summary: plan.summary,
@@ -120,6 +121,7 @@ export class ConversionPlanStore {
       // Deserialize back to ConversionPlan
       return {
         analysisVersion: doc.analysis_version,
+        sourceFingerprint: doc.source_fingerprint,
         id: doc.id,
         appId: doc.app_id,
         status: doc.status,
@@ -156,6 +158,7 @@ export class ConversionPlanStore {
 
       return all.map((doc) => ({
         analysisVersion: doc.analysis_version,
+        sourceFingerprint: doc.source_fingerprint,
         id: doc.id,
         appId: doc.app_id,
         status: doc.status,

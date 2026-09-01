@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 
 export type PackageManager = "npm" | "yarn" | "pnpm" | "bun" | "unknown";
 
@@ -18,7 +19,50 @@ const IGNORED_DIRECTORIES = new Set([
   "build",
   "node_modules",
   "target",
+  ".feltdb",
 ]);
+
+export function createProjectSourceFingerprint(projectPath: string): string {
+  const hash = crypto.createHash("sha256");
+  const analyzedExtensions = new Set([
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".vue",
+    ".svelte",
+    ".json",
+    ".prisma",
+    ".sql",
+  ]);
+  const queue = [projectPath];
+  const files: string[] = [];
+  while (queue.length > 0) {
+    const directory = queue.pop()!;
+    let entries: fs.Dirent[] = [];
+    try {
+      entries = fs.readdirSync(directory, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory() && !IGNORED_DIRECTORIES.has(entry.name)) {
+        queue.push(entryPath);
+      } else if (
+        entry.isFile() &&
+        analyzedExtensions.has(path.extname(entry.name))
+      ) {
+        files.push(entryPath);
+      }
+    }
+  }
+  for (const file of files.sort()) {
+    hash.update(path.relative(projectPath, file));
+    hash.update(fs.readFileSync(file));
+  }
+  return hash.digest("hex");
+}
 
 function readPackageJson(rootPath: string): Record<string, any> | undefined {
   try {
@@ -66,16 +110,25 @@ function detectPackageManager(
   if (["npm", "yarn", "pnpm", "bun"].includes(declared)) {
     return declared as PackageManager;
   }
-  if (fs.existsSync(path.join(projectPath, "pnpm-lock.yaml"))) return "pnpm";
-  if (fs.existsSync(path.join(projectPath, "yarn.lock"))) return "yarn";
+  if (fs.existsSync(path.join(projectPath, "node_modules", ".pnpm")))
+    return "pnpm";
+  if (
+    fs.existsSync(path.join(projectPath, "node_modules", ".package-lock.json"))
+  )
+    return "npm";
+  const lockfileManagers: PackageManager[] = [];
+  if (fs.existsSync(path.join(projectPath, "pnpm-lock.yaml")))
+    lockfileManagers.push("pnpm");
+  if (fs.existsSync(path.join(projectPath, "yarn.lock")))
+    lockfileManagers.push("yarn");
   if (
     fs.existsSync(path.join(projectPath, "bun.lock")) ||
     fs.existsSync(path.join(projectPath, "bun.lockb"))
-  ) {
-    return "bun";
-  }
-  if (fs.existsSync(path.join(projectPath, "package-lock.json"))) return "npm";
-  return "unknown";
+  )
+    lockfileManagers.push("bun");
+  if (fs.existsSync(path.join(projectPath, "package-lock.json")))
+    lockfileManagers.push("npm");
+  return lockfileManagers.length === 1 ? lockfileManagers[0] : "unknown";
 }
 
 export function discoverJavaScriptProject(

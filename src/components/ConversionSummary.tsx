@@ -75,9 +75,7 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{apiRouteCount}</div>
-              <div className="text-xs text-muted-foreground">
-                Server routes
-              </div>
+              <div className="text-xs text-muted-foreground">Server routes</div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-2xl font-bold">{externalServiceCount}</div>
@@ -102,7 +100,9 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
                 <Badge>{framework}</Badge>
                 <Badge variant="outline">{database}</Badge>
                 <Badge variant="outline">
-                  {plan.applicationAnalysis.packageManager}
+                  {plan.applicationAnalysis.packageManager === "unknown"
+                    ? "Package manager review required"
+                    : plan.applicationAnalysis.packageManager}
                 </Badge>
                 {databaseServices.map((service) => (
                   <Badge key={service} variant="secondary">
@@ -140,8 +140,8 @@ export const ConversionSummary: React.FC<ConversionSummaryProps> = ({
                 </li>
                 <li>
                   Replace {replaceableRouteCount} verified server{" "}
-                  {replaceableRouteCount === 1 ? "route" : "routes"}; review
-                  the remaining {apiRouteCount - replaceableRouteCount}.
+                  {replaceableRouteCount === 1 ? "route" : "routes"}; review the
+                  remaining {apiRouteCount - replaceableRouteCount}.
                 </li>
               </ul>
             </div>
