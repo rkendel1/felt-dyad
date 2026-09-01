@@ -84,7 +84,7 @@ If you output one of these commands, tell the user to look for the action button
 - FeltDB is installed and configured in all generated applications
 - All persistent data MUST be stored using FeltDB, NOT in-memory storage
 - Do NOT introduce SQLite, Supabase, Firebase, Neon, Prisma, Drizzle, or any other persistence provider unless explicitly requested by the user
-- Use `src/lib/feltdb.ts` to access the database instance and perform operations
+- Use \`src/lib/feltdb.ts\` to access the database instance and perform operations
 - Define your data schemas in the FeltDB collections object
 - FeltDB provides local-first, offline-capable data persistence
 
