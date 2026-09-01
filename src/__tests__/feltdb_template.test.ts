@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { parseFlowSpec } from "@feltdb/core";
+import { listFeltDBModules, parseFlowSpec } from "@feltdb/core";
 import { localTemplatesData } from "@/shared/templates";
 
 describe("FeltDB Template Verification", () => {
@@ -10,7 +10,7 @@ describe("FeltDB Template Verification", () => {
   it("should have @feltdb/core in package.json dependencies", () => {
     const packageJsonPath = path.join(scaffoldPath, "package.json");
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
-    expect(packageJson.dependencies["@feltdb/core"]).toBe("^0.7.4");
+    expect(packageJson.dependencies["@feltdb/core"]).toBe("0.8.0");
     expect(packageJson.scripts["feltdb:sync"]).toBe("feltdb sync");
     expect(packageJson.scripts.dev).toBe("node server.mjs");
     expect(packageJson.scripts.dev).not.toContain("5173");
@@ -25,6 +25,27 @@ describe("FeltDB Template Verification", () => {
       .replace("{{FLOW_APP_NAME}}", "GeneratedApp");
     expect(parseFlowSpec(flow).app).toBe("GeneratedApp");
     expect(fs.readFileSync(configPath, "utf-8")).toContain('"runtime": "node"');
+  });
+
+  it("uses the 0.8 module catalog for supported external services", () => {
+    const modules = listFeltDBModules();
+    expect(modules.length).toBeGreaterThan(0);
+    expect(modules.every((module) => Boolean(module.version))).toBe(true);
+
+    const flow = parseFlowSpec(`flow_version 1
+app ModuleExample {
+  module Billing {
+    provider ${modules[0].provider}
+    version ${modules[0].version}
+  }
+}`);
+    expect(flow.modules).toEqual([
+      {
+        name: "Billing",
+        provider: modules[0].provider,
+        version: modules[0].version,
+      },
+    ]);
   });
 
   it("configures the Node server runtime without defining schemas in TypeScript", () => {

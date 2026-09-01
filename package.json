@@ -53,7 +53,7 @@
     "@babel/parser": "^7.28.5",
     "@biomejs/biome": "^1.9.4",
     "@dyad-sh/supabase-management-js": "v1.0.1",
-    "@feltdb/core": "^0.7.4",
+    "@feltdb/core": "0.8.0",
     "@lexical/react": "^0.33.1",
     "@modelcontextprotocol/sdk": "^1.17.5",
     "@monaco-editor/react": "^4.7.0-rc.0",

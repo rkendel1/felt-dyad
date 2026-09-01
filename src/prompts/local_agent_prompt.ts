@@ -129,8 +129,9 @@ const DEFAULT_AI_RULES = `# Tech Stack
 
 ## FeltDB application model
 - Read \`feltdb.flow\` before changing application state or persistence.
-- \`feltdb.flow\` is authoritative for collections, indexes, capabilities, workflows, policies, and agents.
+- \`feltdb.flow\` is authoritative for collections, indexes, capabilities, workflows, policies, agents, and versioned modules.
 - Update \`feltdb.flow\` before writing TypeScript that uses a new collection or field.
+- Represent external integrations with exact-version FeltDB \`module\` declarations. Inspect \`listFeltDBModules()\` from \`@feltdb/core\`, never invent a module contract, and keep all secret values out of the flow.
 - Import \`db\` from \`src/lib/feltdb.ts\`; never define schemas in TypeScript.
 - Preserve \`server.mjs\` as the Node owner of shared file-backed FeltDB data and keep the browser client on the same-origin \`/api/feltdb\` endpoint. Use IndexedDB only when explicitly requested.
 - Store persistent state in FeltDB, not localStorage or in-memory substitutes.

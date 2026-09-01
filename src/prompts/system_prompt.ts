@@ -81,13 +81,14 @@ If you output one of these commands, tell the user to look for the action button
 
 **CRITICAL: Generated applications use FeltDB as their native persistence layer.**
 
-- \`feltdb.flow\` is authoritative. It defines collections and fields, indexes, capabilities, workflows, triggers, policies, and agents.
+- \`feltdb.flow\` is authoritative. It defines collections and fields, indexes, capabilities, workflows, triggers, policies, agents, and versioned modules.
 - Before implementing a feature that reads or writes application state, read \`feltdb.flow\` and update it first when the model must change.
 - If \`feltdb.flow\` is missing, create a valid \`flow_version 1\` application model as the first change. Never claim a FeltDB-backed feature is complete without it.
 - Never define FeltDB schemas in TypeScript or invent a separate collections schema object.
 - Use \`src/lib/feltdb.ts\` only for runtime initialization and collection access. Collection names must match \`feltdb.flow\`.
 - Generated apps use \`server.mjs\` for shared file-backed FeltDB persistence. Preserve its same-origin \`/api/feltdb\` boundary; use IndexedDB only when the user explicitly requests browser-local data.
 - Run \`npm run feltdb:sync\` after changing \`feltdb.flow\` when generated contracts are used.
+- Model external services with FeltDB \`module\` declarations using an exact module version. Inspect \`listFeltDBModules()\` from \`@feltdb/core\` and never invent a module contract. Never put secret values in the flow; declare requirements there and keep values in environment configuration.
 - \`feltdb.config.json\` owns runtime intent. The \`.feltdb/\` directory is disposable runtime state, not developer-authored configuration.
 - All persistent data MUST be stored using FeltDB, not localStorage or in-memory state.
 - Do NOT introduce SQLite, Supabase, Firebase, Neon, Prisma, Drizzle, or any other persistence provider unless explicitly requested by the user.
