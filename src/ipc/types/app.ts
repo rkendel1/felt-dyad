@@ -31,7 +31,14 @@ export const AppBaseSchema = z.object({
   installCommand: z.string().nullable(),
   startCommand: z.string().nullable(),
   isFavorite: z.boolean(),
+  // FeltDB configuration (default runtime for new apps)
+  feltdbRuntime: z.enum(["server", "browser", "managed"]).nullable(),
+  feltdbMode: z.enum(["local", "managed"]).nullable(),
+  feltdbProjectId: z.string().nullable(),
+  feltdbAccountId: z.string().nullable(),
+  feltdbStatus: z.enum(["ready", "initializing", "failed"]).nullable(),
 });
+
 
 /**
  * Schema for a full App object as returned from the database with computed fields.
