@@ -1,4 +1,11 @@
-import { configureDevelopmentRuntimeBridge, createFeltDB } from "@feltdb/core";
+import {
+  configureDevelopmentRuntimeBridge,
+  createFeltDB,
+  getTelemetryClient,
+} from "@feltdb/core";
+
+// Generated local apps must not send analytics to an external service.
+getTelemetryClient().disable();
 
 configureDevelopmentRuntimeBridge({
   sessionId: import.meta.env.VITE_FELTDB_DEV_SESSION_ID,

@@ -6,7 +6,7 @@ import {
   escapeXmlAttr,
   escapeXmlContent,
 } from "./types";
-import { engineFetch } from "./engine_fetch";
+import { engineFetch, hasManagedAiApiKey } from "./engine_fetch";
 
 const logger = log.scope("web_search");
 
@@ -155,6 +155,100 @@ async function callWebSearchSSE(
   return accumulated;
 }
 
+type LocalSearchResult = {
+  title: string;
+  url: string;
+  snippet: string;
+};
+
+function decodeHtml(value: string): string {
+  return value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#(?:39|x27);/gi, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_match, code) => String.fromCodePoint(Number(code)))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolveResultUrl(value: string): string | null {
+  const decoded = decodeHtml(value);
+  const absolute = decoded.startsWith("//") ? `https:${decoded}` : decoded;
+
+  try {
+    const url = new URL(absolute);
+    const redirectedUrl = url.searchParams.get("uddg");
+    const result = redirectedUrl ? new URL(redirectedUrl) : url;
+    return ["http:", "https:"].includes(result.protocol)
+      ? result.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function parseLocalSearchResults(html: string): LocalSearchResult[] {
+  const results: LocalSearchResult[] = [];
+  const blocks = html.split(/class=["'][^"']*\bresult\b[^"']*["']/i).slice(1);
+
+  for (const block of blocks) {
+    const link = block.match(
+      /<a[^>]*class=["'][^"']*\bresult__a\b[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i,
+    );
+    if (!link) continue;
+
+    const url = resolveResultUrl(link[1]);
+    const title = decodeHtml(link[2]);
+    if (!url || !title) continue;
+
+    const snippetMatch = block.match(
+      /<(?:a|div)[^>]*class=["'][^"']*\bresult__snippet\b[^"']*["'][^>]*>([\s\S]*?)<\/(?:a|div)>/i,
+    );
+    results.push({
+      title,
+      url,
+      snippet: snippetMatch ? decodeHtml(snippetMatch[1]) : "",
+    });
+    if (results.length === 8) break;
+  }
+
+  return results;
+}
+
+async function callLocalWebSearch(query: string): Promise<string> {
+  const response = await fetch(
+    `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
+    {
+      headers: {
+        Accept: "text/html",
+        "User-Agent": "FeltDB-Builder/1.0",
+      },
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Local web search failed: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const results = parseLocalSearchResults(await response.text());
+  if (results.length === 0) {
+    throw new Error("Local web search returned no results");
+  }
+
+  return results
+    .map(
+      (result, index) =>
+        `${index + 1}. [${result.title}](${result.url})${result.snippet ? `\n${result.snippet}` : ""}`,
+    )
+    .join("\n\n");
+}
+
 export const webSearchTool: ToolDefinition<z.infer<typeof webSearchSchema>> = {
   name: "web_search",
   description: DESCRIPTION,
@@ -166,7 +260,13 @@ export const webSearchTool: ToolDefinition<z.infer<typeof webSearchSchema>> = {
   execute: async (args, ctx: AgentContext) => {
     logger.log(`Executing web search: ${args.query}`);
 
-    const result = await callWebSearchSSE(args.query, ctx);
+    let result: string;
+    if (hasManagedAiApiKey()) {
+      result = await callWebSearchSSE(args.query, ctx);
+    } else {
+      ctx.onXmlStream(`<dyad-web-search query="${escapeXmlAttr(args.query)}">`);
+      result = await callLocalWebSearch(args.query);
+    }
 
     if (!result) {
       throw new Error("Web search returned no results");

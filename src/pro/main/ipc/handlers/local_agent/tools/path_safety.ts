@@ -1,4 +1,54 @@
+import fs from "node:fs";
 import path from "node:path";
+import { safeJoin } from "@/ipc/utils/path_utils";
+import { normalizePath } from "../../../../../../../shared/normalizePath";
+
+function stripAppDirectoryPrefix(appPath: string, requestedPath: string) {
+  const normalized = normalizePath(requestedPath).replace(/^\.\/+/, "");
+  const [firstSegment, ...remainingSegments] = normalized.split("/");
+  const looksLikeWin32Path =
+    /^[a-zA-Z]:[\\/]/.test(appPath) ||
+    appPath.startsWith("\\\\") ||
+    appPath.includes("\\");
+  const pathImpl = looksLikeWin32Path ? path.win32 : path.posix;
+  const appDirectory = pathImpl.basename(pathImpl.resolve(appPath));
+  const matchesAppDirectory = looksLikeWin32Path
+    ? firstSegment.toLowerCase() === appDirectory.toLowerCase()
+    : firstSegment === appDirectory;
+
+  return matchesAppDirectory && remainingSegments.length > 0
+    ? remainingSegments.join("/")
+    : normalized;
+}
+
+/**
+ * Resolve a tool-supplied file path within an app root.
+ *
+ * Tool paths are app-relative, but models sometimes copy the app directory
+ * name from surrounding context (for example `eve/src/App.tsx`). Prefer an
+ * exact existing path, then retry without that one redundant root segment.
+ */
+export function resolveFileWithinAppPath(params: {
+  appPath: string;
+  filePath: string;
+  allowNonExistent?: boolean;
+}): { fullPath: string; relativePath: string } {
+  const normalized = normalizePath(params.filePath).replace(/^\.\/+/, "");
+  const directPath = safeJoin(params.appPath, normalized);
+  if (fs.existsSync(directPath)) {
+    return { fullPath: directPath, relativePath: normalized };
+  }
+
+  const stripped = stripAppDirectoryPrefix(params.appPath, normalized);
+  if (stripped !== normalized) {
+    const strippedPath = safeJoin(params.appPath, stripped);
+    if (params.allowNonExistent || fs.existsSync(strippedPath)) {
+      return { fullPath: strippedPath, relativePath: stripped };
+    }
+  }
+
+  return { fullPath: directPath, relativePath: normalized };
+}
 
 /**
  * Resolve and validate that `directory` stays within `appPath`.
@@ -33,7 +83,15 @@ export function resolveDirectoryWithinAppPath(params: {
   const caseInsensitive = looksLikeWin32Path;
 
   const resolvedAppPath = pathImpl.resolve(params.appPath);
-  const resolvedPath = pathImpl.resolve(resolvedAppPath, params.directory);
+  const normalizedDirectory = normalizePath(params.directory).replace(
+    /^\.\/+/,
+    "",
+  );
+  const directPath = pathImpl.resolve(resolvedAppPath, normalizedDirectory);
+  const directory = fs.existsSync(directPath)
+    ? normalizedDirectory
+    : stripAppDirectoryPrefix(params.appPath, normalizedDirectory);
+  const resolvedPath = pathImpl.resolve(resolvedAppPath, directory);
 
   const appForCheck = caseInsensitive
     ? resolvedAppPath.toLowerCase()

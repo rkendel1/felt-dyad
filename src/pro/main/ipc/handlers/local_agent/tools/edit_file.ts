@@ -3,19 +3,23 @@ import path from "node:path";
 import { z } from "zod";
 import log from "electron-log";
 import { ToolDefinition, AgentContext, escapeXmlAttr } from "./types";
-import { safeJoin } from "@/ipc/utils/path_utils";
 import { deploySupabaseFunction } from "../../../../../../supabase_admin/supabase_management_client";
 import {
   isServerFunction,
   isSharedServerModule,
 } from "../../../../../../supabase_admin/supabase_utils";
 import { engineFetch, hasManagedAiApiKey } from "./engine_fetch";
+import { resolveFileWithinAppPath } from "./path_safety";
 
 const readFile = fs.promises.readFile;
 const logger = log.scope("edit_file");
 
 const editFileSchema = z.object({
-  path: z.string().describe("The file path relative to the app root"),
+  path: z
+    .string()
+    .describe(
+      "The file path relative to the app root; do not include the app directory name",
+    ),
   content: z.string().describe("The updated code snippet to apply"),
   description: z.string().optional().describe("Brief description of the edit"),
 });
@@ -150,10 +154,13 @@ export const editFileTool: ToolDefinition<z.infer<typeof editFileSchema>> = {
   },
 
   execute: async (args, ctx: AgentContext) => {
-    const fullFilePath = safeJoin(ctx.appPath, args.path);
+    const { fullPath: fullFilePath, relativePath } = resolveFileWithinAppPath({
+      appPath: ctx.appPath,
+      filePath: args.path,
+    });
 
     // Track if this is a shared module
-    if (isSharedServerModule(args.path)) {
+    if (isSharedServerModule(relativePath)) {
       ctx.isSharedModulesChanged = true;
     }
 
@@ -167,7 +174,7 @@ export const editFileTool: ToolDefinition<z.infer<typeof editFileSchema>> = {
     // Call the turbo-file-edit endpoint
     const newContent = await callTurboFileEdit(
       {
-        path: args.path,
+        path: relativePath,
         content: args.content,
         originalContent,
         description: args.description,
@@ -192,13 +199,13 @@ export const editFileTool: ToolDefinition<z.infer<typeof editFileSchema>> = {
     // Deploy Supabase function if applicable
     if (
       ctx.supabaseProjectId &&
-      isServerFunction(args.path) &&
+      isServerFunction(relativePath) &&
       !ctx.isSharedModulesChanged
     ) {
       try {
         await deploySupabaseFunction({
           supabaseProjectId: ctx.supabaseProjectId,
-          functionName: path.basename(path.dirname(args.path)),
+          functionName: path.basename(path.dirname(relativePath)),
           appPath: ctx.appPath,
           organizationSlug: ctx.supabaseOrganizationSlug ?? null,
         });

@@ -142,9 +142,18 @@ describe("FeltDB Kanban template", () => {
     expect(parsedFlow.collections.map((collection) => collection.name)).toEqual(
       ["Column", "Task"],
     );
-    expect(
-      fs.readFileSync(path.join(scaffoldPath, "server.mjs"), "utf-8"),
-    ).toContain('url.pathname.startsWith("/api/feltdb")');
+    const server = fs.readFileSync(
+      path.join(scaffoldPath, "server.mjs"),
+      "utf-8",
+    );
+    const client = fs.readFileSync(
+      path.join(scaffoldPath, "src", "lib", "feltdb.ts"),
+      "utf-8",
+    );
+    expect(server).toContain('url.pathname.startsWith("/api/feltdb")');
+    expect(server).toContain("getTelemetryClient().disable()");
+    expect(client).toContain("getTelemetryClient().disable()");
+    expect(client).not.toContain("feltdb.com/api/v1/telemetry");
   });
 
   it("persists Kanban operations through FeltDB instead of localStorage", () => {

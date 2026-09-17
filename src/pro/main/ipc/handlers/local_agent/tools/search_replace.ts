@@ -3,7 +3,6 @@ import path from "node:path";
 import { z } from "zod";
 import log from "electron-log";
 import { ToolDefinition, AgentContext, escapeXmlAttr } from "./types";
-import { safeJoin } from "@/ipc/utils/path_utils";
 import { deploySupabaseFunction } from "../../../../../../supabase_admin/supabase_management_client";
 import {
   isServerFunction,
@@ -11,12 +10,17 @@ import {
 } from "../../../../../../supabase_admin/supabase_utils";
 import { applySearchReplace } from "../../../../../../pro/main/ipc/processors/search_replace_processor";
 import { hasManagedAiApiKey } from "./engine_fetch";
+import { resolveFileWithinAppPath } from "./path_safety";
 
 const readFile = fs.promises.readFile;
 const logger = log.scope("search_replace");
 
 const searchReplaceSchema = z.object({
-  path: z.string().describe("The file path to edit"),
+  path: z
+    .string()
+    .describe(
+      "The file path relative to the app root; do not include the app directory name",
+    ),
   search: z
     .string()
     .describe(
@@ -65,10 +69,13 @@ export const searchReplaceTool: ToolDefinition<
   },
 
   execute: async (args, ctx: AgentContext) => {
-    const fullFilePath = safeJoin(ctx.appPath, args.path);
+    const { fullPath: fullFilePath, relativePath } = resolveFileWithinAppPath({
+      appPath: ctx.appPath,
+      filePath: args.path,
+    });
 
     // Track if this is a shared module
-    if (isSharedServerModule(args.path)) {
+    if (isSharedServerModule(relativePath)) {
       ctx.isSharedModulesChanged = true;
     }
 
@@ -93,13 +100,13 @@ export const searchReplaceTool: ToolDefinition<
     // Deploy Supabase function if applicable
     if (
       ctx.supabaseProjectId &&
-      isServerFunction(args.path) &&
+      isServerFunction(relativePath) &&
       !ctx.isSharedModulesChanged
     ) {
       try {
         await deploySupabaseFunction({
           supabaseProjectId: ctx.supabaseProjectId,
-          functionName: path.basename(path.dirname(args.path)),
+          functionName: path.basename(path.dirname(relativePath)),
           appPath: ctx.appPath,
           organizationSlug: ctx.supabaseOrganizationSlug ?? null,
         });

@@ -3,7 +3,10 @@ import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createFeltDB } from "@feltdb/core";
+import { createFeltDB, getTelemetryClient } from "@feltdb/core";
+
+// Keep the self-hosted runtime fully local, including operational telemetry.
+getTelemetryClient().disable();
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const portArgument = process.argv.findIndex(

@@ -34,6 +34,11 @@ self.addEventListener("fetch", (event) => {
   }
   if (urlObj.protocol !== "http:" && urlObj.protocol !== "https:") return;
 
+  // Cross-origin requests already surface in browser devtools. Proxying them
+  // through respondWith adds a second, unhandled service-worker rejection when
+  // an optional external service is unavailable.
+  if (urlObj.origin !== self.location.origin) return;
+
   // Chrome SW footgun: only-if-cached must be same-origin or it throws.
   if (request.cache === "only-if-cached" && request.mode !== "same-origin")
     return;

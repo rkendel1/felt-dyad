@@ -1,12 +1,16 @@
 import fs from "node:fs";
 import { z } from "zod";
 import { ToolDefinition, AgentContext, escapeXmlAttr } from "./types";
-import { safeJoin } from "@/ipc/utils/path_utils";
+import { resolveFileWithinAppPath } from "./path_safety";
 
 const readFile = fs.promises.readFile;
 
 const readFileSchema = z.object({
-  path: z.string().describe("The file path to read"),
+  path: z
+    .string()
+    .describe(
+      "The file path relative to the app root; do not include the app directory name",
+    ),
 });
 
 export const readFileTool: ToolDefinition<z.infer<typeof readFileSchema>> = {
@@ -25,13 +29,15 @@ export const readFileTool: ToolDefinition<z.infer<typeof readFileSchema>> = {
   },
 
   execute: async (args, ctx: AgentContext) => {
-    const fullFilePath = safeJoin(ctx.appPath, args.path);
+    const { fullPath } = resolveFileWithinAppPath({
+      appPath: ctx.appPath,
+      filePath: args.path,
+    });
 
-    if (!fs.existsSync(fullFilePath)) {
+    if (!fs.existsSync(fullPath)) {
       throw new Error(`File does not exist: ${args.path}`);
     }
 
-    const content = await readFile(fullFilePath, "utf8");
-    return content || "";
+    return (await readFile(fullPath, "utf8")) || "";
   },
 };

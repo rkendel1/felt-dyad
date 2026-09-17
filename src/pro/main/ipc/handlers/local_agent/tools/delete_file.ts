@@ -3,13 +3,13 @@ import path from "node:path";
 import { z } from "zod";
 import log from "electron-log";
 import { ToolDefinition, AgentContext, escapeXmlAttr } from "./types";
-import { safeJoin } from "@/ipc/utils/path_utils";
 import { gitRemove } from "@/ipc/utils/git_utils";
 import { deleteSupabaseFunction } from "../../../../../../supabase_admin/supabase_management_client";
 import {
   isServerFunction,
   isSharedServerModule,
 } from "../../../../../../supabase_admin/supabase_utils";
+import { resolveFileWithinAppPath } from "./path_safety";
 
 const logger = log.scope("delete_file");
 
@@ -18,7 +18,11 @@ function getFunctionNameFromPath(input: string): string {
 }
 
 const deleteFileSchema = z.object({
-  path: z.string().describe("The file path to delete"),
+  path: z
+    .string()
+    .describe(
+      "The file path relative to the app root; do not include the app directory name",
+    ),
 });
 
 export const deleteFileTool: ToolDefinition<z.infer<typeof deleteFileSchema>> =
@@ -37,10 +41,12 @@ export const deleteFileTool: ToolDefinition<z.infer<typeof deleteFileSchema>> =
     },
 
     execute: async (args, ctx: AgentContext) => {
-      const fullFilePath = safeJoin(ctx.appPath, args.path);
+      const { fullPath: fullFilePath, relativePath } = resolveFileWithinAppPath(
+        { appPath: ctx.appPath, filePath: args.path },
+      );
 
       // Track if this is a shared module
-      if (isSharedServerModule(args.path)) {
+      if (isSharedServerModule(relativePath)) {
         ctx.isSharedModulesChanged = true;
       }
 
@@ -54,17 +60,17 @@ export const deleteFileTool: ToolDefinition<z.infer<typeof deleteFileSchema>> =
 
         // Remove from git
         try {
-          await gitRemove({ path: ctx.appPath, filepath: args.path });
+          await gitRemove({ path: ctx.appPath, filepath: relativePath });
         } catch (error) {
           logger.warn(`Failed to git remove deleted file ${args.path}:`, error);
         }
 
         // Delete Supabase function if applicable
-        if (ctx.supabaseProjectId && isServerFunction(args.path)) {
+        if (ctx.supabaseProjectId && isServerFunction(relativePath)) {
           try {
             await deleteSupabaseFunction({
               supabaseProjectId: ctx.supabaseProjectId,
-              functionName: getFunctionNameFromPath(args.path),
+              functionName: getFunctionNameFromPath(relativePath),
               organizationSlug: ctx.supabaseOrganizationSlug ?? null,
             });
           } catch (error) {

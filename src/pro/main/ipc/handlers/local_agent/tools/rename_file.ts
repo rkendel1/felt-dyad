@@ -3,7 +3,6 @@ import path from "node:path";
 import { z } from "zod";
 import log from "electron-log";
 import { ToolDefinition, AgentContext, escapeXmlAttr } from "./types";
-import { safeJoin } from "@/ipc/utils/path_utils";
 import { gitAdd, gitRemove } from "@/ipc/utils/git_utils";
 import {
   deploySupabaseFunction,
@@ -13,6 +12,7 @@ import {
   isServerFunction,
   isSharedServerModule,
 } from "../../../../../../supabase_admin/supabase_utils";
+import { resolveFileWithinAppPath } from "./path_safety";
 
 const logger = log.scope("rename_file");
 
@@ -21,8 +21,16 @@ function getFunctionNameFromPath(input: string): string {
 }
 
 const renameFileSchema = z.object({
-  from: z.string().describe("The current file path"),
-  to: z.string().describe("The new file path"),
+  from: z
+    .string()
+    .describe(
+      "The current file path relative to the app root; do not include the app directory name",
+    ),
+  to: z
+    .string()
+    .describe(
+      "The new file path relative to the app root; do not include the app directory name",
+    ),
 });
 
 export const renameFileTool: ToolDefinition<z.infer<typeof renameFileSchema>> =
@@ -41,11 +49,20 @@ export const renameFileTool: ToolDefinition<z.infer<typeof renameFileSchema>> =
     },
 
     execute: async (args, ctx: AgentContext) => {
-      const fromFullPath = safeJoin(ctx.appPath, args.from);
-      const toFullPath = safeJoin(ctx.appPath, args.to);
+      const { fullPath: fromFullPath, relativePath: fromRelativePath } =
+        resolveFileWithinAppPath({ appPath: ctx.appPath, filePath: args.from });
+      const { fullPath: toFullPath, relativePath: toRelativePath } =
+        resolveFileWithinAppPath({
+          appPath: ctx.appPath,
+          filePath: args.to,
+          allowNonExistent: true,
+        });
 
       // Track if this involves shared modules
-      if (isSharedServerModule(args.from) || isSharedServerModule(args.to)) {
+      if (
+        isSharedServerModule(fromRelativePath) ||
+        isSharedServerModule(toRelativePath)
+      ) {
         ctx.isSharedModulesChanged = true;
       }
 
@@ -60,20 +77,20 @@ export const renameFileTool: ToolDefinition<z.infer<typeof renameFileSchema>> =
         );
 
         // Update git
-        await gitAdd({ path: ctx.appPath, filepath: args.to });
+        await gitAdd({ path: ctx.appPath, filepath: toRelativePath });
         try {
-          await gitRemove({ path: ctx.appPath, filepath: args.from });
+          await gitRemove({ path: ctx.appPath, filepath: fromRelativePath });
         } catch (error) {
           logger.warn(`Failed to git remove old file ${args.from}:`, error);
         }
 
         // Handle Supabase functions
         if (ctx.supabaseProjectId) {
-          if (isServerFunction(args.from)) {
+          if (isServerFunction(fromRelativePath)) {
             try {
               await deleteSupabaseFunction({
                 supabaseProjectId: ctx.supabaseProjectId,
-                functionName: getFunctionNameFromPath(args.from),
+                functionName: getFunctionNameFromPath(fromRelativePath),
                 organizationSlug: ctx.supabaseOrganizationSlug ?? null,
               });
             } catch (error) {
@@ -83,11 +100,11 @@ export const renameFileTool: ToolDefinition<z.infer<typeof renameFileSchema>> =
               );
             }
           }
-          if (isServerFunction(args.to) && !ctx.isSharedModulesChanged) {
+          if (isServerFunction(toRelativePath) && !ctx.isSharedModulesChanged) {
             try {
               await deploySupabaseFunction({
                 supabaseProjectId: ctx.supabaseProjectId,
-                functionName: getFunctionNameFromPath(args.to),
+                functionName: getFunctionNameFromPath(toRelativePath),
                 appPath: ctx.appPath,
                 organizationSlug: ctx.supabaseOrganizationSlug ?? null,
               });
