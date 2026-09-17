@@ -18,4 +18,19 @@ export const DEFAULT_TEMPLATE = {
   isOfficial: true,
 };
 
-export const localTemplatesData: Template[] = [DEFAULT_TEMPLATE];
+export const KANBAN_TEMPLATE_ID = "kanban";
+export const KANBAN_TEMPLATE: Template = {
+  id: KANBAN_TEMPLATE_ID,
+  title: "FeltDB Kanban Dashboard",
+  description:
+    "A collaborative drag-and-drop project board backed by a local FeltDB Node server.",
+  imageUrl:
+    "https://raw.githubusercontent.com/brietsparks/kanban-dashboard/master/demo.gif",
+  githubUrl: "https://github.com/brietsparks/kanban-dashboard.git",
+  isOfficial: true,
+};
+
+export const localTemplatesData: Template[] = [
+  DEFAULT_TEMPLATE,
+  KANBAN_TEMPLATE,
+];

@@ -2,7 +2,12 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { listFeltDBModules, parseFlowSpec } from "@feltdb/core";
-import { localTemplatesData } from "@/shared/templates";
+import {
+  KANBAN_TEMPLATE,
+  KANBAN_TEMPLATE_ID,
+  localTemplatesData,
+} from "@/shared/templates";
+import { getBundledTemplateDirectory } from "@/ipc/utils/bundled_templates";
 
 describe("FeltDB Template Verification", () => {
   const scaffoldPath = path.resolve(__dirname, "../../scaffold");
@@ -106,6 +111,49 @@ it("only advertises FeltDB-backed templates in the Hub", () => {
   for (const template of localTemplatesData) {
     expect(template.title).toContain("FeltDB");
     expect(template.description).toContain("FeltDB");
-    expect(template.githubUrl).toBeUndefined();
   }
+});
+
+describe("FeltDB Kanban template", () => {
+  const scaffoldPath = path.resolve(__dirname, "../../scaffold-kanban");
+
+  it("is selectable and retains its upstream attribution", () => {
+    expect(localTemplatesData).toContainEqual(KANBAN_TEMPLATE);
+    expect(KANBAN_TEMPLATE.id).toBe(KANBAN_TEMPLATE_ID);
+    expect(KANBAN_TEMPLATE.githubUrl).toBe(
+      "https://github.com/brietsparks/kanban-dashboard.git",
+    );
+    expect(getBundledTemplateDirectory(KANBAN_TEMPLATE_ID)).toBe(
+      "scaffold-kanban",
+    );
+  });
+
+  it("uses the local Node server and declares its board collections", () => {
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(scaffoldPath, "package.json"), "utf-8"),
+    );
+    const flow = fs
+      .readFileSync(path.join(scaffoldPath, "feltdb.flow"), "utf-8")
+      .replace("{{FLOW_APP_NAME}}", "KanbanApp");
+    const parsedFlow = parseFlowSpec(flow);
+
+    expect(packageJson.scripts.dev).toBe("node server.mjs");
+    expect(packageJson.dependencies["@feltdb/core"]).toBe("0.11.1");
+    expect(parsedFlow.collections.map((collection) => collection.name)).toEqual(
+      ["Column", "Task"],
+    );
+    expect(
+      fs.readFileSync(path.join(scaffoldPath, "server.mjs"), "utf-8"),
+    ).toContain('url.pathname.startsWith("/api/feltdb")');
+  });
+
+  it("persists Kanban operations through FeltDB instead of localStorage", () => {
+    const service = fs.readFileSync(
+      path.join(scaffoldPath, "src", "lib", "kanban.ts"),
+      "utf-8",
+    );
+    expect(service).toContain('db.collection<KanbanColumn>("Column")');
+    expect(service).toContain('db.collection<KanbanTask>("Task")');
+    expect(service).not.toContain("localStorage");
+  });
 });

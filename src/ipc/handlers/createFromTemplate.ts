@@ -7,6 +7,7 @@ import { readSettings } from "@/main/settings";
 import { getTemplateOrThrow } from "../utils/template_utils";
 import log from "electron-log";
 import { configureFeltDBScaffold } from "../utils/feltdb_scaffold";
+import { getBundledTemplateDirectory } from "../utils/bundled_templates";
 
 const logger = log.scope("createFromTemplate");
 
@@ -20,9 +21,11 @@ export async function createFromTemplate({
   const settings = readSettings();
   const templateId = settings.selectedTemplateId;
 
-  if (templateId === "react") {
+  const bundledTemplateDirectory = getBundledTemplateDirectory(templateId);
+
+  if (bundledTemplateDirectory) {
     await copyDirectoryRecursive(
-      path.join(__dirname, "..", "..", "scaffold"),
+      path.join(__dirname, "..", "..", bundledTemplateDirectory),
       fullAppPath,
     );
     await configureFeltDBScaffold(fullAppPath, projectName);

@@ -1,5 +1,8 @@
 # Tech Stack
 
+This app begins as a Kanban dashboard. Preserve the board's drag-and-drop task
+workflow unless the user asks to replace it.
+
 - You are building a React application.
 - Use TypeScript.
 - Use React Router. KEEP the routes in src/App.tsx

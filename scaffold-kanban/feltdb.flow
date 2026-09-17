@@ -1,6 +1,18 @@
 flow_version 1
 
 app {{FLOW_APP_NAME}} {
-  // This file is the authoritative application model.
-  // Add collections, indexes, capabilities, workflows, policies, agents, and modules here.
+  collection Column {
+    id: string
+    title: string
+    position: number
+  }
+
+  collection Task {
+    id: string
+    title: string
+    description: string
+    columnId: string
+    position: number
+    assignee: string?
+  }
 }
