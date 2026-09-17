@@ -10,6 +10,7 @@ import {
   isSharedServerModule,
 } from "../../../../../../supabase_admin/supabase_utils";
 import { applySearchReplace } from "../../../../../../pro/main/ipc/processors/search_replace_processor";
+import { hasManagedAiApiKey } from "./engine_fetch";
 
 const readFile = fs.promises.readFile;
 const logger = log.scope("search_replace");
@@ -38,6 +39,8 @@ export const searchReplaceTool: ToolDefinition<
     "Apply targeted search/replace edits to a file. This is the preferred tool for editing a file.",
   inputSchema: searchReplaceSchema,
   defaultConsent: "always",
+  modifiesState: true,
+  isEnabled: () => !hasManagedAiApiKey(),
 
   getConsentPreview: (args) => `Edit ${args.path}`,
 

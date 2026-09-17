@@ -9,7 +9,7 @@ import {
   isServerFunction,
   isSharedServerModule,
 } from "../../../../../../supabase_admin/supabase_utils";
-import { engineFetch } from "./engine_fetch";
+import { engineFetch, hasManagedAiApiKey } from "./engine_fetch";
 
 const readFile = fs.promises.readFile;
 const logger = log.scope("edit_file");
@@ -135,6 +135,7 @@ export const editFileTool: ToolDefinition<z.infer<typeof editFileSchema>> = {
   inputSchema: editFileSchema,
   defaultConsent: "always",
   modifiesState: true,
+  isEnabled: hasManagedAiApiKey,
 
   getConsentPreview: (args) => `Edit ${args.path}`,
 

@@ -14,6 +14,10 @@ export interface EngineFetchOptions extends Omit<RequestInit, "headers"> {
   headers?: Record<string, string>;
 }
 
+export function hasManagedAiApiKey(): boolean {
+  return Boolean(readSettings().providerSettings?.auto?.apiKey?.value);
+}
+
 /**
  * Fetch wrapper for Dyad engine API calls.
  * Automatically adds Authorization and X-Dyad-Request-Id headers.
